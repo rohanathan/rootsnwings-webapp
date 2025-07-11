@@ -1,0 +1,265 @@
+[debug] [2025-07-11T12:46:03.977Z] ----------------------------------------------------------------------
+[debug] [2025-07-11T12:46:03.982Z] Command:       /usr/local/bin/firebase /home/rohan/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/bin/firebase init
+[debug] [2025-07-11T12:46:03.983Z] CLI Version:   14.10.1
+[debug] [2025-07-11T12:46:03.983Z] Platform:      linux
+[debug] [2025-07-11T12:46:03.983Z] Node Version:  v20.18.2
+[debug] [2025-07-11T12:46:03.983Z] Time:          Fri Jul 11 2025 13:46:03 GMT+0100 (British Summer Time)
+[debug] [2025-07-11T12:46:03.983Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-07-11T12:46:03.992Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-11T12:46:03.993Z] > authorizing via signed-in user (rohanathan.s1412@gmail.com)
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  /home/rohan/rootsnwings
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] but for now we'll just set up a default project.
+[info] 
+[debug] [2025-07-11T12:48:14.652Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:48:14.652Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:48:14.659Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=100
+[debug] [2025-07-11T12:48:15.460Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2025-07-11T12:48:15.461Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] i  Using project rootsnwings-465610 (rootsnwings) 
+[info] 
+=== Firestore Setup
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2025-07-11T12:48:17.577Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:48:17.577Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:48:17.577Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firestore.googleapis.com [none]
+[debug] [2025-07-11T12:48:17.577Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firestore.googleapis.com x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:48:18.731Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firestore.googleapis.com 200
+[debug] [2025-07-11T12:48:18.731Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firestore.googleapis.com [omitted]
+[info] ✔  firestore: required API firestore.googleapis.com is enabled 
+[debug] [2025-07-11T12:48:18.747Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:48:18.747Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:48:18.747Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/databases [none]
+[debug] [2025-07-11T12:48:19.551Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/databases 200
+[debug] [2025-07-11T12:48:19.551Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/databases {}
+[debug] [2025-07-11T12:48:19.552Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:48:19.552Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:48:19.552Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/locations [none]
+[debug] [2025-07-11T12:48:19.651Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/locations 200
+[debug] [2025-07-11T12:48:19.652Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/locations {"locations":[{"name":"projects/rootsnwings-465610/locations/eur3","labels":{"appengine.googleapis.com/geo":"europe-west","cloud.googleapis.com/location":"eur3","cloud.googleapis.com/geo":"eur3"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"eur3","displayName":"Europe"},{"name":"projects/rootsnwings-465610/locations/nam5","labels":{"appengine.googleapis.com/geo":"us-central","cloud.googleapis.com/location":"nam5","cloud.googleapis.com/geo":"nam5"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"nam5","displayName":"United States"},{"name":"projects/rootsnwings-465610/locations/nam7","labels":{"cloud.googleapis.com/location":"nam7","cloud.googleapis.com/geo":"nam7"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"nam7","displayName":"United States"},{"name":"projects/rootsnwings-465610/locations/africa-south1","labels":{"cloud.googleapis.com/location":"africa-south1","cloud.googleapis.com/region":"africa-south1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"africa-south1","displayName":"Johannesburg"},{"name":"projects/rootsnwings-465610/locations/asia-east1","labels":{"appengine.googleapis.com/region":"asia-east1","cloud.googleapis.com/location":"asia-east1","cloud.googleapis.com/region":"asia-east1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"asia-east1","displayName":"Taiwan"},{"name":"projects/rootsnwings-465610/locations/asia-east2","labels":{"appengine.googleapis.com/region":"asia-east2","cloud.googleapis.com/location":"asia-east2","cloud.googleapis.com/region":"asia-east2"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"asia-east2","displayName":"Hong Kong"},{"name":"projects/rootsnwings-465610/locations/asia-northeast1","labels":{"appengine.googleapis.com/region":"asia-northeast1","cloud.googleapis.com/location":"asia-northeast1","cloud.googleapis.com/region":"asia-northeast1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"asia-northeast1","displayName":"Tokyo"},{"name":"projects/rootsnwings-465610/locations/asia-northeast2","labels":{"appengine.googleapis.com/region":"asia-northeast2","cloud.googleapis.com/location":"asia-northeast2","cloud.googleapis.com/region":"asia-northeast2"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"asia-northeast2","displayName":"Osaka"},{"name":"projects/rootsnwings-465610/locations/asia-northeast3","labels":{"appengine.googleapis.com/region":"asia-northeast3","cloud.googleapis.com/location":"asia-northeast3","cloud.googleapis.com/region":"asia-northeast3"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"asia-northeast3","displayName":"Seoul"},{"name":"projects/rootsnwings-465610/locations/asia-south1","labels":{"appengine.googleapis.com/region":"asia-south1","cloud.googleapis.com/location":"asia-south1","cloud.googleapis.com/region":"asia-south1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"asia-south1","displayName":"Mumbai"},{"name":"projects/rootsnwings-465610/locations/asia-south2","labels":{"cloud.googleapis.com/location":"asia-south2","cloud.googleapis.com/region":"asia-south2"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"asia-south2","displayName":"Delhi"},{"name":"projects/rootsnwings-465610/locations/asia-southeast1","labels":{"appengine.googleapis.com/region":"asia-southeast1","cloud.googleapis.com/location":"asia-southeast1","cloud.googleapis.com/region":"asia-southeast1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"asia-southeast1","displayName":"Singapore"},{"name":"projects/rootsnwings-465610/locations/asia-southeast2","labels":{"appengine.googleapis.com/region":"asia-southeast2","cloud.googleapis.com/location":"asia-southeast2","cloud.googleapis.com/region":"asia-southeast2"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"asia-southeast2","displayName":"Jakarta"},{"name":"projects/rootsnwings-465610/locations/australia-southeast1","labels":{"appengine.googleapis.com/region":"australia-southeast1","cloud.googleapis.com/location":"australia-southeast1","cloud.googleapis.com/region":"australia-southeast1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"australia-southeast1","displayName":"Sydney"},{"name":"projects/rootsnwings-465610/locations/australia-southeast2","labels":{"cloud.googleapis.com/location":"australia-southeast2","cloud.googleapis.com/region":"australia-southeast2"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"australia-southeast2","displayName":"Melbourne"},{"name":"projects/rootsnwings-465610/locations/europe-central2","labels":{"appengine.googleapis.com/region":"europe-central2","cloud.googleapis.com/location":"europe-central2","cloud.googleapis.com/region":"europe-central2"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-central2","displayName":"Warsaw"},{"name":"projects/rootsnwings-465610/locations/europe-north1","labels":{"cloud.googleapis.com/location":"europe-north1","cloud.googleapis.com/region":"europe-north1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-north1","displayName":"Finland"},{"name":"projects/rootsnwings-465610/locations/europe-north2","labels":{"cloud.googleapis.com/location":"europe-north2","cloud.googleapis.com/region":"europe-north2"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-north2","displayName":"Stockholm"},{"name":"projects/rootsnwings-465610/locations/europe-southwest1","labels":{"cloud.googleapis.com/location":"europe-southwest1","cloud.googleapis.com/region":"europe-southwest1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-southwest1","displayName":"Madrid"},{"name":"projects/rootsnwings-465610/locations/europe-west1","labels":{"cloud.googleapis.com/location":"europe-west1","cloud.googleapis.com/region":"europe-west1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-west1","displayName":"Belgium"},{"name":"projects/rootsnwings-465610/locations/europe-west10","labels":{"cloud.googleapis.com/location":"europe-west10","cloud.googleapis.com/region":"europe-west10"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-west10","displayName":"Berlin"},{"name":"projects/rootsnwings-465610/locations/europe-west12","labels":{"cloud.googleapis.com/location":"europe-west12","cloud.googleapis.com/region":"europe-west12"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-west12","displayName":"Turin"},{"name":"projects/rootsnwings-465610/locations/europe-west2","labels":{"appengine.googleapis.com/region":"europe-west2","cloud.googleapis.com/location":"europe-west2","cloud.googleapis.com/region":"europe-west2"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-west2","displayName":"London"},{"name":"projects/rootsnwings-465610/locations/europe-west3","labels":{"appengine.googleapis.com/region":"europe-west3","cloud.googleapis.com/location":"europe-west3","cloud.googleapis.com/region":"europe-west3"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-west3","displayName":"Frankfurt"},{"name":"projects/rootsnwings-465610/locations/europe-west4","labels":{"cloud.googleapis.com/location":"europe-west4","cloud.googleapis.com/region":"europe-west4"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-west4","displayName":"Netherlands"},{"name":"projects/rootsnwings-465610/locations/europe-west6","labels":{"appengine.googleapis.com/region":"europe-west6","cloud.googleapis.com/location":"europe-west6","cloud.googleapis.com/region":"europe-west6"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-west6","displayName":"Zurich"},{"name":"projects/rootsnwings-465610/locations/europe-west8","labels":{"cloud.googleapis.com/location":"europe-west8","cloud.googleapis.com/region":"europe-west8"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-west8","displayName":"Milan"},{"name":"projects/rootsnwings-465610/locations/europe-west9","labels":{"cloud.googleapis.com/location":"europe-west9","cloud.googleapis.com/region":"europe-west9"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"europe-west9","displayName":"Paris"},{"name":"projects/rootsnwings-465610/locations/me-central1","labels":{"cloud.googleapis.com/location":"me-central1","cloud.googleapis.com/region":"me-central1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"me-central1","displayName":"Doha"},{"name":"projects/rootsnwings-465610/locations/me-central2","labels":{"cloud.googleapis.com/location":"me-central2","cloud.googleapis.com/region":"me-central2"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"me-central2","displayName":"Dammam"},{"name":"projects/rootsnwings-465610/locations/me-west1","labels":{"cloud.googleapis.com/location":"me-west1","cloud.googleapis.com/region":"me-west1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"me-west1","displayName":"Tel Aviv"},{"name":"projects/rootsnwings-465610/locations/northamerica-northeast1","labels":{"appengine.googleapis.com/region":"northamerica-northeast1","cloud.googleapis.com/location":"northamerica-northeast1","cloud.googleapis.com/region":"northamerica-northeast1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"northamerica-northeast1","displayName":"Montréal"},{"name":"projects/rootsnwings-465610/locations/northamerica-northeast2","labels":{"cloud.googleapis.com/location":"northamerica-northeast2","cloud.googleapis.com/region":"northamerica-northeast2"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"northamerica-northeast2","displayName":"Toronto"},{"name":"projects/rootsnwings-465610/locations/northamerica-south1","labels":{"cloud.googleapis.com/location":"northamerica-south1","cloud.googleapis.com/region":"northamerica-south1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"northamerica-south1","displayName":"Mexico"},{"name":"projects/rootsnwings-465610/locations/southamerica-east1","labels":{"appengine.googleapis.com/region":"southamerica-east1","cloud.googleapis.com/location":"southamerica-east1","cloud.googleapis.com/region":"southamerica-east1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"southamerica-east1","displayName":"São Paulo"},{"name":"projects/rootsnwings-465610/locations/southamerica-west1","labels":{"cloud.googleapis.com/location":"southamerica-west1","cloud.googleapis.com/region":"southamerica-west1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"southamerica-west1","displayName":"Santiago"},{"name":"projects/rootsnwings-465610/locations/us-central1","labels":{"cloud.googleapis.com/location":"us-central1","cloud.googleapis.com/region":"us-central1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"us-central1","displayName":"Iowa"},{"name":"projects/rootsnwings-465610/locations/us-east1","labels":{"appengine.googleapis.com/region":"us-east1","cloud.googleapis.com/location":"us-east1","cloud.googleapis.com/region":"us-east1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"us-east1","displayName":"South Carolina"},{"name":"projects/rootsnwings-465610/locations/us-east4","labels":{"appengine.googleapis.com/region":"us-east4","cloud.googleapis.com/location":"us-east4","cloud.googleapis.com/region":"us-east4"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"us-east4","displayName":"Northern Virginia"},{"name":"projects/rootsnwings-465610/locations/us-east5","labels":{"cloud.googleapis.com/location":"us-east5","cloud.googleapis.com/region":"us-east5"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"us-east5","displayName":"Columbus"},{"name":"projects/rootsnwings-465610/locations/us-south1","labels":{"cloud.googleapis.com/location":"us-south1","cloud.googleapis.com/region":"us-south1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"us-south1","displayName":"Dallas"},{"name":"projects/rootsnwings-465610/locations/us-west1","labels":{"appengine.googleapis.com/region":"us-west1","cloud.googleapis.com/location":"us-west1","cloud.googleapis.com/region":"us-west1"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"us-west1","displayName":"Oregon"},{"name":"projects/rootsnwings-465610/locations/us-west2","labels":{"appengine.googleapis.com/region":"us-west2","cloud.googleapis.com/location":"us-west2","cloud.googleapis.com/region":"us-west2"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"us-west2","displayName":"Los Angeles"},{"name":"projects/rootsnwings-465610/locations/us-west3","labels":{"appengine.googleapis.com/region":"us-west3","cloud.googleapis.com/location":"us-west3","cloud.googleapis.com/region":"us-west3"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"us-west3","displayName":"Salt Lake City"},{"name":"projects/rootsnwings-465610/locations/us-west4","labels":{"appengine.googleapis.com/region":"us-west4","cloud.googleapis.com/location":"us-west4","cloud.googleapis.com/region":"us-west4"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"us-west4","displayName":"Las Vegas"},{"name":"projects/rootsnwings-465610/locations/us-west8","labels":{"cloud.googleapis.com/location":"us-west8","cloud.googleapis.com/region":"us-west8"},"metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.LocationMetadata"},"locationId":"us-west8","displayName":"Phoenix"}]}
+[info] 
+[info] Firestore Security Rules allow you to define how and when to allow
+[info] requests. You can keep these rules in your project directory
+[info] and publish them with firebase deploy.
+[info] 
+[debug] [2025-07-11T12:50:59.918Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:50:59.919Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:50:59.920Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/rootsnwings-465610/releases pageSize=10&pageToken=
+[debug] [2025-07-11T12:51:00.931Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/rootsnwings-465610/releases 200
+[debug] [2025-07-11T12:51:00.932Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/rootsnwings-465610/releases {}
+[info] 
+[info] Firestore indexes allow you to perform complex queries while
+[info] maintaining performance that scales with the size of the result
+[info] set. You can keep index definitions in your project directory
+[info] and publish them with firebase deploy.
+[info] 
+[debug] [2025-07-11T12:51:07.854Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:51:07.854Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:51:07.855Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:51:07.855Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:51:07.855Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/databases/(default)/collectionGroups/-/indexes [none]
+[debug] [2025-07-11T12:51:07.858Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* [none]
+[debug] [2025-07-11T12:51:08.247Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/databases/(default)/collectionGroups/-/indexes 404
+[debug] [2025-07-11T12:51:08.247Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/databases/(default)/collectionGroups/-/indexes {"error":{"code":404,"message":"Project 'rootsnwings-465610' or database '(default)' does not exist.","status":"NOT_FOUND"}}
+[info] ✔  Wrote firestore.rules 
+[info] ✔  Wrote firestore.indexes.json 
+[info] 
+=== Genkit Setup
+[debug] [2025-07-11T12:51:08.267Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* 404
+[debug] [2025-07-11T12:51:08.268Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/rootsnwings-465610/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* {"error":{"code":404,"message":"Project 'rootsnwings-465610' or database '(default)' does not exist.","status":"NOT_FOUND"}}
+[debug] [2025-07-11T12:51:28.947Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-11T12:51:28.947Z] > authorizing via signed-in user (rohanathan.s1412@gmail.com)
+[debug] [2025-07-11T12:51:28.948Z] [iam] checking project rootsnwings-465610 for permissions ["firebase.projects.get"]
+[debug] [2025-07-11T12:51:28.949Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:51:28.949Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:51:28.949Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:testIamPermissions [none]
+[debug] [2025-07-11T12:51:28.949Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:testIamPermissions x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:51:28.949Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-07-11T12:51:29.911Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:testIamPermissions 200
+[debug] [2025-07-11T12:51:29.911Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-07-11T12:51:29.912Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:51:29.913Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:51:29.913Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:51:29.913Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:51:29.913Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/cloudfunctions.googleapis.com [none]
+[debug] [2025-07-11T12:51:29.913Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/cloudfunctions.googleapis.com x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:51:29.916Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/runtimeconfig.googleapis.com [none]
+[debug] [2025-07-11T12:51:29.916Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/runtimeconfig.googleapis.com x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:51:31.017Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/runtimeconfig.googleapis.com 200
+[debug] [2025-07-11T12:51:31.017Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/runtimeconfig.googleapis.com [omitted]
+[debug] [2025-07-11T12:51:31.033Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/cloudfunctions.googleapis.com 200
+[debug] [2025-07-11T12:51:31.033Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/cloudfunctions.googleapis.com [omitted]
+[info] Let's create a new codebase for your functions.
+[info] A directory corresponding to the codebase will be created in your project
+[info] with sample code pre-configured.
+
+[info] See https://firebase.google.com/docs/functions/organize-functions for
+[info] more information on organizing your functions using codebases.
+
+[info] Functions can be deployed with firebase deploy.
+
+[info] ✔  Wrote functions/package.json 
+[info] ✔  Wrote functions/.eslintrc.js 
+[info] ✔  Wrote functions/tsconfig.dev.json 
+[info] ✔  Wrote functions/tsconfig.json 
+[info] ✔  Wrote functions/src/index.ts 
+[info] ✔  Wrote functions/.gitignore 
+[info] 
+[error] NPM install failed, continuing with Firebase initialization...
+[info] 
+[info] i  genkit: Installing Genkit CLI version 1.14.1
+ 
+[error] ⬢  genkit: Genkit initialization failed: Error: spawn(npm, [install, genkit-cli@1.14.1
+, --save-dev]) 
+ exited with code: 2 
+[info] 
+=== Functions Setup
+[debug] [2025-07-11T12:53:50.519Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-11T12:53:50.520Z] > authorizing via signed-in user (rohanathan.s1412@gmail.com)
+[debug] [2025-07-11T12:53:50.520Z] [iam] checking project rootsnwings-465610 for permissions ["firebase.projects.get"]
+[debug] [2025-07-11T12:53:50.520Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:53:50.520Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:53:50.521Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:testIamPermissions [none]
+[debug] [2025-07-11T12:53:50.521Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:testIamPermissions x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:53:50.521Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-07-11T12:53:51.019Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:testIamPermissions 200
+[debug] [2025-07-11T12:53:51.020Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:testIamPermissions {"permissions":["firebase.projects.get"]}
+[info] 
+Detected existing codebase(s): default
+
+[info] Let's create a new codebase for your functions.
+[info] A directory corresponding to the codebase will be created in your project
+[info] with sample code pre-configured.
+
+[info] See https://firebase.google.com/docs/functions/organize-functions for
+[info] more information on organizing your functions using codebases.
+
+[info] Functions can be deployed with firebase deploy.
+
+[info] ✔  Wrote app_functions/requirements.txt 
+[info] ✔  Wrote app_functions/.gitignore 
+[info] ✔  Wrote app_functions/main.py 
+[debug] [2025-07-11T12:56:47.692Z] Running command with virtualenv: command=., args=["\"/home/rohan/rootsnwings/app_functions/venv/bin/activate\"","&&","pip3","install","--upgrade","pip"]
+[debug] [2025-07-11T12:56:47.700Z] Running command with virtualenv: command=., args=["\"/home/rohan/rootsnwings/app_functions/venv/bin/activate\"","&&","python3.13","-m","pip","install","-r","requirements.txt"]
+[info] 
+=== App Hosting Setup
+[debug] [2025-07-11T12:56:47.709Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:56:47.709Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:56:47.710Z] >>> [apiv2][query] GET https://cloudbilling.googleapis.com/v1/projects/rootsnwings-465610/billingInfo [none]
+[debug] [2025-07-11T12:56:48.268Z] <<< [apiv2][status] GET https://cloudbilling.googleapis.com/v1/projects/rootsnwings-465610/billingInfo 200
+[debug] [2025-07-11T12:56:48.268Z] <<< [apiv2][body] GET https://cloudbilling.googleapis.com/v1/projects/rootsnwings-465610/billingInfo {"name":"projects/rootsnwings-465610/billingInfo","projectId":"rootsnwings-465610","billingAccountName":"billingAccounts/018F0A-79F6B8-B75E05","billingEnabled":true}
+[debug] [2025-07-11T12:56:48.269Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:56:48.269Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:56:48.269Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firebaseapphosting.googleapis.com [none]
+[debug] [2025-07-11T12:56:48.269Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:56:49.361Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firebaseapphosting.googleapis.com 200
+[debug] [2025-07-11T12:56:49.361Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2025-07-11T12:56:49.362Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:56:49.362Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:56:49.363Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firebaseapphosting.googleapis.com:enable [none]
+[debug] [2025-07-11T12:56:49.363Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firebaseapphosting.googleapis.com:enable x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:56:50.324Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firebaseapphosting.googleapis.com:enable 200
+[debug] [2025-07-11T12:56:50.324Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/firebaseapphosting.googleapis.com:enable [omitted]
+[debug] [2025-07-11T12:57:00.350Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.350Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.350Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.351Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.352Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.352Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.353Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.353Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.353Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.353Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.353Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.353Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:00.353Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/developerconnect.googleapis.com [none]
+[debug] [2025-07-11T12:57:00.353Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/developerconnect.googleapis.com x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:57:00.355Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/cloudbuild.googleapis.com [none]
+[debug] [2025-07-11T12:57:00.356Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/cloudbuild.googleapis.com x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:57:00.358Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/secretmanager.googleapis.com [none]
+[debug] [2025-07-11T12:57:00.358Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/secretmanager.googleapis.com x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:57:00.359Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/run.googleapis.com [none]
+[debug] [2025-07-11T12:57:00.359Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/run.googleapis.com x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:57:00.361Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/artifactregistry.googleapis.com [none]
+[debug] [2025-07-11T12:57:00.362Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/artifactregistry.googleapis.com x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:57:00.363Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/iam.googleapis.com [none]
+[debug] [2025-07-11T12:57:00.364Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/iam.googleapis.com x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:57:01.495Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/developerconnect.googleapis.com 200
+[debug] [2025-07-11T12:57:01.495Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/developerconnect.googleapis.com [omitted]
+[debug] [2025-07-11T12:57:01.495Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:01.495Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:01.495Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/developerconnect.googleapis.com:enable [none]
+[debug] [2025-07-11T12:57:01.496Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/developerconnect.googleapis.com:enable x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:57:01.498Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/secretmanager.googleapis.com 200
+[debug] [2025-07-11T12:57:01.498Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/secretmanager.googleapis.com [omitted]
+[debug] [2025-07-11T12:57:01.515Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/cloudbuild.googleapis.com 200
+[debug] [2025-07-11T12:57:01.515Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/cloudbuild.googleapis.com [omitted]
+[debug] [2025-07-11T12:57:01.519Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/iam.googleapis.com 200
+[debug] [2025-07-11T12:57:01.520Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/iam.googleapis.com [omitted]
+[debug] [2025-07-11T12:57:01.526Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/artifactregistry.googleapis.com 200
+[debug] [2025-07-11T12:57:01.526Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/artifactregistry.googleapis.com [omitted]
+[debug] [2025-07-11T12:57:01.530Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/run.googleapis.com 200
+[debug] [2025-07-11T12:57:01.530Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/run.googleapis.com [omitted]
+[debug] [2025-07-11T12:57:02.509Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/developerconnect.googleapis.com:enable 200
+[debug] [2025-07-11T12:57:02.510Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/rootsnwings-465610/services/developerconnect.googleapis.com:enable [omitted]
+[debug] [2025-07-11T12:57:12.534Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:12.534Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:12.534Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/rootsnwings-465610/serviceAccounts/firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com:testIamPermissions [none]
+[debug] [2025-07-11T12:57:12.534Z] >>> [apiv2][(partial)header] POST https://iam.googleapis.com/v1/projects/rootsnwings-465610/serviceAccounts/firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com:testIamPermissions x-goog-quota-user=projects/rootsnwings-465610
+[debug] [2025-07-11T12:57:12.535Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/rootsnwings-465610/serviceAccounts/firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2025-07-11T12:57:13.567Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/rootsnwings-465610/serviceAccounts/firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com:testIamPermissions 404
+[debug] [2025-07-11T12:57:13.568Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/rootsnwings-465610/serviceAccounts/firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com:testIamPermissions {"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}}
+[debug] [2025-07-11T12:57:13.569Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:13.569Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:13.569Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/rootsnwings-465610/serviceAccounts [none]
+[debug] [2025-07-11T12:57:13.569Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/rootsnwings-465610/serviceAccounts {"accountId":"firebase-app-hosting-compute","serviceAccount":{"displayName":"Firebase App Hosting compute service account","description":"Default service account used to run builds and deploys for Firebase App Hosting"}}
+[debug] [2025-07-11T12:57:14.081Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/rootsnwings-465610/serviceAccounts 200
+[debug] [2025-07-11T12:57:14.081Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/rootsnwings-465610/serviceAccounts [omitted]
+[debug] [2025-07-11T12:57:14.082Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:14.082Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:14.082Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:getIamPolicy [none]
+[debug] [2025-07-11T12:57:14.591Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:getIamPolicy 200
+[debug] [2025-07-11T12:57:14.591Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:getIamPolicy {"version":1,"etag":"BwY5ptg5P6U=","bindings":[{"role":"roles/aiplatform.serviceAgent","members":["serviceAccount:service-944856745086@gcp-sa-aiplatform.iam.gserviceaccount.com"]},{"role":"roles/cloudbuild.builds.builder","members":["serviceAccount:944856745086@cloudbuild.gserviceaccount.com"]},{"role":"roles/cloudbuild.serviceAgent","members":["serviceAccount:service-944856745086@gcp-sa-cloudbuild.iam.gserviceaccount.com"]},{"role":"roles/cloudfunctions.admin","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/compute.serviceAgent","members":["serviceAccount:service-944856745086@compute-system.iam.gserviceaccount.com"]},{"role":"roles/containerregistry.ServiceAgent","members":["serviceAccount:service-944856745086@containerregistry.iam.gserviceaccount.com"]},{"role":"roles/dataflow.serviceAgent","members":["serviceAccount:service-944856745086@dataflow-service-producer-prod.iam.gserviceaccount.com"]},{"role":"roles/editor","members":["serviceAccount:944856745086-compute@developer.gserviceaccount.com","serviceAccount:944856745086@cloudservices.gserviceaccount.com"]},{"role":"roles/firebase.managementServiceAgent","members":["serviceAccount:service-944856745086@gcp-sa-firebase.iam.gserviceaccount.com"]},{"role":"roles/firebase.sdkAdminServiceAgent","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/firebaseauth.admin","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/iam.serviceAccountTokenCreator","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/notebooks.serviceAgent","members":["serviceAccount:service-944856745086@gcp-sa-notebooks.iam.gserviceaccount.com"]},{"role":"roles/owner","members":["user:rmalliksharma96@gmail.com","user:rohanathan.s1412@gmail.com"]},{"role":"roles/run.serviceAgent","members":["serviceAccount:service-944856745086@serverless-robot-prod.iam.gserviceaccount.com"]}]}
+[debug] [2025-07-11T12:57:14.592Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:14.593Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:57:14.593Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:setIamPolicy [none]
+[debug] [2025-07-11T12:57:14.593Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:setIamPolicy {"policy":{"version":1,"etag":"BwY5ptg5P6U=","bindings":[{"role":"roles/aiplatform.serviceAgent","members":["serviceAccount:service-944856745086@gcp-sa-aiplatform.iam.gserviceaccount.com"]},{"role":"roles/cloudbuild.builds.builder","members":["serviceAccount:944856745086@cloudbuild.gserviceaccount.com"]},{"role":"roles/cloudbuild.serviceAgent","members":["serviceAccount:service-944856745086@gcp-sa-cloudbuild.iam.gserviceaccount.com"]},{"role":"roles/cloudfunctions.admin","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/compute.serviceAgent","members":["serviceAccount:service-944856745086@compute-system.iam.gserviceaccount.com"]},{"role":"roles/containerregistry.ServiceAgent","members":["serviceAccount:service-944856745086@containerregistry.iam.gserviceaccount.com"]},{"role":"roles/dataflow.serviceAgent","members":["serviceAccount:service-944856745086@dataflow-service-producer-prod.iam.gserviceaccount.com"]},{"role":"roles/editor","members":["serviceAccount:944856745086-compute@developer.gserviceaccount.com","serviceAccount:944856745086@cloudservices.gserviceaccount.com"]},{"role":"roles/firebase.managementServiceAgent","members":["serviceAccount:service-944856745086@gcp-sa-firebase.iam.gserviceaccount.com"]},{"role":"roles/firebase.sdkAdminServiceAgent","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com","serviceAccount:firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/firebaseauth.admin","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/iam.serviceAccountTokenCreator","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/notebooks.serviceAgent","members":["serviceAccount:service-944856745086@gcp-sa-notebooks.iam.gserviceaccount.com"]},{"role":"roles/owner","members":["user:rmalliksharma96@gmail.com","user:rohanathan.s1412@gmail.com"]},{"role":"roles/run.serviceAgent","members":["serviceAccount:service-944856745086@serverless-robot-prod.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.computeRunner","members":["serviceAccount:firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/developerconnect.readTokenAccessor","members":["serviceAccount:firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/storage.objectViewer","members":["serviceAccount:firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com"]}]},"updateMask":"bindings"}
+[debug] [2025-07-11T12:57:16.152Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:setIamPolicy 200
+[debug] [2025-07-11T12:57:16.152Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/rootsnwings-465610:setIamPolicy {"version":1,"etag":"BwY5ptl2gJw=","bindings":[{"role":"roles/aiplatform.serviceAgent","members":["serviceAccount:service-944856745086@gcp-sa-aiplatform.iam.gserviceaccount.com"]},{"role":"roles/cloudbuild.builds.builder","members":["serviceAccount:944856745086@cloudbuild.gserviceaccount.com"]},{"role":"roles/cloudbuild.serviceAgent","members":["serviceAccount:service-944856745086@gcp-sa-cloudbuild.iam.gserviceaccount.com"]},{"role":"roles/cloudfunctions.admin","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/compute.serviceAgent","members":["serviceAccount:service-944856745086@compute-system.iam.gserviceaccount.com"]},{"role":"roles/containerregistry.ServiceAgent","members":["serviceAccount:service-944856745086@containerregistry.iam.gserviceaccount.com"]},{"role":"roles/dataflow.serviceAgent","members":["serviceAccount:service-944856745086@dataflow-service-producer-prod.iam.gserviceaccount.com"]},{"role":"roles/developerconnect.readTokenAccessor","members":["serviceAccount:firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/editor","members":["serviceAccount:944856745086-compute@developer.gserviceaccount.com","serviceAccount:944856745086@cloudservices.gserviceaccount.com"]},{"role":"roles/firebase.managementServiceAgent","members":["serviceAccount:service-944856745086@gcp-sa-firebase.iam.gserviceaccount.com"]},{"role":"roles/firebase.sdkAdminServiceAgent","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com","serviceAccount:firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/firebaseapphosting.computeRunner","members":["serviceAccount:firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/firebaseauth.admin","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/iam.serviceAccountTokenCreator","members":["serviceAccount:firebase-adminsdk-fbsvc@rootsnwings-465610.iam.gserviceaccount.com"]},{"role":"roles/notebooks.serviceAgent","members":["serviceAccount:service-944856745086@gcp-sa-notebooks.iam.gserviceaccount.com"]},{"role":"roles/owner","members":["user:rmalliksharma96@gmail.com","user:rohanathan.s1412@gmail.com"]},{"role":"roles/run.serviceAgent","members":["serviceAccount:service-944856745086@serverless-robot-prod.iam.gserviceaccount.com"]},{"role":"roles/storage.objectViewer","members":["serviceAccount:firebase-app-hosting-compute@rootsnwings-465610.iam.gserviceaccount.com"]}]}
+[info] i  This command links your local project to Firebase App Hosting. You will be able to deploy your web app with `firebase deploy` after setup. 
+[info] i  === Set up your backend 
+[debug] [2025-07-11T12:58:44.970Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:58:44.970Z] Checked if tokens are valid: true, expires at: 1752241273319
+[debug] [2025-07-11T12:58:44.971Z] >>> [apiv2][query] GET https://firebaseapphosting.googleapis.com/v1beta/projects/rootsnwings-465610/locations 
+[debug] [2025-07-11T12:58:46.034Z] <<< [apiv2][status] GET https://firebaseapphosting.googleapis.com/v1beta/projects/rootsnwings-465610/locations 200
+[debug] [2025-07-11T12:58:46.035Z] <<< [apiv2][body] GET https://firebaseapphosting.googleapis.com/v1beta/projects/rootsnwings-465610/locations {"locations":[{"name":"projects/rootsnwings-465610/locations/asia-east1","locationId":"asia-east1","displayName":"Taiwan"},{"name":"projects/rootsnwings-465610/locations/europe-west4","locationId":"europe-west4","displayName":"Netherlands"},{"name":"projects/rootsnwings-465610/locations/us-central1","locationId":"us-central1","displayName":"Iowa"}]}
+[info] ✔  Location set to europe-west4.
+ 
+[debug] [2025-07-11T12:59:08.265Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (/home/rohan/.cache/firebase/tools/lib/node_modules/@inquirer/core/dist/commonjs/lib/create-prompt.js:101:37)
+    at Interface.emit (node:events:518:28)
+    at Interface.emit (node:domain:489:12)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1125:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:264:20)
+    at ReadStream.emit (node:events:530:35)
+    at ReadStream.emit (node:domain:489:12)
+    at emitKeys (node:internal/readline/utils:371:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+[error] 
+[error] Error: An unexpected error has occurred.
