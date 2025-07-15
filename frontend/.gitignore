@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# firebase-seeder
+# .gitignore (preferred in most cases)
+firebase-seeder/rootsnwings-465610-firebase-adminsdk-fbsvc-9b15b65f27.json
+firebase-seeder/node_modules/
