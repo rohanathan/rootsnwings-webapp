@@ -35,3 +35,6 @@ Thumbs.db
 .idea/
 *.swp
 
+#Fireabase seeder
+firebase-seeder/serviceAccountKey.json
+firebase-seeder/node_modules/
