@@ -1,0 +1,80 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+frontend/node_modules
+frontend/.pnp
+frontend/.pnp.*
+frontend/.yarn/*
+frontend/!.yarn/patches
+frontend/!.yarn/plugins
+frontend/!.yarn/releases
+frontend/!.yarn/versions
+
+# testing
+frontend/coverage
+
+# next.js
+frontend/.next/
+frontend/out/
+
+# production
+frontend/build
+
+# misc
+frontend/.DS_Store
+frontend/*.pem
+
+# debug
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+/frontend/.env*
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# vercel
+frontend/.vercel
+
+# typescript
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# === LOCKFILES ===
+frontend/package-lock.json
+frontend/yarn.lock
+frontend/pnpm-lock.yaml
+
+
+# === FIREBASE CONFIGS (local-only) ===
+frontend/firestore.rules
+frontend/firestore.indexes.json
+frontend/firebase.json
+frontend/.firebaserc
+frontend/storage.rules
+
+#Other files
+frontend/tsconfig.json
+frontend/next.config.ts
+frontend/next-env.d.ts
+firestore/*
+
+
+# Backend and Python
+backend/app/__pycache__/*
+*.py[cod]
+*.egg-info/
+*.log
+
+# Virtual environments
+backend/venv/*
+backend/.env
+
+# VS Code settings
+.vscode/
+
+#Ignore Secrets
+secrets/*
