@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.routers import mentors
 from app.routers import classes
-
+from app.routers import search
 
 app = FastAPI(
     title="Roots & Wings API",
@@ -12,6 +12,8 @@ app = FastAPI(
 # Include modular routes
 app.include_router(mentors.router)
 app.include_router(classes.router)
+app.include_router(search.router)
+
 
 @app.get("/health")
 def health_check():

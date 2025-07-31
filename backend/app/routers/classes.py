@@ -1,74 +1,44 @@
-from fastapi import APIRouter
-from app.services.firestore import db
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException
+from app.models.class_models import ClassItem, ClassListResponse, FeaturedClassResponse, WorkshopListResponse
+from app.services.class_service import (
+    fetch_all_classes,
+    fetch_all_workshops,
+    fetch_featured_classes,
+    fetch_upcoming_workshops,
+    fetch_class_by_id
+)
 
 router = APIRouter(
     prefix="/classes",
     tags=["Classes"]
 )
 
-# --- Response Model ---
-class ClassItem(BaseModel):
-    classId: str
-    title: str
-    ageGroup: str
-    level: str
-    startDate: str
-    endDate: str
-    weeklySchedule: List[str]
-    format: str
-    platform: Optional[str] = None
-    mentorName: str
-    mentorPhotoURL: Optional[str] = None
-    mentorRating: Optional[float] = None
-    price: float
-    currency: str
-    totalSessions: int
-    seatsLeft: int
 
-class AllClassesResponse(BaseModel):
-    classes: List[ClassItem]
-
-# --- Route Handler ---
-@router.get("/", response_model=AllClassesResponse)
+@router.get("/", response_model=ClassListResponse)
 def get_all_classes():
-    docs = db.collection("classes").stream()
-    class_list = []
+    return {"classes": fetch_all_classes()}
 
-    for doc in docs:
-        data = doc.to_dict()
-        if data.get("type") != "batch" or data.get("status") != "approved":
-            continue
 
-        schedule = data.get("schedule", {})
-        pricing = data.get("pricing", {})
-        capacity = data.get("capacity", {})
-        location = data.get("location", {})
+@router.get("/featured", response_model=FeaturedClassResponse)
+def get_featured_classes():
+    return {"featured": fetch_featured_classes()}
 
-        # Build the response item
-        class_obj = {
-            "classId": data.get("classId"),
-            "title": data.get("title"),
-            "ageGroup": data.get("ageGroup"),
-            "level": data.get("level"),
-            "startDate": schedule.get("startDate"),
-            "endDate": schedule.get("endDate"),
-            "weeklySchedule": [
-                f"{item['day']} {item['startTime']}–{item['endTime']}"
-                for item in schedule.get("weeklySchedule", [])
-            ],
-            "format": data.get("format"),
-            "platform": location.get("details", {}).get("platform"),
-            "mentorName": data.get("mentorName"),
-            "mentorPhotoURL": data.get("mentorPhotoURL"),
-            "mentorRating": data.get("mentorRating"),
-            "price": pricing.get("subtotal", 0.0),
-            "currency": pricing.get("currency", "GBP"),
-            "totalSessions": pricing.get("totalSessions", 0),
-            "seatsLeft": max(capacity.get("maxStudents", 0) - capacity.get("currentEnrollment", 0), 0)
-        }
 
-        class_list.append(class_obj)
+@router.get("/workshops", response_model=WorkshopListResponse)
+def get_all_workshops():
+    return {"workshops": fetch_all_workshops()}
 
-    return {"classes": class_list}
+
+@router.get("/workshops/upcoming", response_model=WorkshopListResponse)
+def get_upcoming_workshops():
+    return {"workshops": fetch_upcoming_workshops()}
+
+
+@router.get("/{class_id}", response_model=ClassItem)
+def get_class_by_id(class_id: str):
+    data = fetch_class_by_id(class_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Class not found")
+    return data
+
+
