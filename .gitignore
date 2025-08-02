@@ -78,3 +78,6 @@ backend/.env
 
 #Ignore Secrets
 secrets/*
+
+CLAUDE.md
+.claude/
