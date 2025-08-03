@@ -17,20 +17,12 @@ class PaymentService:
     """Stripe payment processing service"""
     
     def __init__(self):
-        # Load Stripe API key from secrets file
-        secrets_path = Path(__file__).parent.parent.parent.parent / "secrets" / "stripe.env"
-        if secrets_path.exists():
-            with open(secrets_path, 'r') as f:
-                for line in f:
-                    if line.startswith('STRIPE_SECRET_KEY='):
-                        stripe.api_key = line.split('=', 1)[1].strip()
-                        break
-        else:
-            # Fallback to environment variable
-            stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-        
+        # Load the Stripe API key from the environment variable provided by Cloud Run
+        stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+    
         if not stripe.api_key:
-            raise ValueError("Stripe API key not found. Please set STRIPE_SECRET_KEY in secrets/stripe.env")
+            # This will now only fail if the deployment is misconfigured
+            raise ValueError("Stripe API key is not set in the environment.")
     
     def create_payment_intent(self, payment_request: PaymentIntent) -> PaymentIntentResponse:
         """Create a Stripe payment intent"""

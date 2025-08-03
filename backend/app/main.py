@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.routers import mentors
 from app.routers import classes
 from app.routers import search
@@ -6,6 +7,9 @@ from app.routers import bookings
 from app.routers import users
 from app.routers import payments
 from app.routers import debug
+from app.routers import availability
+from app.routers import qualifications
+from app.routers import one_on_one_bookings
 from fastapi.staticfiles import StaticFiles  
 import os
 
@@ -13,6 +17,23 @@ app = FastAPI(
     title="Roots & Wings API",
     description="FastAPI backend for Roots & Wings on GCP",
     version="0.1.0"
+)
+
+# Configure CORS for frontend integration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",  # Next.js development
+        "http://localhost:3001",  # Alternative dev port
+        "http://127.0.0.1:3000",  # Local development alternative
+        "https://*.vercel.app",   # Vercel deployments
+        "https://rootsnwings.com",  # Production domain
+        "https://www.rootsnwings.com",  # WWW version
+        # Add more domains as needed
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 # Include modular routes
@@ -23,6 +44,9 @@ app.include_router(bookings.router)
 app.include_router(users.router)
 app.include_router(payments.router)
 app.include_router(debug.router)
+app.include_router(availability.router)
+app.include_router(qualifications.router)
+app.include_router(one_on_one_bookings.router)
 
 # Create uploads directory if it doesn't exist
 uploads_dir = "uploads"
@@ -35,4 +59,17 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "service": "Roots & Wings API",
+        "version": "0.1.0",
+        "environment": os.getenv("ENVIRONMENT", "development"),
+        "endpoints": {
+            "docs": "/docs",
+            "mentors": "/mentors/",
+            "availability": "/availability/",
+            "qualifications": "/qualifications/",
+            "bookings": "/bookings/",
+            "one_on_one": "/bookings/one-on-one/"
+        }
+    }
