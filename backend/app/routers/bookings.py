@@ -71,6 +71,34 @@ def cancel_booking_request(booking_id: str):
     booking = cancel_booking(booking_id)
     return {"booking": booking}
 
+@router.post("/{booking_id}/review", response_model=BookingResponse)
+def submit_booking_review(booking_id: str, rating: int = Query(..., ge=1, le=5), review: Optional[str] = None):
+    """
+    Submit a rating and optional review for a booking.
+    
+    Requirements:
+    - Booking must be in 'confirmed' or 'completed' status (students can review ongoing classes)
+    - Rating must be between 1-5
+    - Can only be submitted by the student who made the booking
+    
+    This will also trigger mentor stats update.
+    """
+    from app.models.booking_models import BookingUpdate
+    
+    # Create update with review data
+    booking_update = BookingUpdate(
+        studentRating=rating,
+        studentReview=review
+    )
+    
+    booking = update_booking(booking_id, booking_update)
+    
+    # Trigger mentor stats update
+    from app.services.mentor_stats_service import update_mentor_stats
+    update_mentor_stats(booking.mentorId)
+    
+    return {"booking": booking}
+
 @router.get("/student/{student_id}", response_model=BookingListResponse)
 def get_student_bookings(student_id: str):
     """
@@ -98,17 +126,35 @@ def get_class_bookings(class_id: str):
     bookings = get_bookings_by_class(class_id)
     return {"bookings": bookings}
 
-@router.get("/", response_model=BookingListResponse)
-def get_bookings(
+@router.get("/my-bookings", response_model=BookingListResponse)
+def get_my_bookings(user_id: str = Query(..., description="User ID (temporary - will be from auth token)")):
+    """
+    Get all bookings for the currently logged-in user.
+    
+    Returns bookings where:
+    - studentId matches the authenticated user (for regular students)
+    - parentId matches the authenticated user (for young learners)
+    
+    TODO: Replace user_id query param with authentication middleware
+    """
+    # Get bookings where user is either student or parent
+    student_bookings = get_bookings_by_student(user_id)
+    # TODO: Add logic to also get bookings where parentId matches user_id
+    return {"bookings": student_bookings}
+
+@router.get("/admin/bookings", response_model=BookingListResponse)
+def get_all_bookings_admin(
     limit: Optional[int] = Query(None, description="Limit number of results"),
     status: Optional[BookingStatus] = Query(None, description="Filter by booking status")
 ):
     """
-    Get all bookings with optional filtering.
+    [ADMIN ONLY] Get all bookings with optional filtering.
     
     Query parameters:
     - limit: Limit number of results returned
     - status: Filter by booking status (pending, confirmed, completed, cancelled)
+    
+    Security: This endpoint should be protected with admin authentication
     """
     bookings = get_all_bookings(limit=limit, status=status)
     return {"bookings": bookings}

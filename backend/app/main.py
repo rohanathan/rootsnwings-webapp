@@ -10,6 +10,8 @@ from app.routers import debug
 from app.routers import availability
 from app.routers import qualifications
 from app.routers import one_on_one_bookings
+from app.routers import reviews
+from app.routers import metadata
 from fastapi.staticfiles import StaticFiles  
 import os
 
@@ -47,6 +49,8 @@ app.include_router(debug.router)
 app.include_router(availability.router)
 app.include_router(qualifications.router)
 app.include_router(one_on_one_bookings.router)
+app.include_router(reviews.router)
+app.include_router(metadata.router)
 
 # Create uploads directory if it doesn't exist
 uploads_dir = "uploads"
