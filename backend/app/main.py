@@ -12,6 +12,8 @@ from app.routers import qualifications
 from app.routers import one_on_one_bookings
 from app.routers import reviews
 from app.routers import metadata
+from app.routers import auth
+from app.routers import onboarding
 from fastapi.staticfiles import StaticFiles  
 import os
 
@@ -39,6 +41,8 @@ app.add_middleware(
 )
 
 # Include modular routes
+app.include_router(auth.router)
+app.include_router(onboarding.router)
 app.include_router(mentors.router)
 app.include_router(classes.router)
 app.include_router(search.router)

@@ -60,6 +60,15 @@ def confirm_booking_payment(booking_id: str):
     This moves status from PENDING to CONFIRMED.
     """
     booking = confirm_booking(booking_id)
+    
+    # Send booking confirmation email
+    try:
+        from app.services.email_service import send_booking_confirmation_email
+        booking_dict = booking.dict() if hasattr(booking, 'dict') else booking
+        send_booking_confirmation_email(booking_dict)
+    except Exception as e:
+        print(f"Error sending booking confirmation email: {str(e)}")
+    
     return {"booking": booking}
 
 @router.post("/{booking_id}/cancel", response_model=BookingResponse)
