@@ -15,28 +15,9 @@ router = APIRouter(
 
 @router.get("/", response_model=MentorListResponse)
 def get_mentors(
-    page: int = Query(1, ge=1, description="Page number"),
-    pageSize: int = Query(20, ge=1, le=100, description="Items per page"),
-    sortBy: str = Query("avgRating", description="Sort field"),
-    sortOrder: str = Query("desc", description="Sort order: asc or desc")
-):
-    """
-    Get all approved mentors with pagination and sorting.
-    """
-    mentors, total = fetch_all_mentors(page, pageSize)
-    total_pages = (total + pageSize - 1) // pageSize
-    
-    return {
-        "mentors": mentors,
-        "total": total,
-        "page": page,
-        "pageSize": pageSize,
-        "totalPages": total_pages
-    }
-
-@router.get("/search", response_model=MentorListResponse)
-def search_mentors_endpoint(
+    # Search & Filter Parameters
     q: str = Query(None, description="Search in name, headline, bio, tags"),
+    featured: bool = Query(None, description="Get featured mentors only"),
     category: str = Query(None, description="Filter by category"),
     city: str = Query(None, description="Filter by city"),
     country: str = Query(None, description="Filter by country"),
@@ -48,21 +29,34 @@ def search_mentors_endpoint(
     maxRate: float = Query(None, ge=0, description="Maximum hourly rate"),
     isVerified: bool = Query(None, description="Filter by verification status"),
     acceptingStudents: bool = Query(None, description="Filter by accepting students"),
+    # Pagination & Sorting
     sortBy: str = Query("avgRating", description="Sort field"),
     sortOrder: str = Query("desc", description="Sort order: asc or desc"),
     page: int = Query(1, ge=1, description="Page number"),
     pageSize: int = Query(20, ge=1, le=100, description="Items per page")
 ):
     """
-    Search mentors with advanced filtering, sorting, and pagination.
+    Unified mentors endpoint with search, filtering, and pagination.
     
-    This endpoint allows you to:
-    - Search by text in name, headline, bio, and tags
-    - Filter by location, category, teaching preferences
-    - Filter by rating, rates, verification status
-    - Sort by rating, reviews, rate, or creation date
-    - Paginate through results
+    Examples:
+    - /mentors - Get all mentors
+    - /mentors?featured=true - Get featured mentors
+    - /mentors?q=guitar&city=london - Search guitar mentors in London
+    - /mentors?category=music&minRating=4.5 - Music mentors with high ratings
     """
+    
+    # Handle featured mentors
+    if featured is True:
+        mentors = fetch_featured_mentors(pageSize if pageSize <= 20 else 6)
+        return {
+            "mentors": mentors,
+            "total": len(mentors),
+            "page": 1,
+            "pageSize": len(mentors),
+            "totalPages": 1
+        }
+    
+    # Handle search/filter (if any parameters provided) or get all
     search_query = MentorSearchQuery(
         q=q,
         category=category,
@@ -93,43 +87,25 @@ def search_mentors_endpoint(
         "totalPages": total_pages
     }
 
-@router.get("/featured", response_model=FeaturedMentorsResponse)
-def get_featured_mentors(limit: int = Query(6, ge=1, le=20, description="Number of featured mentors")):
-    """
-    Get featured mentors based on performance metrics.
-    Mentors are ranked by rating, student retention, and responsiveness.
-    """
-    return {"featured": fetch_featured_mentors(limit)}
-
-@router.get("/categories", response_model=List[str])
-def get_mentor_categories_list():
-    """
-    Get list of all available mentor categories.
-    Useful for populating filter dropdowns.
-    """
-    return get_mentor_categories()
-
-@router.get("/cities", response_model=List[str])
-def get_mentor_cities_list():
-    """
-    Get list of all cities where mentors are available.
-    Useful for populating location filters.
-    """
-    return get_mentor_cities()
-
-@router.get("/{mentor_id}", response_model=MentorResponse)
-def get_mentor_by_id(mentor_id: str):
+@router.get("/{mentor_id}")
+def get_mentor_by_id(
+    mentor_id: str,
+    include_classes: bool = Query(False, description="Include mentor's classes in response")
+):
     """
     Get detailed information about a specific mentor.
+    
+    Examples:
+    - /mentors/user026 - Get mentor details only
+    - /mentors/user026?include_classes=true - Get mentor with their classes
     """
     mentor = fetch_mentor_by_id(mentor_id)
-    return {"mentor": mentor}
-
-@router.get("/{mentor_id}/classes", response_model=MentorClassesResponse)
-def get_mentor_classes(mentor_id: str):
-    """
-    Get all approved classes and workshops offered by this mentor.
-    """
-    classes = get_classes_by_mentor_id(mentor_id)
-    return {"classes": classes}
+    
+    response = {"mentor": mentor}
+    
+    if include_classes:
+        classes = get_classes_by_mentor_id(mentor_id)
+        response["classes"] = classes
+    
+    return response
 

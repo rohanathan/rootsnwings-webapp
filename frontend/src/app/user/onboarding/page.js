@@ -11,6 +11,9 @@ const UserOnboardingFlow = () => {
     // State to hold all form data
     const [formData, setFormData] = useState({
         phoneNumber: '',
+        city: '',
+        region: '',
+        country: '',
         postcode: '',
         selectedRoles: [],
         studentProfile: {
@@ -151,7 +154,7 @@ const UserOnboardingFlow = () => {
         e.preventDefault();
         
         // Simple validation for current step
-        if (currentStep === 1 && (!formData.phoneNumber || !formData.postcode)) {
+        if (currentStep === 1 && (!formData.phoneNumber || !formData.city || !formData.region || !formData.country)) {
             alert('Please fill in all required fields.');
             return;
         }
@@ -392,10 +395,61 @@ const UserOnboardingFlow = () => {
                                                 <p className="text-xs text-gray-500 mt-1">We'll use this for important updates and booking confirmations</p>
                                             </div>
 
-                                            {/* Location (Postcode) */}
+                                            {/* City */}
+                                            <div>
+                                                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <i className="fas fa-map-marker-alt mr-2 text-primary"></i>City <span className="text-red-500">*</span>
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="city" 
+                                                    name="city"
+                                                    value={formData.city}
+                                                    onChange={handleBasicInfoChange}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                                                    placeholder="Birmingham"
+                                                    required
+                                                />
+                                            </div>
+
+                                            {/* Region/County/State */}
+                                            <div>
+                                                <label htmlFor="region" className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <i className="fas fa-map mr-2 text-primary"></i>County/State/Province <span className="text-red-500">*</span>
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="region" 
+                                                    name="region"
+                                                    value={formData.region}
+                                                    onChange={handleBasicInfoChange}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                                                    placeholder="West Midlands"
+                                                    required
+                                                />
+                                            </div>
+
+                                            {/* Country */}
+                                            <div>
+                                                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <i className="fas fa-globe mr-2 text-primary"></i>Country <span className="text-red-500">*</span>
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="country" 
+                                                    name="country"
+                                                    value={formData.country}
+                                                    onChange={handleBasicInfoChange}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                                                    placeholder="United Kingdom"
+                                                    required
+                                                />
+                                            </div>
+
+                                            {/* Postcode (Optional) */}
                                             <div>
                                                 <label htmlFor="postcode" className="block text-sm font-medium text-gray-700 mb-2">
-                                                    <i className="fas fa-map-marker-alt mr-2 text-primary"></i>Postcode <span className="text-red-500">*</span>
+                                                    <i className="fas fa-mail-bulk mr-2 text-primary"></i>Postcode <span className="text-gray-400">(Optional)</span>
                                                 </label>
                                                 <input 
                                                     type="text" 
@@ -405,7 +459,6 @@ const UserOnboardingFlow = () => {
                                                     onChange={handleBasicInfoChange}
                                                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
                                                     placeholder="B15 2TT"
-                                                    required
                                                 />
                                                 <p className="text-xs text-gray-500 mt-1">Helps us find mentors and workshops near you</p>
                                             </div>
@@ -784,7 +837,7 @@ const UserOnboardingFlow = () => {
                                                 <span className="font-medium">Phone:</span> {formData.phoneNumber}
                                             </li>
                                             <li>
-                                                <span className="font-medium">Postcode:</span> {formData.postcode}
+                                                <span className="font-medium">Location:</span> {formData.city}, {formData.region}, {formData.country}{formData.postcode ? ` ${formData.postcode}` : ''}
                                             </li>
                                             {formData.selectedRoles.length > 0 && (
                                                 <li>
