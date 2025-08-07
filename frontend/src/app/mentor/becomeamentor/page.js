@@ -47,7 +47,7 @@ const BecomeMentorPage = () => {
     // Placeholder function for form submission and button clicks
     const handleButtonClick = (action) => {
         console.log(`Action: ${action}`);
-        // Implement your form submission or navigation logic here
+        window.location.href = '/getstarted/mentor';
     };
 
     return (
@@ -56,7 +56,7 @@ const BecomeMentorPage = () => {
                 <meta charset="UTF-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <title>Become a Mentor - Roots & Wings</title>
-                <script src="https://cdn.tailwindcss.com"></script>
+                {/* <script src="https://cdn.tailwindcss.com"></script> */}
                 <script dangerouslySetInnerHTML={{
                     __html: `
                         tailwind.config = {
@@ -72,7 +72,7 @@ const BecomeMentorPage = () => {
                         }
                     `
                 }} />
-                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+                {/* <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" /> */}
             </Head>
             <body className="bg-white font-sans">
                 {/* Navigation */}

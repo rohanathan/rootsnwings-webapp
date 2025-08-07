@@ -17,31 +17,81 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
-      <div className="max-w-7xl mx-auto px-5">
-        <div className="flex justify-between items-center py-4">
-          {/* Logo */}
-          <div className="text-2xl font-bold text-primary-dark">
-            Roots & Wings
-          </div>
+    <div className="max-w-7xl mx-auto px-5">
+      <div className="flex justify-between items-center py-4">
+        {/* Logo */}
+        <div className="text-2xl font-bold text-primary-dark">
+          Roots & Wings
+        </div>
 
-          {/* Desktop Menu */}
-          <ul className="hidden md:flex space-x-8">
-            <li><a href="#home" onClick={(e) => handleSmoothScroll(e, '#home')} className="text-gray-700 hover:text-primary font-medium transition-colors">Home</a></li>
-            <li><a href="#mentors" onClick={(e) => handleSmoothScroll(e, '#mentors')} className="text-gray-700 hover:text-primary font-medium transition-colors">Mentor Profiles</a></li>
-            <li><a href="#workshops" onClick={(e) => handleSmoothScroll(e, '#workshops')} className="text-gray-700 hover:text-primary font-medium transition-colors">Workshops</a></li>
-            <li><a href="#enroll" onClick={(e) => handleSmoothScroll(e, '#enroll')} className="text-gray-700 hover:text-primary font-medium transition-colors">Enroll</a></li>
-            <li><a href="#faq" onClick={(e) => handleSmoothScroll(e, '#faq')} className="text-gray-700 hover:text-primary font-medium transition-colors">FAQ</a></li>
-          </ul>
+        {/* Desktop Menu */}
+        <ul className="hidden md:flex space-x-8">
+          <li>
+            <a
+              href="#home"
+              className="text-gray-700 hover:text-primary font-medium transition-colors"
+            >
+              Home
+            </a>
+          </li>
+          <li>
+            <a
+              href="#mentors"
+              className="text-gray-700 hover:text-primary font-medium transition-colors"
+            >
+              Mentor Profiles
+            </a>
+          </li>
+          <li>
+            <a
+              href="#workshops"
+              className="text-gray-700 hover:text-primary font-medium transition-colors"
+            >
+              Workshops
+            </a>
+          </li>
+          <li>
+            <a
+              href="#enroll"
+              className="text-gray-700 hover:text-primary font-medium transition-colors"
+            >
+              Enroll
+            </a>
+          </li>
+          <li>
+            <a
+              href="#faq"
+              className="text-gray-700 hover:text-primary font-medium transition-colors"
+            >
+              FAQ
+            </a>
+          </li>
+        </ul>
 
-          {/* Action Buttons */}
-          <div className="flex items-center space-x-4">
-            <a href="#login" className="text-primary-dark font-medium hover:text-primary transition-colors">Login</a>
-            <a href="#signup" className="bg-primary hover:bg-blue-500 text-white px-5 py-2 rounded-full font-medium transition-colors">Sign Up</a>
-            <a href="#mentor" className="bg-primary-dark hover:bg-blue-900 text-white px-5 py-2 rounded-full font-medium transition-colors">Become a Mentor</a>
-          </div>
+        {/* Action Buttons */}
+        <div className="flex items-center space-x-4">
+          <a
+            href="getstarted"
+            className="text-primary-dark font-medium hover:text-primary transition-colors"
+          >
+            Login
+          </a>
+          <a
+            href="getstarted"
+            className="bg-primary hover:bg-blue-500 text-white px-5 py-2 rounded-full font-medium transition-colors"
+          >
+            Sign Up
+          </a>
+          <a
+            href="mentor/becomeamentor"
+            className="bg-primary-dark hover:bg-blue-900 text-white px-5 py-2 rounded-full font-medium transition-colors"
+          >
+            Become a Mentor
+          </a>
         </div>
       </div>
-    </nav>
+    </div>
+  </nav>
   );
 };
 

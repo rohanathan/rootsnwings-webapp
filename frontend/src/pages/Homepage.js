@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDate } from "@/app/utils";
+import Navbar from "@/components/NavBar";
 import axios from "axios";
 import React, { useState, useEffect } from "react";
 
@@ -16,25 +17,53 @@ const Homepage = () => {
   const [featuredMentors, setFeaturedMentors] = useState([]);
 
   const [workshop, setWorkshop] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [cities, setCities] = useState([]);
 
   useEffect(() => {
     const fetchMentors = async () => {
       const response = await axios.get(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/featured?limit=6"
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/?featured=true&pageSize=6"
       );
-      setFeaturedMentors(response.data.featured);
+      setFeaturedMentors(response.data.mentors);
     };
 
     const fetchWorkshop = async () => {
       const response = await axios.get(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/classes/workshops/upcoming?page=1&pageSize=20"
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?type=workshop&upcoming=true&pageSize=3"
       );
 
-      setWorkshop(response.data.workshops);
+      setWorkshop(response.data.classes);
+    };
+
+    const fetchTestimonials = async () => {
+      const response = await axios.get(
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/testimonials?limit=3"
+      );
+      setTestimonials(response.data.testimonials);
+    };
+
+    const fetchCategories = async () => {
+      const response = await axios.get(
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/categories"
+      );
+      setCategories(response.data.categories);
+    };
+
+    const fetchCities = async () => {
+      const response = await axios.get(
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/"
+      );
+      const uniqueCities = [...new Set(response.data.mentors.map(mentor => mentor.city))].sort();
+      setCities(uniqueCities);
     };
 
     fetchMentors();
     fetchWorkshop();
+    fetchTestimonials();
+    fetchCategories();
+    fetchCities();
   }, []);
 
 
@@ -118,83 +147,8 @@ const Homepage = () => {
       />
 
       <body className="font-sans text-gray-800 bg-white">
-        {/* Navigation Component */}
-        <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
-          <div className="max-w-7xl mx-auto px-5">
-            <div className="flex justify-between items-center py-4">
-              {/* Logo */}
-              <div className="text-2xl font-bold text-primary-dark">
-                Roots & Wings
-              </div>
 
-              {/* Desktop Menu */}
-              <ul className="hidden md:flex space-x-8">
-                <li>
-                  <a
-                    href="#home"
-                    className="text-gray-700 hover:text-primary font-medium transition-colors"
-                  >
-                    Home
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#mentors"
-                    className="text-gray-700 hover:text-primary font-medium transition-colors"
-                  >
-                    Mentor Profiles
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#workshops"
-                    className="text-gray-700 hover:text-primary font-medium transition-colors"
-                  >
-                    Workshops
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#enroll"
-                    className="text-gray-700 hover:text-primary font-medium transition-colors"
-                  >
-                    Enroll
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#faq"
-                    className="text-gray-700 hover:text-primary font-medium transition-colors"
-                  >
-                    FAQ
-                  </a>
-                </li>
-              </ul>
-
-              {/* Action Buttons */}
-              <div className="flex items-center space-x-4">
-                <a
-                  href="#login"
-                  className="text-primary-dark font-medium hover:text-primary transition-colors"
-                >
-                  Login
-                </a>
-                <a
-                  href="#signup"
-                  className="bg-primary hover:bg-blue-500 text-white px-5 py-2 rounded-full font-medium transition-colors"
-                >
-                  Sign Up
-                </a>
-                <a
-                  href="mentor/becomeamentor"
-                  className="bg-primary-dark hover:bg-blue-900 text-white px-5 py-2 rounded-full font-medium transition-colors"
-                >
-                  Become a Mentor
-                </a>
-              </div>
-            </div>
-          </div>
-        </nav>
+        <Navbar /> 
 
         {/* Hero Section Component */}
         <section
@@ -250,10 +204,11 @@ const Homepage = () => {
                       onChange={(e) => setSelectedCategory(e.target.value)}
                     >
                       <option>🎯 All Categories</option>
-                      <option>🎻 Classical Music</option>
-                      <option>🎨 Art & Craft</option>
-                      <option>🧘 Mindfulness</option>
-                      <option>🗣️ Spoken Word</option>
+                      {categories.map((category) => (
+                        <option key={category.categoryId} value={category.categoryName}>
+                          {category.categoryName}
+                        </option>
+                      ))}
                     </select>
                     <select
                       className="px-4 py-2 border-2 border-gray-200 rounded-full text-sm hover:border-primary focus:border-primary focus:outline-none transition-colors"
@@ -262,9 +217,11 @@ const Homepage = () => {
                       onChange={(e) => setSelectedLocation(e.target.value)}
                     >
                       <option>📍 All Locations</option>
-                      <option>London</option>
-                      <option>Manchester</option>
-                      <option>Birmingham</option>
+                      {cities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
                       <option>Online</option>
                     </select>
                   </div>
@@ -653,49 +610,26 @@ const Homepage = () => {
             </h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Testimonial 1 */}
-              <div className="bg-primary-light p-8 rounded-3xl text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white font-bold mx-auto mb-6">
-                  S
+              {testimonials.map((testimonial, index) => (
+                <div key={index} className="bg-primary-light p-8 rounded-3xl text-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white font-bold mx-auto mb-6">
+                    {testimonial.studentInitial}
+                  </div>
+                  <p className="italic text-gray-700 mb-6 leading-relaxed">
+                    "{testimonial.review}"
+                  </p>
+                  <h4 className="font-semibold text-primary-dark">{testimonial.studentName}</h4>
+                  <p className="text-sm text-gray-600">{testimonial.userType}</p>
+                  <div className="text-yellow-400 mt-2">
+                    {'★'.repeat(testimonial.rating)}
+                  </div>
+                  {testimonial.className && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Class: {testimonial.className}
+                    </p>
+                  )}
                 </div>
-                <p className="italic text-gray-700 mb-6 leading-relaxed">
-                  "My daughter learned Hindustani vocals with Ms. Anaya from
-                  Manchester. The cultural depth and personal attention have
-                  been incredible."
-                </p>
-                <h4 className="font-semibold text-primary-dark">Sarah K.</h4>
-                <p className="text-sm text-gray-600">Parent</p>
-                <div className="text-yellow-400 mt-2">★★★★★</div>
-              </div>
-
-              {/* Testimonial 2 */}
-              <div className="bg-primary-light p-8 rounded-3xl text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white font-bold mx-auto mb-6">
-                  T
-                </div>
-                <p className="italic text-gray-700 mb-6 leading-relaxed">
-                  "I gained confidence through public speaking sessions. The
-                  mentors really understand how to bring out your potential."
-                </p>
-                <h4 className="font-semibold text-primary-dark">Tom M.</h4>
-                <p className="text-sm text-gray-600">Student</p>
-                <div className="text-yellow-400 mt-2">★★★★★</div>
-              </div>
-
-              {/* Testimonial 3 */}
-              <div className="bg-primary-light p-8 rounded-3xl text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white font-bold mx-auto mb-6">
-                  R
-                </div>
-                <p className="italic text-gray-700 mb-6 leading-relaxed">
-                  "I love passing on cultural knowledge and seeing young minds
-                  flourish. This platform connects me with truly engaged
-                  learners."
-                </p>
-                <h4 className="font-semibold text-primary-dark">Ravi P.</h4>
-                <p className="text-sm text-gray-600">Mentor</p>
-                <div className="text-yellow-400 mt-2">★★★★★</div>
-              </div>
+              ))}
             </div>
           </div>
         </section>

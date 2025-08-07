@@ -25,6 +25,15 @@ class AvailabilitySummary(BaseModel):
     generallyAvailable: List[str] = Field(default_factory=list)
     preferredHours: Optional[List[str]] = Field(default_factory=list)
 
+class Qualification(BaseModel):
+    id: str
+    type: str  # "degree", "certification", "experience"
+    title: str
+    institution: str
+    year: str
+    icon: str = "🎓"
+    certUrl: Optional[str] = None  # Optional certificate/document URL for admin validation
+
 class Mentor(BaseModel):
     uid: str
     displayName: str
@@ -49,6 +58,7 @@ class Mentor(BaseModel):
     isVerified: Optional[bool] = False
     backgroundChecked: Optional[bool] = False
     acceptingNewStudents: Optional[dict] = None
+    qualifications: Optional[List[Qualification]] = Field(default_factory=list)
     availabilitySummary: Optional[AvailabilitySummary] = None
     createdAt: Optional[datetime] = None
     updatedAt: Optional[datetime] = None

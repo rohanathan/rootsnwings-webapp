@@ -10,7 +10,8 @@ def search_mentors(query: MentorSearchQuery) -> Tuple[List[Mentor], int]:
     """
     try:
         # Start with base query - only active mentors
-        base_query = db.collection("mentors").where("status", "==", "active")
+        # base_query = db.collection("mentors").where("status", "==", "active")  # COMMENTED OUT
+        base_query = db.collection("mentors")  # NO STATUS FILTER for testing
         
         # Apply filters
         filters = []
@@ -121,7 +122,8 @@ def fetch_all_mentors(page: int = 1, page_size: int = 20) -> Tuple[List[Mentor],
 def fetch_featured_mentors(limit: int = 6) -> List[Mentor]:
     """Get featured mentors based on performance score"""
     try:
-        docs = db.collection("mentors").where("status", "==", "active").stream()
+        # docs = db.collection("mentors").where("status", "==", "active").stream()  # COMMENTED OUT
+        docs = db.collection("mentors").stream()  # NO STATUS FILTER for testing
         mentor_scores = []
         
         for doc in docs:
@@ -173,7 +175,8 @@ def fetch_mentor_by_id(mentor_id: str) -> Mentor:
 def get_mentor_categories() -> List[str]:
     """Get list of all mentor categories"""
     try:
-        docs = db.collection("mentors").where("status", "==", "active").stream()
+        # docs = db.collection("mentors").where("status", "==", "active").stream()  # COMMENTED OUT
+        docs = db.collection("mentors").stream()  # NO STATUS FILTER for testing
         categories = set()
         
         for doc in docs:
@@ -190,7 +193,8 @@ def get_mentor_categories() -> List[str]:
 def get_mentor_cities() -> List[str]:
     """Get list of all mentor cities"""
     try:
-        docs = db.collection("mentors").where("status", "==", "active").stream()
+        # docs = db.collection("mentors").where("status", "==", "active").stream()  # COMMENTED OUT
+        docs = db.collection("mentors").stream()  # NO STATUS FILTER for testing
         cities = set()
         
         for doc in docs:

@@ -1,4 +1,6 @@
 "use client"
+import AccountDropDown from '@/components/AccountDropDown';
+import UserSidebar from '@/components/UserSidebar';
 import React, { useState, useEffect } from 'react';
 
 const Dashboard = () => {
@@ -47,7 +49,7 @@ const Dashboard = () => {
     return (
         <div className="font-sans text-gray-800 bg-primary-light min-h-screen">
             {/* Header */}
-            <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+            <header className="bg-white shadow-sm border-b border-gray-200 sticky top-a0 z-40">
                 <div className="flex items-center justify-between px-6 py-4">
                     {/* Left: Logo & Mobile Menu */}
                     <div className="flex items-center space-x-4">
@@ -90,116 +92,14 @@ const Dashboard = () => {
                         </button>
 
                         {/* Dropdown Menu */}
-                        <div id="profile-dropdown" className={`${isProfileDropdownOpen ? '' : 'hidden'} absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2`}>
-                            <a href="#" className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50">
-                                <i className="fas fa-user text-gray-400"></i>
-                                <span>Manage Profiles</span>
-                            </a>
-                            <a href="#" className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50">
-                                <i className="fas fa-plus text-gray-400"></i>
-                                <span>Add Young Learner</span>
-                            </a>
-                            <a href="#" className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50">
-                                <i className="fas fa-cog text-gray-400"></i>
-                                <span>Settings</span>
-                            </a>
-                            <hr className="my-2" />
-                            <a href="#" className="flex items-center space-x-3 px-4 py-2 text-red-600 hover:bg-red-50">
-                                <i className="fas fa-sign-out-alt text-red-400"></i>
-                                <span>Log Out</span>
-                            </a>
-                        </div>
+                        <AccountDropDown isProfileDropdownOpen={isProfileDropdownOpen} />
                     </div>
                 </div>
             </header>
 
             <div className="flex">
                 {/* Sidebar */}
-                <nav
-                    id="sidebar"
-                    className={`bg-white w-64 min-h-screen shadow-sm border-r border-gray-200 fixed md:static z-30 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
-                >
-                    <div className="p-6">
-                        {/* Main Navigation */}
-                        <div className="space-y-2 mb-8">
-                            <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 bg-primary text-white">
-                                <i className="fas fa-home text-lg"></i>
-                                <span className="font-medium">Dashboard</span>
-                            </a>
-                            <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                                <i className="fas fa-search text-lg"></i>
-                                <span>Explore Mentors</span>
-                            </a>
-                            <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                                <i className="fas fa-calendar-alt text-lg"></i>
-                                <span>My Bookings</span>
-                            </a>
-                            <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                                <i className="fas fa-heart text-lg"></i>
-                                <span>Saved Mentors</span>
-                            </a>
-                            <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                                <i className="fas fa-users text-lg"></i>
-                                <span>Workshops</span>
-                            </a>
-                        </div>
-
-                        {/* Young Learners Section */}
-                        <div className="border-t border-gray-200 pt-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Young Learners</h3>
-                                <button id="add-learner-btn" className="text-purple-primary hover:text-purple-600 text-sm">
-                                    <i className="fas fa-plus"></i>
-                                </button>
-                            </div>
-                            
-                            <div className="space-y-2" id="young-learners-nav">
-                                <a href="#" className="young-learner-nav flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-purple-50 hover:translate-x-1">
-                                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                                        <span className="text-purple-600 text-xs font-semibold">E</span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium">Emma (12)</div>
-                                        <div className="text-xs text-gray-500">Music, Art</div>
-                                    </div>
-                                </a>
-                                
-                                <a href="#" className="young-learner-nav flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-green-50 hover:translate-x-1">
-                                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                        <span className="text-green-600 text-xs font-semibold">J</span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium">Jake (15)</div>
-                                        <div className="text-xs text-gray-500">Coding, Maths</div>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-
-                        {/* Family Management */}
-                        <div className="border-t border-gray-200 pt-6 mt-6">
-                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Family Management</h3>
-                            <div className="space-y-2">
-                                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                                    <i className="fas fa-chart-line text-lg"></i>
-                                    <span>Progress Reports</span>
-                                </a>
-                                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                                    <i className="fas fa-credit-card text-lg"></i>
-                                    <span>Billing & Payments</span>
-                                </a>
-                                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                                    <i className="fas fa-bell text-lg"></i>
-                                    <span>Notifications</span>
-                                </a>
-                                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                                    <i className="fas fa-comments text-lg"></i>
-                                    <span>Messages</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </nav>
+                <UserSidebar isSidebarOpen={isSidebarOpen} activeTab={1} />
 
                 {/* Overlay for mobile sidebar */}
                 <div id="sidebar-overlay" onClick={toggleSidebar} className={`${isSidebarOpen ? '' : 'hidden'} md:hidden fixed inset-0 bg-black bg-opacity-50 z-20`}></div>

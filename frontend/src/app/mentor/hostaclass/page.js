@@ -1,6 +1,8 @@
 "use client"
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
+import MentorSideBase from '@/components/MentorSideBase';
+import { navItems } from '@/app/utils';
 
 // Re-creating the Tailwind config for use in the component
 const tailwindConfig = {
@@ -16,28 +18,60 @@ const tailwindConfig = {
   },
 };
 
-const navItems = [
-  { icon: 'fas fa-home', text: 'Dashboard', href: '#' },
-  { icon: 'fas fa-chalkboard-teacher', text: 'My Classes', href: '#' },
-  { icon: 'fas fa-plus-circle', text: 'Host a Class', href: '#', active: true },
-  { icon: 'fas fa-users', text: 'Workshops', href: '#' },
-  { icon: 'fas fa-calendar-alt', text: 'Schedule', href: '#' },
-  { icon: 'fas fa-students', text: 'Students', href: '#' },
-  { icon: 'fas fa-pound-sign', text: 'Earnings', href: '#' },
-  { icon: 'fas fa-comments', text: 'Messages', href: '#', badge: 3 },
-];
-
 const classTypes = [
-  { id: 'one-on-one', icon: 'fas fa-user', iconBg: 'bg-blue-100', iconColor: 'text-blue-600', title: 'One-on-One Sessions', description: 'Personalized learning experience with individual attention.', feature: 'Most popular • Highest earning potential' },
-  { id: 'group', icon: 'fas fa-users', iconBg: 'bg-green-100', iconColor: 'text-green-600', title: 'Group Classes', description: 'Small group learning with collaborative environment.', feature: 'Great for building community' },
-  { id: 'workshop', icon: 'fas fa-graduation-cap', iconBg: 'bg-purple-100', iconColor: 'text-purple-600', title: 'Special Workshops', description: 'One-time events and masterclasses for unique topics.', feature: 'Flexible scheduling • High visibility' },
+  { id: 'group', icon: 'fas fa-users', iconBg: 'bg-green-100', iconColor: 'text-green-600', title: 'Group Classes', description: 'Multi-session courses with small groups of students learning together.', feature: 'Great for building community • Recurring revenue' },
+  { id: 'workshop', icon: 'fas fa-graduation-cap', iconBg: 'bg-purple-100', iconColor: 'text-purple-600', title: 'Special Workshops', description: 'One-off intensive sessions (1-8 hours) for specific skills or topics.', feature: 'High visibility • Premium pricing • Flexible duration' },
 ];
 
 const HostClassPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [selectedClassType, setSelectedClassType] = useState('one-on-one');
-  const [classDescription, setClassDescription] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Consolidated form data state matching API requirements
+  const [formData, setFormData] = useState({
+    type: 'group',
+    title: '',
+    subject: '',
+    category: '',
+    customCategory: '',
+    description: '',
+    mentorId: 'user123', // This should come from user context/auth
+    level: '',
+    ageGroup: '',
+    format: 'online',
+    pricing: {
+      perSessionRate: 0,
+      totalSessions: 0,
+      currency: 'GBP',
+      isFree: false,
+      packageDiscount: 'none'
+    },
+    schedule: {
+      startDate: '',
+      endDate: '',
+      startTime: '',
+      sessionDuration: 60,
+      selectedDays: [],
+      weeklySchedule: []
+    },
+    capacity: {
+      maxStudents: 6,
+      minStudents: 2
+    },
+    materials: {
+      requirements: '',
+      prerequisites: '',
+      platformOrAddress: '',
+      postcode: ''
+    }
+  });
+
+  console.log(formData,'formData formData formData');
+  
+
   const profileDropdownRef = useRef(null);
   const profileDropdownBtnRef = useRef(null);
 
@@ -68,31 +102,272 @@ const HostClassPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const response = await fetch('https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/categories');
+        if (response.ok) {
+          const data = await response.json();
+          setCategories(data.categories || []);
+        } else {
+          console.error('Failed to fetch categories');
+          // Fallback to hardcoded categories
+          setCategories([
+            { categoryName: 'Music' },
+            { categoryName: 'Dance' },
+            { categoryName: 'Art & Craft' },
+            { categoryName: 'Languages' },
+            { categoryName: 'Coding' },
+            { categoryName: 'Philosophy' }
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        // Fallback to hardcoded categories
+        setCategories([
+          { categoryName: 'Music' },
+          { categoryName: 'Dance' },
+          { categoryName: 'Art & Craft' },
+          { categoryName: 'Languages' },
+          { categoryName: 'Coding' },
+          { categoryName: 'Philosophy' }
+        ]);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Calculate weekly schedule and total sessions whenever dependencies change
+  useEffect(() => {
+    generateWeeklySchedule();
+  }, [formData.schedule.startDate, formData.schedule.endDate, formData.schedule.selectedDays, formData.schedule.startTime, formData.schedule.sessionDuration, formData.type]);
+
+  // Generate weekly schedule array for API
+  const generateWeeklySchedule = () => {
+    if (formData.type === 'workshop') {
+      // For workshops, create a single session entry
+      if (formData.schedule.startDate && formData.schedule.startTime) {
+        const endTime = calculateEndTime(formData.schedule.startTime, formData.schedule.sessionDuration);
+        const weeklySchedule = [{
+          day: new Date(formData.schedule.startDate).toLocaleDateString('en-US', { weekday: 'long' }),
+          startTime: formData.schedule.startTime,
+          endTime: endTime
+        }];
+        
+        setFormData(prev => ({
+          ...prev,
+          schedule: {
+            ...prev.schedule,
+            weeklySchedule: weeklySchedule
+          },
+          pricing: {
+            ...prev.pricing,
+            totalSessions: 1
+          }
+        }));
+      }
+      return;
+    }
+
+    // For group classes, calculate all sessions in the date range
+    if (!formData.schedule.startDate || !formData.schedule.endDate || 
+        formData.schedule.selectedDays.length === 0 || !formData.schedule.startTime) {
+      setFormData(prev => ({
+        ...prev,
+        schedule: {
+          ...prev.schedule,
+          weeklySchedule: []
+        },
+        pricing: {
+          ...prev.pricing,
+          totalSessions: 0
+        }
+      }));
+      return;
+    }
+
+    const start = new Date(formData.schedule.startDate);
+    const end = new Date(formData.schedule.endDate);
+    
+    if (start >= end) {
+      setFormData(prev => ({
+        ...prev,
+        schedule: {
+          ...prev.schedule,
+          weeklySchedule: []
+        },
+        pricing: {
+          ...prev.pricing,
+          totalSessions: 0
+        }
+      }));
+      return;
+    }
+
+    const weeklySchedule = [];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const selectedDayNumbers = formData.schedule.selectedDays.map(day => dayNames.indexOf(day));
+    const endTime = calculateEndTime(formData.schedule.startTime, formData.schedule.sessionDuration);
+    
+    let sessionCount = 0;
+    let currentDate = new Date(start);
+    
+    while (currentDate <= end) {
+      if (selectedDayNumbers.includes(currentDate.getDay())) {
+        const dayName = dayNames[currentDate.getDay()];
+        weeklySchedule.push({
+          day: dayName,
+          startTime: formData.schedule.startTime,
+          endTime: endTime
+        });
+        sessionCount++;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Update the form data with calculated values
+    setFormData(prev => ({
+      ...prev,
+      schedule: {
+        ...prev.schedule,
+        weeklySchedule: weeklySchedule
+      },
+      pricing: {
+        ...prev.pricing,
+        totalSessions: sessionCount
+      }
+    }));
   };
 
-  const toggleProfileDropdown = () => {
-    setIsProfileDropdownOpen(!isProfileDropdownOpen);
+  // Helper function to calculate end time based on start time and duration
+  const calculateEndTime = (startTime, durationMinutes) => {
+    if (!startTime) return '';
+    
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const startMinutes = hours * 60 + minutes;
+    const endMinutes = startMinutes + durationMinutes;
+    
+    const endHours = Math.floor(endMinutes / 60);
+    const endMins = endMinutes % 60;
+    
+    return `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
   };
 
+  // Generic form field update handler
+  const updateFormField = (path, value) => {
+    setFormData(prev => {
+      const newData = { ...prev };
+      const keys = path.split('.');
+      let current = newData;
+      
+      // Navigate to the parent of the target field
+      for (let i = 0; i < keys.length - 1; i++) {
+        current = current[keys[i]];
+      }
+      
+      // Set the final value
+      current[keys[keys.length - 1]] = value;
+      return newData;
+    });
+  };
+
+  // Handle day selection for group classes
+  const handleDayToggle = (day) => {
+    const currentDays = formData.schedule.selectedDays;
+    const newDays = currentDays.includes(day) 
+      ? currentDays.filter(d => d !== day)
+      : [...currentDays, day];
+    
+    updateFormField('schedule.selectedDays', newDays);
+  };
+
+  // Handle class type selection
   const handleClassTypeSelect = (type) => {
-    setSelectedClassType(type);
-  };
-
-  const handleDescriptionChange = (e) => {
-    const text = e.target.value;
-    const maxLength = 500;
-    if (text.length <= maxLength) {
-      setClassDescription(text);
+    updateFormField('type', type);
+    
+    // Reset schedule-related fields when switching types
+    if (type === 'workshop') {
+      updateFormField('schedule.endDate', '');
+      updateFormField('schedule.selectedDays', []);
     }
   };
 
-  const handleSubmit = (e) => {
+  // Handle form submission
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Class creation form submitted');
-    // Replace with actual form submission logic
-    // For now, we'll use a custom message box instead of alert()
+    setIsSubmitting(true);
+
+    const user = JSON.parse(localStorage.getItem("user"));
+    const uid = user.user.uid;
+
+    try {
+      // Prepare the API request body
+      const requestBody = {
+        type: formData.type,
+        title: formData.title,
+        subject: formData.subject,
+        category: formData.category === 'Other' ? formData.customCategory : formData.category,
+        description: formData.description,
+        mentorId: uid,
+        level: formData.level,
+        ageGroup: formData.ageGroup,
+        format: formData.format,
+        pricing: {
+          perSessionRate: formData.pricing.isFree ? 0 : parseFloat(formData.pricing.perSessionRate) || 0,
+          totalSessions: formData.pricing.totalSessions,
+          currency: formData.pricing.currency
+        },
+        schedule: {
+          startDate: formData.schedule.startDate,
+          endDate: formData.type === 'workshop' ? formData.schedule.startDate : formData.schedule.endDate,
+          weeklySchedule: formData.schedule.weeklySchedule,
+          sessionDuration: formData.schedule.sessionDuration
+        },
+        capacity: {
+          maxStudents: parseInt(formData.capacity.maxStudents),
+          minStudents: parseInt(formData.capacity.minStudents)
+        }
+      };
+
+      console.log('Submitting class data:', requestBody);
+
+      // Make API call
+      const response = await fetch('https://rootsnwings-api-944856745086.europe-west2.run.app/classes/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Class created successfully:', result);
+        
+        // Show success message
+        showSuccessMessage('Class created successfully! It will be reviewed and published within 24 hours.');
+        
+        // Reset form or redirect as needed
+        // window.location.href = '/mentor-dashboard';
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Submission error:', error);
+      showErrorMessage('There was an error creating your class. Please try again or contact support if the problem persists.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Custom success message handler
+  const showSuccessMessage = (message) => {
     const messageBox = document.createElement('div');
     messageBox.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4';
     messageBox.innerHTML = `
@@ -101,17 +376,48 @@ const HostClassPage = () => {
           <i class="fas fa-check text-green-600 text-3xl"></i>
         </div>
         <h3 class="text-2xl font-bold text-gray-900 mb-2">Success!</h3>
-        <p class="text-gray-600 mb-6">Class created successfully! It will be reviewed and published within 24 hours.</p>
+        <p class="text-gray-600 mb-6">${message}</p>
         <button id="close-message-box" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-semibold">
           OK
         </button>
       </div>
     `;
     document.body.appendChild(messageBox);
-
+    window.location.href = '/mentor/dashboard';
     document.getElementById('close-message-box').onclick = () => {
       document.body.removeChild(messageBox);
     };
+  };
+
+  // Custom error message handler
+  const showErrorMessage = (message) => {
+    const messageBox = document.createElement('div');
+    messageBox.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4';
+    messageBox.innerHTML = `
+      <div class="bg-white rounded-xl p-8 max-w-sm w-full text-center shadow-lg">
+        <div class="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-4">
+          <i class="fas fa-exclamation-triangle text-red-600 text-3xl"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-2">Error</h3>
+        <p class="text-gray-600 mb-6">${message}</p>
+        <button id="close-error-box" class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold">
+          OK
+        </button>
+      </div>
+    `;
+    document.body.appendChild(messageBox);
+
+    document.getElementById('close-error-box').onclick = () => {
+      document.body.removeChild(messageBox);
+    };
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const toggleProfileDropdown = () => {
+    setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
 
   return (
@@ -192,48 +498,7 @@ const HostClassPage = () => {
 
         <div className="flex">
           {/* Sidebar */}
-          <nav
-            id="sidebar"
-            className={`bg-white w-64 min-h-screen shadow-sm border-r border-gray-200 fixed md:static z-30 sidebar-transition md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-          >
-            <div className="p-6">
-              {/* Navigation Items */}
-              <div className="space-y-2">
-                {navItems.map((item, index) => (
-                  <a
-                    key={index}
-                    href={item.href}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
-                      item.active ? 'bg-primary text-white' : 'text-gray-700'
-                    }`}
-                  >
-                    <i className={`${item.icon} text-lg`}></i>
-                    <span className="font-medium">{item.text}</span>
-                    {item.badge && (
-                      <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                        {item.badge}
-                      </span>
-                    )}
-                  </a>
-                ))}
-              </div>
-
-              {/* Quick Actions */}
-              <div className="mt-8">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Quick Actions</h3>
-                <div className="space-y-2">
-                  <button className="w-full bg-primary text-white px-4 py-3 rounded-lg hover:bg-primary-dark transition-colors font-medium">
-                    <i className="fas fa-video mr-2"></i>
-                    Start Session Now
-                  </button>
-                  <button className="w-full border border-primary text-primary px-4 py-3 rounded-lg hover:bg-primary-light transition-colors font-medium">
-                    <i className="fas fa-plus mr-2"></i>
-                    Create Workshop
-                  </button>
-                </div>
-              </div>
-            </div>
-          </nav>
+          <MentorSideBase isSidebarOpen={isSidebarOpen} navItems={navItems} activeTab={3} />
 
           {/* Main Content */}
           <main className="flex-1 md:ml-0 p-6">
@@ -250,7 +515,7 @@ const HostClassPage = () => {
                   key={type.id}
                   onClick={() => handleClassTypeSelect(type.id)}
                   className={`bg-white rounded-xl p-6 border border-gray-200 transition-all duration-300 hover:shadow-lg cursor-pointer ${
-                    selectedClassType === type.id ? 'ring-2 ring-primary border-primary' : ''
+                    formData.type === type.id ? 'ring-2 ring-primary border-primary' : ''
                   }`}
                 >
                   <div className={`w-16 h-16 ${type.iconBg} rounded-xl flex items-center justify-center mb-4`}>
@@ -279,23 +544,64 @@ const HostClassPage = () => {
                         <div className="grid md:grid-cols-2 gap-6">
                             <div>
                                 <label htmlFor="classTitle" className="block text-sm font-semibold text-gray-900 mb-2">Class Title</label>
-                                <input type="text" id="classTitle" placeholder="e.g., Beginner Kathak Dance for Teens" 
-                                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" />
+                                <input 
+                                    type="text" 
+                                    id="classTitle" 
+                                    placeholder="e.g., Beginner Kathak Dance for Teens" 
+                                    value={formData.title}
+                                    onChange={(e) => updateFormField('title', e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    required
+                                />
                                 <p className="text-xs text-gray-500 mt-1">Make it descriptive and engaging</p>
                             </div>
                             <div>
                                 <label htmlFor="subjectCategory" className="block text-sm font-semibold text-gray-900 mb-2">Subject Category</label>
-                                <select id="subjectCategory" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                                    <option>Select a category</option>
-                                    <option>Music</option>
-                                    <option>Dance</option>
-                                    <option>Art & Craft</option>
-                                    <option>Languages</option>
-                                    <option>Coding</option>
-                                    <option>Philosophy</option>
-                                    <option>Other</option>
+                                <select 
+                                    id="subjectCategory" 
+                                    value={formData.category}
+                                    onChange={(e) => updateFormField('category', e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    disabled={loadingCategories}
+                                    required
+                                >
+                                    <option value="">{loadingCategories ? 'Loading categories...' : 'Select a category'}</option>
+                                    {categories.map((category, index) => (
+                                        <option key={index} value={category.categoryName}>
+                                            {category.categoryName}
+                                        </option>
+                                    ))}
+                                    <option value="Other">Other</option>
                                 </select>
+                                {formData.category === 'Other' && (
+                                    <div className="mt-3">
+                                        <input 
+                                            type="text" 
+                                            placeholder="Please specify your subject category"
+                                            value={formData.customCategory}
+                                            onChange={(e) => updateFormField('customCategory', e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                            required
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">Enter a category not listed above</p>
+                                    </div>
+                                )}
                             </div>
+                        </div>
+
+                        {/* Subject Field */}
+                        <div>
+                            <label htmlFor="subject" className="block text-sm font-semibold text-gray-900 mb-2">Specific Subject</label>
+                            <input 
+                                type="text" 
+                                id="subject" 
+                                placeholder="e.g., Guitar, Kathak Dance, Watercolor Painting" 
+                                value={formData.subject}
+                                onChange={(e) => updateFormField('subject', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                required
+                            />
+                            <p className="text-xs text-gray-500 mt-1">What specific skill or topic will you teach?</p>
                         </div>
 
                         {/* Description */}
@@ -304,15 +610,21 @@ const HostClassPage = () => {
                             <textarea
                                 id="classDescription"
                                 rows="4"
-                                value={classDescription}
-                                onChange={handleDescriptionChange}
+                                value={formData.description}
+                                onChange={(e) => {
+                                    const text = e.target.value;
+                                    if (text.length <= 500) {
+                                        updateFormField('description', text);
+                                    }
+                                }}
                                 placeholder="Describe what students will learn, your teaching approach, and what makes this class special..."
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                required
                             />
                             <div className="flex justify-between items-center mt-1">
                                 <p className="text-xs text-gray-500">Help students understand what to expect</p>
-                                <span className={`text-xs ${classDescription.length > 450 ? 'text-red-500' : 'text-gray-400'}`}>
-                                    {classDescription.length}/500 characters
+                                <span className={`text-xs ${formData.description.length > 450 ? 'text-red-500' : 'text-gray-400'}`}>
+                                    {formData.description.length}/500 characters
                                 </span>
                             </div>
                         </div>
@@ -322,33 +634,55 @@ const HostClassPage = () => {
                             <div>
                                 <label className="block text-sm font-semibold text-gray-900 mb-3">Skill Level</label>
                                 <div className="space-y-2">
-                                    <label className="flex items-center">
-                                        <input type="checkbox" className="w-4 h-4 text-primary focus:ring-primary rounded" />
-                                        <span className="ml-3 text-gray-700">Beginner</span>
-                                    </label>
-                                    <label className="flex items-center">
-                                        <input type="checkbox" className="w-4 h-4 text-primary focus:ring-primary rounded" />
-                                        <span className="ml-3 text-gray-700">Intermediate</span>
-                                    </label>
-                                    <label className="flex items-center">
-                                        <input type="checkbox" className="w-4 h-4 text-primary focus:ring-primary rounded" />
-                                        <span className="ml-3 text-gray-700">Advanced</span>
-                                    </label>
+                                    {['beginner', 'intermediate', 'advanced'].map(level => (
+                                        <label key={level} className="flex items-center">
+                                            <input 
+                                                type="radio" 
+                                                name="skillLevel" 
+                                                value={level}
+                                                checked={formData.level === level}
+                                                onChange={(e) => updateFormField('level', e.target.value)}
+                                                className="w-4 h-4 text-primary focus:ring-primary" 
+                                            />
+                                            <span className="ml-3 text-gray-700 capitalize">{level}</span>
+                                        </label>
+                                    ))}
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-900 mb-3">Age Group</label>
                                 <div className="space-y-2">
                                     <label className="flex items-center">
-                                        <input type="checkbox" className="w-4 h-4 text-primary focus:ring-primary rounded" />
+                                        <input 
+                                            type="radio" 
+                                            name="ageGroup" 
+                                            value="child"
+                                            checked={formData.ageGroup === 'child'}
+                                            onChange={(e) => updateFormField('ageGroup', e.target.value)}
+                                            className="w-4 h-4 text-primary focus:ring-primary" 
+                                        />
                                         <span className="ml-3 text-gray-700">Children (5-12 years)</span>
                                     </label>
                                     <label className="flex items-center">
-                                        <input type="checkbox" className="w-4 h-4 text-primary focus:ring-primary rounded" />
+                                        <input 
+                                            type="radio" 
+                                            name="ageGroup" 
+                                            value="teen"
+                                            checked={formData.ageGroup === 'teen'}
+                                            onChange={(e) => updateFormField('ageGroup', e.target.value)}
+                                            className="w-4 h-4 text-primary focus:ring-primary" 
+                                        />
                                         <span className="ml-3 text-gray-700">Teens (13-17 years)</span>
                                     </label>
                                     <label className="flex items-center">
-                                        <input type="checkbox" className="w-4 h-4 text-primary focus:ring-primary rounded" />
+                                        <input 
+                                            type="radio" 
+                                            name="ageGroup" 
+                                            value="adult"
+                                            checked={formData.ageGroup === 'adult'}
+                                            onChange={(e) => updateFormField('ageGroup', e.target.value)}
+                                            className="w-4 h-4 text-primary focus:ring-primary" 
+                                        />
                                         <span className="ml-3 text-gray-700">Adults (18+ years)</span>
                                     </label>
                                 </div>
@@ -358,98 +692,324 @@ const HostClassPage = () => {
                         {/* Class Format & Scheduling */}
                         <div className="border-t border-gray-200 pt-8">
                             <h3 className="text-lg font-bold text-gray-900 mb-6">Schedule & Format</h3>
-                            <div className="grid md:grid-cols-3 gap-6 mb-6">
+                            <div className="grid md:grid-cols-4 gap-6 mb-6">
                                 <div>
-                                    <label htmlFor="duration" className="block text-sm font-semibold text-gray-900 mb-2">Session Duration</label>
-                                    <select id="duration" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                                        <option>45 minutes</option>
-                                        <option>60 minutes</option>
-                                        <option>90 minutes</option>
-                                        <option>120 minutes</option>
+                                    <label htmlFor="duration" className="block text-sm font-semibold text-gray-900 mb-2">
+                                        {formData.type === 'workshop' ? 'Workshop Duration' : 'Session Duration'}
+                                    </label>
+                                    <select 
+                                        id="duration" 
+                                        value={formData.schedule.sessionDuration}
+                                        onChange={(e) => updateFormField('schedule.sessionDuration', parseInt(e.target.value))}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    >
+                                        {formData.type === 'workshop' ? (
+                                            <>
+                                                <option value="60">1 hour</option>
+                                                <option value="90">1.5 hours</option>
+                                                <option value="120">2 hours</option>
+                                                <option value="180">3 hours</option>
+                                                <option value="240">4 hours</option>
+                                                <option value="300">5 hours</option>
+                                                <option value="360">6 hours</option>
+                                                <option value="420">7 hours</option>
+                                                <option value="480">8 hours</option>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <option value="45">45 minutes</option>
+                                                <option value="60">60 minutes</option>
+                                                <option value="90">90 minutes</option>
+                                                <option value="120">120 minutes</option>
+                                            </>
+                                        )}
                                     </select>
                                 </div>
                                 <div>
                                     <label htmlFor="maxStudents" className="block text-sm font-semibold text-gray-900 mb-2">Max Students</label>
-                                    <select id="maxStudents" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                                        <option>1 (One-on-one)</option>
-                                        <option>2-3 students</option>
-                                        <option>4-6 students</option>
-                                        <option>7-10 students</option>
-                                        <option>10+ students</option>
+                                    <select 
+                                        id="maxStudents" 
+                                        value={formData.capacity.maxStudents}
+                                        onChange={(e) => updateFormField('capacity.maxStudents', parseInt(e.target.value))}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    >
+                                        <option value="2">2-5 students</option>
+                                        <option value="6">6-10 students</option>
+                                        <option value="11">11-15 students</option>
+                                        <option value="16">16-20 students</option>
+                                        {formData.type === 'workshop' && (
+                                            <>
+                                                <option value="30">21-30 students</option>
+                                                <option value="50">31-50 students</option>
+                                            </>
+                                        )}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor="minStudents" className="block text-sm font-semibold text-gray-900 mb-2">Min Students (Groups)</label>
+                                    <select 
+                                        id="minStudents" 
+                                        value={formData.capacity.minStudents}
+                                        onChange={(e) => updateFormField('capacity.minStudents', parseInt(e.target.value))}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    >
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label htmlFor="teachingMode" className="block text-sm font-semibold text-gray-900 mb-2">Teaching Mode</label>
-                                    <select id="teachingMode" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                                        <option>Online only</option>
-                                        <option>In-person only</option>
-                                        <option>Both online & in-person</option>
+                                    <select 
+                                        id="teachingMode" 
+                                        value={formData.format}
+                                        onChange={(e) => updateFormField('format', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    >
+                                        <option value="online">Online only</option>
+                                        <option value="in-person">In-person only</option>
                                     </select>
                                 </div>
                             </div>
-                            <div className="mb-6">
-                                <label className="block text-sm font-semibold text-gray-900 mb-3">Available Days & Times</label>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
-                                        <label key={day} className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                                            <input type="checkbox" className="w-4 h-4 text-primary focus:ring-primary rounded" />
-                                            <span className="ml-3 font-medium">{day}</span>
-                                        </label>
-                                    ))}
+                            
+                            {/* Days Selection for Group Classes */}
+                            {formData.type === 'group' && (
+                                <div className="mb-6">
+                                    <label className="block text-sm font-semibold text-gray-900 mb-3">Available Days & Times</label>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                                            <label key={day} className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                                                formData.schedule.selectedDays.includes(day) 
+                                                    ? 'border-primary bg-primary-light text-primary-dark' 
+                                                    : 'border-gray-200 hover:bg-gray-50'
+                                            }`}>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={formData.schedule.selectedDays.includes(day)}
+                                                    onChange={() => handleDayToggle(day)}
+                                                    className="w-4 h-4 text-primary focus:ring-primary rounded" 
+                                                />
+                                                <span className="ml-3 font-medium">{day}</span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="grid md:grid-cols-2 gap-6">
+                            )}
+                            
+                            {/* Date and Time Selection */}
+                            <div className="grid md:grid-cols-3 gap-6">
                                 <div>
                                     <label htmlFor="startTime" className="block text-sm font-semibold text-gray-900 mb-2">Start Time</label>
-                                    <input type="time" id="startTime" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" />
+                                    <input 
+                                        type="time" 
+                                        id="startTime" 
+                                        value={formData.schedule.startTime}
+                                        onChange={(e) => updateFormField('schedule.startTime', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        required
+                                    />
                                 </div>
                                 <div>
-                                    <label htmlFor="endTime" className="block text-sm font-semibold text-gray-900 mb-2">End Time</label>
-                                    <input type="time" id="endTime" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" />
+                                    <label htmlFor="startDate" className="block text-sm font-semibold text-gray-900 mb-2">
+                                        {formData.type === 'workshop' ? 'Workshop Date' : 'Start Date'}
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        id="startDate" 
+                                        value={formData.schedule.startDate}
+                                        onChange={(e) => updateFormField('schedule.startDate', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        required
+                                    />
                                 </div>
+                                {formData.type === 'group' && (
+                                    <div>
+                                        <label htmlFor="endDate" className="block text-sm font-semibold text-gray-900 mb-2">End Date</label>
+                                        <input 
+                                            type="date" 
+                                            id="endDate" 
+                                            value={formData.schedule.endDate}
+                                            onChange={(e) => updateFormField('schedule.endDate', e.target.value)}
+                                            min={formData.schedule.startDate}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                            required
+                                        />
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Session Summary for Group Classes */}
+                            {formData.type === 'group' && formData.pricing.totalSessions > 0 && (
+                                <div className="bg-blue-50 rounded-lg p-4 mt-6">
+                                    <h4 className="font-semibold text-blue-800 mb-2">
+                                        <i className="fas fa-calculator mr-2"></i>
+                                        Calculated Schedule Summary
+                                    </h4>
+                                    <div className="text-sm text-blue-700">
+                                        <p><strong>Total Sessions:</strong> {formData.pricing.totalSessions}</p>
+                                        <p><strong>Days:</strong> {formData.schedule.selectedDays.join(', ')}</p>
+                                        <p><strong>Duration:</strong> {formData.schedule.sessionDuration} minutes per session</p>
+                                        <p><strong>End Time:</strong> {calculateEndTime(formData.schedule.startTime, formData.schedule.sessionDuration)}</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Pricing */}
                         <div className="border-t border-gray-200 pt-8">
                             <h3 className="text-lg font-bold text-gray-900 mb-6">Pricing</h3>
-                            <div className="grid md:grid-cols-2 gap-6">
+                            <div className="grid md:grid-cols-3 gap-6">
                                 <div>
                                     <label htmlFor="price" className="block text-sm font-semibold text-gray-900 mb-2">Price per Session</label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-3 text-gray-500">£</span>
-                                        <input type="number" id="price" placeholder="35" min="10" max="200"
-                                               className="w-full pl-8 pr-16 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" />
+                                        <input 
+                                            type="number" 
+                                            id="price" 
+                                            placeholder={formData.type === 'workshop' && formData.pricing.isFree ? "0" : "35"} 
+                                            min="0" 
+                                            max="200"
+                                            step="0.01"
+                                            value={formData.pricing.perSessionRate}
+                                            onChange={(e) => updateFormField('pricing.perSessionRate', parseFloat(e.target.value) || 0)}
+                                            disabled={formData.type === 'workshop' && formData.pricing.isFree}
+                                            className={`w-full pl-8 pr-16 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${
+                                                formData.type === 'workshop' && formData.pricing.isFree 
+                                                    ? 'bg-gray-50 text-gray-500 cursor-not-allowed' 
+                                                    : ''
+                                            }`}
+                                        />
                                         <span className="absolute right-3 top-3 text-gray-500">/session</span>
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-1">Average rate: £25-45 per session</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {formData.type === 'workshop' && formData.pricing.isFree 
+                                            ? 'Free workshop - great for building reputation!' 
+                                            : 'Average rate: £25-45 per session'
+                                        }
+                                    </p>
                                 </div>
                                 <div>
-                                    <label htmlFor="discount" className="block text-sm font-semibold text-gray-900 mb-2">Package Discount (Optional)</label>
-                                    <select id="discount" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                                        <option>No package discount</option>
-                                        <option>5% off (4+ sessions)</option>
-                                        <option>10% off (8+ sessions)</option>
-                                        <option>15% off (12+ sessions)</option>
-                                        <option>Custom discount</option>
-                                    </select>
+                                    <label htmlFor="totalSessions" className="block text-sm font-semibold text-gray-900 mb-2">Total Sessions</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="number" 
+                                            id="totalSessions" 
+                                            value={formData.pricing.totalSessions || ''} 
+                                            readOnly
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed" 
+                                        />
+                                        <div className="absolute right-3 top-3 text-gray-400">
+                                            <i className="fas fa-calculator text-sm"></i>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {formData.type === 'workshop'
+                                            ? 'Workshops are single sessions'
+                                            : formData.pricing.totalSessions > 0 
+                                            ? `Auto-calculated: ${formData.pricing.totalSessions} sessions over ${formData.schedule.selectedDays.length} day${formData.schedule.selectedDays.length !== 1 ? 's' : ''} per week` 
+                                            : 'Select days and date range to calculate sessions'
+                                        }
+                                    </p>
                                 </div>
+                                {formData.type === 'group' && (
+                                    <div>
+                                        <label htmlFor="discount" className="block text-sm font-semibold text-gray-900 mb-2">Package Discount (Optional)</label>
+                                        <select 
+                                            id="discount" 
+                                            value={formData.pricing.packageDiscount}
+                                            onChange={(e) => updateFormField('pricing.packageDiscount', e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        >
+                                            <option value="none">No package discount</option>
+                                            <option value="5">5% off (4+ sessions)</option>
+                                            <option value="10">10% off (8+ sessions)</option>
+                                            <option value="15">15% off (12+ sessions)</option>
+                                            <option value="custom">Custom discount</option>
+                                        </select>
+                                    </div>
+                                )}
+                                {formData.type === 'workshop' && (
+                                    <div>
+                                        <label className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.pricing.isFree}
+                                                onChange={(e) => {
+                                                    updateFormField('pricing.isFree', e.target.checked);
+                                                    if (e.target.checked) {
+                                                        updateFormField('pricing.perSessionRate', 0);
+                                                    }
+                                                }}
+                                                className="w-5 h-5 text-primary focus:ring-primary rounded"
+                                            />
+                                            <div>
+                                                <div className="font-semibold text-gray-900">Free Workshop</div>
+                                                <div className="text-sm text-gray-500">Offer this workshop for free to attract new students</div>
+                                            </div>
+                                        </label>
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            {formData.pricing.isFree 
+                                                ? '✨ Free workshops get higher visibility and more bookings' 
+                                                : 'Consider offering occasional free workshops to build your reputation'
+                                            }
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Materials & Requirements */}
                         <div className="border-t border-gray-200 pt-8">
                             <h3 className="text-lg font-bold text-gray-900 mb-6">Materials & Requirements</h3>
-                            <div className="space-y-6">
+                            <div className="grid md:grid-cols-2 gap-6">
                                 <div>
                                     <label htmlFor="bring" className="block text-sm font-semibold text-gray-900 mb-2">What students need to bring/have</label>
-                                    <textarea id="bring" rows="3" placeholder="List any materials, equipment, or software students need for the class..."
-                                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
+                                    <textarea 
+                                        id="bring" 
+                                        rows="3" 
+                                        placeholder="List any materials, equipment, or software students need for the class..."
+                                        value={formData.materials.requirements}
+                                        onChange={(e) => updateFormField('materials.requirements', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    />
                                 </div>
                                 <div>
-                                    <label htmlFor="provide" className="block text-sm font-semibold text-gray-900 mb-2">What you'll provide</label>
-                                    <textarea id="provide" rows="3" placeholder="Describe any materials, resources, or tools you'll provide during the class..."
-                                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
+                                    <label htmlFor="prerequisites" className="block text-sm font-semibold text-gray-900 mb-2">Skill Prerequisites</label>
+                                    <textarea 
+                                        id="prerequisites" 
+                                        rows="3" 
+                                        placeholder="Any prior knowledge or skills students should have..."
+                                        value={formData.materials.prerequisites}
+                                        onChange={(e) => updateFormField('materials.prerequisites', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    />
+                                </div>
+                            </div>
+                            <div className="mt-6">
+                                <label htmlFor="locationDetails" className="block text-sm font-semibold text-gray-900 mb-2">
+                                    {formData.format === 'online' ? 'Platform Details' : formData.format === 'in-person' ? 'Location Details' : 'Location & Platform Details'}
+                                </label>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <input 
+                                        type="text" 
+                                        id="platform" 
+                                        placeholder={formData.format === 'online' ? 'Platform (e.g., Zoom, Google Meet)' : formData.format === 'in-person' ? 'Address' : 'Platform or Address'}
+                                        value={formData.materials.platformOrAddress}
+                                        onChange={(e) => updateFormField('materials.platformOrAddress', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" 
+                                    />
+                                    {formData.format === 'in-person' && (
+                                        <input 
+                                            type="text" 
+                                            id="postcode" 
+                                            placeholder="Postcode (for in-person classes)"
+                                            value={formData.materials.postcode}
+                                            onChange={(e) => updateFormField('materials.postcode', e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" 
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -457,14 +1017,33 @@ const HostClassPage = () => {
                         {/* Action Buttons */}
                         <div className="border-t border-gray-200 pt-8">
                             <div className="flex flex-col sm:flex-row gap-4 sm:justify-end">
-                                <button type="button" className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                                <button 
+                                    type="button" 
+                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                    onClick={() => console.log('Save as draft clicked')}
+                                >
                                     Save as Draft
                                 </button>
-                                <button type="button" className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                                <button 
+                                    type="button" 
+                                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    onClick={() => console.log('Preview class clicked', formData)}
+                                >
                                     Preview Class
                                 </button>
-                                <button type="submit" className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-semibold">
-                                    Publish Class
+                                <button 
+                                    type="submit" 
+                                    disabled={isSubmitting}
+                                    className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                                            Publishing...
+                                        </>
+                                    ) : (
+                                        'Publish Class'
+                                    )}
                                 </button>
                             </div>
                         </div>

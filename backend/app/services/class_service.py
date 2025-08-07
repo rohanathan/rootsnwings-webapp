@@ -1,8 +1,9 @@
 from app.services.firestore import db
 from app.models.class_models import ClassItem, ClassSearchQuery
 from datetime import date, datetime
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from fastapi import HTTPException
+import uuid
 
 def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
     """
@@ -12,8 +13,9 @@ def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
     composite indexes. We'll implement this step-by-step to identify required indexes.
     """
     try:
-        # Start with base query - only approved classes
-        base_query = db.collection("classes").where("status", "==", "approved")
+        # Start with base query - status filter REMOVED for testing
+        # base_query = db.collection("classes").where("status", "==", "approved")  # COMMENTED OUT
+        base_query = db.collection("classes")  # NO STATUS FILTER for testing
         
         # We'll apply filters very carefully to avoid composite index issues
         # Start with the most basic filters first
@@ -41,15 +43,25 @@ def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
         # Apply basic filters to query (one at a time to avoid composite index issues)
         current_query = base_query
         
-        # For now, let's apply only ONE additional filter to avoid composite index issues
-        # We'll do the rest of the filtering in Python
-        if filters:
-            # Apply only the first filter to Firestore
-            field, op, value = filters[0]
+        # Apply type filter directly to Firestore if it exists (single field index)
+        type_filter = None
+        other_filters = []
+        
+        for filter_item in filters:
+            if filter_item[0] == "type":
+                type_filter = filter_item
+            else:
+                other_filters.append(filter_item)
+        
+        if type_filter:
+            field, op, value = type_filter
             current_query = current_query.where(field, op, value)
         
-        # Get all documents and do complex filtering in Python
+        # Get all documents and do remaining filtering in Python
         docs = list(current_query.stream())
+        
+        # Set remaining filters for Python processing
+        filters = other_filters
         
         # Convert to class objects and apply remaining filters
         classes = []
@@ -190,7 +202,8 @@ def fetch_all_workshops(page: int = 1, page_size: int = 20) -> Tuple[List[ClassI
 def fetch_featured_classes(limit: int = 6) -> List[ClassItem]:
     """Get featured classes based on performance metrics"""
     try:
-        docs = db.collection("classes").where("type", "==", "batch").where("status", "==", "approved").stream()
+        # docs = db.collection("classes").where("type", "==", "batch").where("status", "==", "approved").stream()  # COMMENTED OUT
+        docs = db.collection("classes").where("type", "==", "batch").stream()  # NO STATUS FILTER for testing
         class_scores = []
         
         for doc in docs:
@@ -257,7 +270,8 @@ def get_classes_by_mentor_id(mentor_id: str):
     try:
         # This uses a composite query that might need an index
         classes_ref = db.collection("classes")
-        query = classes_ref.where("mentorId", "==", mentor_id).where("status", "==", "approved")
+        # query = classes_ref.where("mentorId", "==", mentor_id).where("status", "==", "approved")  # COMMENTED OUT
+        query = classes_ref.where("mentorId", "==", mentor_id)  # NO STATUS FILTER for testing
         results = query.stream()
 
         classes = []
@@ -280,7 +294,8 @@ def get_classes_by_mentor_id(mentor_id: str):
 def get_class_categories() -> List[str]:
     """Get list of all class categories"""
     try:
-        docs = db.collection("classes").where("status", "==", "approved").stream()
+        # docs = db.collection("classes").where("status", "==", "approved").stream()  # COMMENTED OUT
+        docs = db.collection("classes").stream()  # NO STATUS FILTER for testing
         categories = set()
         
         for doc in docs:
@@ -297,7 +312,8 @@ def get_class_categories() -> List[str]:
 def get_class_subjects() -> List[str]:
     """Get list of all class subjects"""
     try:
-        docs = db.collection("classes").where("status", "==", "approved").stream()
+        # docs = db.collection("classes").where("status", "==", "approved").stream()  # COMMENTED OUT
+        docs = db.collection("classes").stream()  # NO STATUS FILTER for testing
         subjects = set()
         
         for doc in docs:
@@ -335,3 +351,280 @@ def clean_data(data: Dict) -> Dict:
         data["classId"] = data["id"]
     
     return data
+
+# ---------- Search Metadata Generation ----------
+
+def generate_search_metadata(class_data: Dict) -> Dict:
+    """
+    Auto-generate searchMetadata for enhanced search and AI integration.
+    This metadata is used for intelligent search, filtering, and recommendations.
+    """
+    metadata = {}
+    
+    try:
+        # Extract schedule information
+        schedule = class_data.get("schedule", {})
+        weekly_schedule = schedule.get("weeklySchedule", [])
+        
+        # Available days and time slots
+        if weekly_schedule:
+            metadata["availableDays"] = [slot.get("day") for slot in weekly_schedule if slot.get("day")]
+            metadata["timeSlots"] = [
+                f"{slot.get('day')} {slot.get('startTime')}-{slot.get('endTime')}" 
+                for slot in weekly_schedule 
+                if all(slot.get(key) for key in ['day', 'startTime', 'endTime'])
+            ]
+        else:
+            metadata["availableDays"] = []
+            metadata["timeSlots"] = []
+        
+        # Calculate duration in weeks
+        start_date_str = schedule.get("startDate")
+        end_date_str = schedule.get("endDate")
+        
+        if start_date_str and end_date_str:
+            try:
+                start_date = datetime.fromisoformat(start_date_str).date()
+                end_date = datetime.fromisoformat(end_date_str).date()
+                weeks_duration = max(1, (end_date - start_date).days // 7)
+                metadata["weeksDuration"] = weeks_duration
+            except (ValueError, TypeError):
+                metadata["weeksDuration"] = 1
+        else:
+            # For workshops or single sessions
+            metadata["weeksDuration"] = 1
+        
+        # Extract pricing information
+        pricing = class_data.get("pricing", {})
+        per_session_rate = pricing.get("perSessionRate", 0)
+        session_duration = schedule.get("sessionDuration", 60)  # Default 60 minutes
+        
+        # Calculate price per hour
+        if session_duration > 0:
+            metadata["pricePerHour"] = round((per_session_rate * 60) / session_duration, 2)
+        else:
+            metadata["pricePerHour"] = per_session_rate
+        
+        # Check for discounts
+        package_discount = pricing.get("packageDiscount", {})
+        metadata["hasDiscount"] = package_discount.get("type", "none") != "none"
+        
+        # Extract format information
+        class_format = class_data.get("format", "online")
+        metadata["isOnline"] = class_format in ["online", "hybrid"]
+        metadata["isInPerson"] = class_format in ["in-person", "hybrid"]
+        
+        # Calculate intensity based on session frequency and duration
+        intensity = calculate_intensity(class_data)
+        metadata["intensity"] = intensity
+        
+        # Map difficulty level
+        level = class_data.get("level", "beginner")
+        metadata["difficultyLevel"] = map_difficulty_level(level)
+        
+        # Extract prerequisites
+        prerequisites = class_data.get("skillPrerequisites", [])
+        if isinstance(prerequisites, list):
+            metadata["prerequisites"] = prerequisites
+        else:
+            metadata["prerequisites"] = []
+        
+        # Additional searchable fields
+        metadata["totalSessions"] = pricing.get("totalSessions", 1)
+        metadata["maxStudents"] = class_data.get("capacity", {}).get("maxStudents", 1)
+        metadata["minStudents"] = class_data.get("capacity", {}).get("minStudents", 1)
+        
+        # Class type specific metadata
+        class_type = class_data.get("type", "group")
+        metadata["isWorkshop"] = class_type == "workshop"
+        metadata["isGroup"] = class_type == "group"
+        
+        return metadata
+    
+    except Exception as e:
+        # Return basic metadata if generation fails
+        print(f"Warning: Failed to generate search metadata: {str(e)}")
+        return {
+            "availableDays": [],
+            "timeSlots": [],
+            "weeksDuration": 1,
+            "intensity": "low",
+            "pricePerHour": 0,
+            "hasDiscount": False,
+            "difficultyLevel": "beginner",
+            "prerequisites": [],
+            "isOnline": True,
+            "isInPerson": False,
+            "totalSessions": 1,
+            "maxStudents": 1,
+            "minStudents": 1,
+            "isWorkshop": False,
+            "isGroup": True
+        }
+
+def calculate_intensity(class_data: Dict) -> str:
+    """
+    Calculate class intensity based on frequency, duration, and total sessions.
+    Returns: "low", "medium", "high"
+    """
+    try:
+        schedule = class_data.get("schedule", {})
+        pricing = class_data.get("pricing", {})
+        
+        weekly_schedule = schedule.get("weeklySchedule", [])
+        sessions_per_week = len(weekly_schedule)
+        session_duration = schedule.get("sessionDuration", 60)
+        total_sessions = pricing.get("totalSessions", 1)
+        
+        # Calculate weekly time commitment in hours
+        weekly_hours = (sessions_per_week * session_duration) / 60
+        
+        # Calculate intensity score
+        if weekly_hours >= 4 or sessions_per_week >= 4:
+            return "high"
+        elif weekly_hours >= 2 or sessions_per_week >= 2:
+            return "medium"
+        else:
+            return "low"
+    
+    except Exception:
+        return "low"
+
+def map_difficulty_level(level: str) -> str:
+    """
+    Map class level to standardized difficulty descriptions.
+    """
+    level_mapping = {
+        "beginner": "beginner",
+        "intermediate": "moderate", 
+        "advanced": "challenging"
+    }
+    return level_mapping.get(level.lower(), "beginner")
+
+# ---------- Class CRUD Operations ----------
+
+def create_class(class_data: Dict) -> str:
+    """
+    Create a new class with auto-generated searchMetadata.
+    Returns the created class ID.
+    """
+    try:
+        # Generate unique class ID
+        class_id = f"class_{str(uuid.uuid4())[:8]}"
+        
+        # Ensure mentorName is always set (required field for ClassItem validation)
+        if not class_data.get("mentorName"):
+            class_data["mentorName"] = "Unknown Mentor"
+        
+        # Add system fields
+        now = datetime.now().isoformat()
+        class_data["classId"] = class_id
+        class_data["createdAt"] = now
+        class_data["updatedAt"] = now
+        # class_data["status"] = "pending_approval"  # COMMENTED OUT - Auto-approve for testing
+        class_data["status"] = "approved"  # AUTO-APPROVE for testing
+        
+        # Auto-generate searchMetadata
+        class_data["searchMetadata"] = generate_search_metadata(class_data)
+        
+        # Initialize approval workflow - COMMENTED OUT for testing
+        # class_data["approvalWorkflow"] = {
+        #     "reviewStatus": "pending",
+        #     "adminNotes": "",
+        #     "adminChecks": {
+        #         "scheduleValid": False,
+        #         "pricingValid": False,
+        #         "contentClear": False,
+        #         "mentorQualified": False,
+        #         "capacityReasonable": False
+        #     }
+        # }
+        # AUTO-APPROVE workflow for testing
+        class_data["approvalWorkflow"] = {
+            "reviewStatus": "approved",
+            "adminNotes": "Auto-approved for testing",
+            "adminChecks": {
+                "scheduleValid": True,
+                "pricingValid": True,
+                "contentClear": True,
+                "mentorQualified": True,
+                "capacityReasonable": True
+            }
+        }
+        
+        # Save to Firestore
+        doc_ref = db.collection("classes").document(class_id)
+        doc_ref.set(class_data)
+        
+        return class_id
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create class: {str(e)}")
+
+def update_class(class_id: str, class_data: Dict) -> bool:
+    """
+    Update an existing class and regenerate searchMetadata.
+    Returns True if successful.
+    """
+    try:
+        # Check if class exists
+        doc_ref = db.collection("classes").document(class_id)
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Class not found")
+        
+        # Update timestamp
+        class_data["updatedAt"] = datetime.now().isoformat()
+        
+        # Regenerate searchMetadata
+        class_data["searchMetadata"] = generate_search_metadata(class_data)
+        
+        # Update document
+        doc_ref.update(class_data)
+        
+        return True
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update class: {str(e)}")
+
+def approve_class(class_id: str, admin_notes: str = "") -> bool:
+    """
+    Approve a class and finalize searchMetadata.
+    Returns True if successful.
+    """
+    try:
+        doc_ref = db.collection("classes").document(class_id)
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Class not found")
+        
+        class_data = doc.to_dict()
+        
+        # Update status and approval workflow
+        updates = {
+            "status": "approved",
+            "updatedAt": datetime.now().isoformat(),
+            "approvalWorkflow.reviewStatus": "approved",
+            "approvalWorkflow.adminNotes": admin_notes,
+            "approvalWorkflow.adminChecks.scheduleValid": True,
+            "approvalWorkflow.adminChecks.pricingValid": True,
+            "approvalWorkflow.adminChecks.contentClear": True,
+            "approvalWorkflow.adminChecks.mentorQualified": True,
+            "approvalWorkflow.adminChecks.capacityReasonable": True
+        }
+        
+        # Regenerate final searchMetadata
+        updates["searchMetadata"] = generate_search_metadata(class_data)
+        
+        doc_ref.update(updates)
+        
+        return True
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to approve class: {str(e)}")

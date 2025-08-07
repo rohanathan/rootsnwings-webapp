@@ -8,7 +8,6 @@ from app.routers import users
 from app.routers import payments
 from app.routers import debug
 from app.routers import availability
-from app.routers import qualifications
 from app.routers import one_on_one_bookings
 from app.routers import reviews
 from app.routers import metadata
@@ -51,7 +50,6 @@ app.include_router(users.router)
 app.include_router(payments.router)
 app.include_router(debug.router)
 app.include_router(availability.router)
-app.include_router(qualifications.router)
 app.include_router(one_on_one_bookings.router)
 app.include_router(reviews.router)
 app.include_router(metadata.router)

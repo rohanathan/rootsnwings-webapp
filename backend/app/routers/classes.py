@@ -3,7 +3,8 @@ from typing import List
 from app.models.class_models import ClassItem, ClassListResponse, FeaturedClassResponse, WorkshopListResponse, ClassSearchQuery
 from app.services.class_service import (
     search_classes, fetch_all_classes, fetch_all_workshops, fetch_featured_classes,
-    fetch_upcoming_workshops, fetch_class_by_id, get_class_categories, get_class_subjects
+    fetch_upcoming_workshops, fetch_class_by_id, get_class_categories, get_class_subjects,
+    create_class, update_class, approve_class
 )
 
 router = APIRouter(
@@ -122,5 +123,86 @@ def get_class_by_id(class_id: str):
     if not class_item:
         raise HTTPException(status_code=404, detail="Class not found")
     return {"class": class_item}
+
+@router.post("/")
+def create_new_class(class_data: dict):
+    """
+    Create a new class with auto-generated searchMetadata.
+    
+    The class will be created with status 'pending_approval' and include:
+    - Auto-generated searchMetadata for AI-powered search
+    - Approval workflow initialization
+    - System timestamps
+    
+    Example payload:
+    {
+        "type": "group",
+        "title": "Beginner Guitar Lessons", 
+        "subject": "guitar",
+        "category": "Music",
+        "description": "Learn basic guitar chords and techniques",
+        "mentorId": "user123",
+        "level": "beginner",
+        "ageGroup": "adult",
+        "format": "online",
+        "pricing": {
+            "perSessionRate": 35.0,
+            "totalSessions": 8,
+            "currency": "GBP"
+        },
+        "schedule": {
+            "startDate": "2025-09-01",
+            "endDate": "2025-10-20", 
+            "weeklySchedule": [
+                {"day": "Tuesday", "startTime": "18:00", "endTime": "19:00"}
+            ],
+            "sessionDuration": 60
+        },
+        "capacity": {
+            "maxStudents": 6,
+            "minStudents": 2
+        }
+    }
+    """
+    class_id = create_class(class_data)
+    return {
+        "message": "Class created successfully",
+        "classId": class_id,
+        "status": "pending_approval"
+    }
+
+@router.put("/{class_id}")
+def update_existing_class(class_id: str, class_data: dict):
+    """
+    Update an existing class and regenerate searchMetadata.
+    
+    This will automatically regenerate the searchMetadata based on updated information.
+    """
+    success = update_class(class_id, class_data)
+    if success:
+        return {
+            "message": "Class updated successfully",
+            "classId": class_id
+        }
+    else:
+        raise HTTPException(status_code=500, detail="Failed to update class")
+
+@router.post("/{class_id}/approve")
+def approve_existing_class(class_id: str, admin_notes: str = ""):
+    """
+    Approve a class and finalize searchMetadata.
+    
+    This endpoint is typically used by admin users to approve pending classes.
+    """
+    success = approve_class(class_id, admin_notes)
+    if success:
+        return {
+            "message": "Class approved successfully",
+            "classId": class_id,
+            "status": "approved"
+        }
+    else:
+        raise HTTPException(status_code=500, detail="Failed to approve class")
+
 
 

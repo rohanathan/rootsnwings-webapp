@@ -34,3 +34,16 @@ export const formatDate = (dateString) => {
 
     return `${day}${suffix} ${month}`;
   };
+
+
+
+  export const navItems = [
+    { icon: 'fas fa-home', text: 'Dashboard', active: 1 , href: '/mentor/dashboard' },
+    { icon: 'fas fa-chalkboard-teacher',  active: 2,  text: 'My Classes' , href: '/mentor/myclass' },
+    { icon: 'fas fa-plus-circle', active: 3, text: 'Host a Class' , href: '/mentor/hostaclass' },
+    { icon: 'fas fa-users', active: 4, text: 'Workshops' , href: '/mentor/dashboard' },
+    { icon: 'fas fa-calendar-alt', active: 5, text: 'Schedule' , href: '/mentor/dashboard' },
+    { icon: 'fas fa-students', active: 6, text: 'Students' , href: '/mentor/dashboard' },
+    { icon: 'fas fa-pound-sign', active: 7, text: 'Earnings' , href: '/mentor/dashboard' },
+    { icon: 'fas fa-comments', active: 8, text: 'Messages', badge: 3 , href: '/mentor/dashboard' },
+  ];
