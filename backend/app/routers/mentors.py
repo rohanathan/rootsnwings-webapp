@@ -3,7 +3,7 @@ from typing import List
 from app.models.mentor_models import MentorListResponse, FeaturedMentorsResponse, MentorResponse, MentorSearchQuery, Mentor
 from app.services.mentor_service import (
     search_mentors, fetch_all_mentors, fetch_featured_mentors, 
-    fetch_mentor_by_id, get_mentor_categories, get_mentor_cities, update_mentor
+    fetch_mentor_by_id, get_mentor_categories, get_mentor_cities, update_mentor_flexible
 )
 from app.services.class_service import get_classes_by_mentor_id
 from app.models.class_models import MentorClassesResponse
@@ -109,33 +109,17 @@ def get_mentor_by_id(
     
     return response
 
-@router.put("/{mentor_id}", response_model=MentorResponse)
-def update_mentor_profile(mentor_id: str, mentor_data: dict):
+@router.put("/{mentor_id}")
+def update_mentor_profile(mentor_id: str, update_data: dict):
     """
-    Update mentor profile with all fields exposed for frontend editing.
+    Pure MongoDB-style flexible mentor updates.
     
-    Frontend can update any mentor field:
-    - Profile info (displayName, headline, bio, photoURL)  
-    - Teaching details (subjects, levels, ageGroups, teachingModes)
-    - Location (city, country, coordinates)
-    - Pricing (oneOnOneRate, groupRate, firstSessionFree)
-    - Qualifications, languages, searchKeywords
-    - Admin fields (isVerified, acceptingStudents, featuredRank)
-    
-    Example:
-    PUT /mentors/user026
-    {
-      "headline": "Updated headline",
-      "bio": "Updated bio text",
-      "subjects": ["anime", "character design", "digital art"],
-      "pricing": {
-        "oneOnOneRate": 45.0,
-        "groupRate": 25.0,
-        "currency": "GBP"
-      },
-      "acceptingStudents": true
-    }
+    Frontend can send ANY field it wants:
+    - { "headline": "New headline" }
+    - { "isAcceptingStudents": false, "customField": "value" }
+    - { "pricing.oneOnOneRate": 50.0 }
+    - { "subjects": ["new", "subjects"], "bio": "Updated bio", "anyField": "anyValue" }
     """
-    mentor = update_mentor(mentor_id, mentor_data)
+    mentor = update_mentor_flexible(mentor_id, update_data)
     return {"mentor": mentor}
 

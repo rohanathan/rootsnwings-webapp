@@ -209,24 +209,23 @@ def get_mentor_cities() -> List[str]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch cities: {str(e)}")
 
-def update_mentor(mentor_id: str, mentor_data: dict) -> dict:
-    """Update mentor profile with any fields provided"""
+def update_mentor_flexible(mentor_id: str, update_data: dict) -> dict:
+    """Pure MongoDB-style flexible update - accept ANY fields"""
     try:
-        # Get existing mentor
         mentor_doc = db.collection("mentors").document(mentor_id).get()
         if not mentor_doc.exists:
             raise HTTPException(status_code=404, detail="Mentor not found")
         
-        existing_data = mentor_doc.to_dict()
+        # Pure flexibility - use whatever frontend sends
+        flexible_update = update_data.copy()
+        flexible_update["updatedAt"] = datetime.now().isoformat()
         
-        # Update with new data (merge strategy)
-        updated_data = {**existing_data, **mentor_data}
-        updated_data["updatedAt"] = datetime.now().isoformat()
+        # Update with ANY fields
+        db.collection("mentors").document(mentor_id).update(flexible_update)
         
-        # Save to Firestore
-        db.collection("mentors").document(mentor_id).set(updated_data)
-        
-        return updated_data
+        # Return updated mentor as plain dict
+        updated_doc = db.collection("mentors").document(mentor_id).get()
+        return updated_doc.to_dict()
         
     except HTTPException:
         raise

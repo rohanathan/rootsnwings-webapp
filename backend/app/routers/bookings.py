@@ -6,7 +6,7 @@ from app.models.booking_models import (
     SessionAttendance, SessionAttendanceRequest, AttendanceResponse, AttendanceListResponse
 )
 from app.services.booking_service import (
-    create_simple_booking, get_simple_booking, update_simple_booking,
+    create_simple_booking, get_simple_booking, update_booking_flexible,
     get_bookings_by_student, get_bookings_by_mentor, get_bookings_by_class,
     confirm_booking, cancel_booking, mark_attendance, get_attendance_by_booking
 )
@@ -39,18 +39,18 @@ def create_booking(booking_request: SimpleBookingRequest):
     booking = create_simple_booking(booking_request)
     return {"booking": booking}
 
-@router.put("/{booking_id}", response_model=SimpleBookingResponse) 
-def update_booking_status(booking_id: str, booking_update: SimpleBookingUpdate):
+@router.put("/{booking_id}")
+def update_booking_status(booking_id: str, update_data: dict):
     """
-    Update booking status and basic fields.
+    Update booking with any fields - pure MongoDB flexibility.
     
-    Common updates:
-    - Confirm: { "bookingStatus": "confirmed", "paymentStatus": "paid" }
-    - Cancel: { "bookingStatus": "cancelled", "paymentStatus": "refunded" }
-    - Complete: { "bookingStatus": "completed" }
-    - Review: { "studentRating": 5, "studentReview": "Great class!" }
+    Frontend can send ANY field it wants:
+    - { "isCancelled": true }
+    - { "bookingStatus": "confirmed", "paymentStatus": "paid", "customField": "value" }
+    - { "studentRating": 5, "studentReview": "Great class!", "mentorNotes": "Excellent student" }
+    - { "anyField": "anyValue" }
     """
-    booking = update_simple_booking(booking_id, booking_update)
+    booking = update_booking_flexible(booking_id, update_data)
     return {"booking": booking}
 
 @router.get("/", response_model=SimpleBookingListResponse)

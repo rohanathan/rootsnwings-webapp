@@ -10,9 +10,9 @@ from app.models.user_models import (
     PrivacySettings
 )
 from app.services.user_service import (
-    create_user, get_user_by_id, update_user, update_last_login, update_last_active,
-    create_student_profile, get_student_profile, update_student_profile,
-    create_parent_profile, get_parent_profile, update_parent_profile,
+    create_user, get_user_by_id, update_user_flexible, update_last_login, update_last_active,
+    create_student_profile, get_student_profile, update_student_profile_flexible,
+    create_parent_profile, get_parent_profile, update_parent_profile_flexible,
     get_all_users, delete_user
 )
 from app.services.auth_service import get_current_user, get_current_user_optional, require_admin
@@ -73,15 +73,18 @@ def get_current_user_profile():
         raise HTTPException(status_code=404, detail="User not found")
     return {"user": user}
 
-@router.put("/me", response_model=UserResponse)
-def update_current_user(user_update: UserUpdate):
+@router.put("/me")
+def update_current_user(update_data: dict):
     """
-    Update the current user's profile.
-    Requires authentication.
+    Pure MongoDB-style flexible user updates.
+    
+    Frontend can send ANY field it wants:
+    - { "displayName": "New Name" }
+    - { "email": "new@email.com", "customField": "value" }
+    - { "preferences.theme": "dark", "anyField": "anyValue" }
     """
-    # In production, get user ID from authentication
     user_id = get_current_user_id_legacy()
-    user = update_user(user_id, user_update)
+    user = update_user_flexible(user_id, update_data)
     return {"user": user}
 
 @router.post("/me/login")
@@ -223,13 +226,17 @@ def get_my_student_profile():
         raise HTTPException(status_code=404, detail="Student profile not found")
     return {"profile": profile}
 
-@router.put("/me/student-profile", response_model=StudentProfileResponse)
-def update_my_student_profile(profile_update: StudentProfileUpdate):
+@router.put("/me/student-profile")
+def update_my_student_profile(update_data: dict):
     """
-    Update the current user's student profile.
+    Pure MongoDB-style flexible student profile updates.
+    
+    Frontend can send ANY field:
+    - { "interests": ["coding", "art"] }
+    - { "learningGoals": "Master Python", "customField": "value" }
     """
     user_id = get_current_user_id_legacy()
-    profile = update_student_profile(user_id, profile_update)
+    profile = update_student_profile_flexible(user_id, update_data)
     return {"profile": profile}
 
 # Parent Profile Endpoints
@@ -253,13 +260,17 @@ def get_my_parent_profile():
         raise HTTPException(status_code=404, detail="Parent profile not found")
     return {"profile": profile}
 
-@router.put("/me/parent-profile", response_model=ParentProfileResponse)
-def update_my_parent_profile(profile_update: ParentProfileUpdate):
+@router.put("/me/parent-profile")
+def update_my_parent_profile(update_data: dict):
     """
-    Update the current user's parent profile.
+    Pure MongoDB-style flexible parent profile updates.
+    
+    Frontend can send ANY field:
+    - { "youngLearners": [...] }
+    - { "parentingStyle": "supportive", "customField": "value" }
     """
     user_id = get_current_user_id_legacy()
-    profile = update_parent_profile(user_id, profile_update)
+    profile = update_parent_profile_flexible(user_id, update_data)
     return {"profile": profile}
 
 # Admin-only Endpoints

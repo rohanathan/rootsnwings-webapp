@@ -68,7 +68,7 @@ def get_simple_booking(booking_id: str) -> Optional[SimpleBooking]:
     data["bookingId"] = doc.id
     return SimpleBooking(**data)
 
-def update_simple_booking(booking_id: str, booking_update: SimpleBookingUpdate) -> SimpleBooking:
+def update_booking_flexible(booking_id: str, update_data: dict) -> dict:
     """Update booking status and basic fields"""
     try:
         doc_ref = db.collection("bookings").document(booking_id)
@@ -77,44 +77,18 @@ def update_simple_booking(booking_id: str, booking_update: SimpleBookingUpdate) 
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Booking not found")
         
-        # Prepare update data
-        update_data = {}
+        # Pure MongoDB flexibility - accept ANY fields frontend sends
+        flexible_update = update_data.copy()
+        flexible_update["updatedAt"] = datetime.now().isoformat()
         
-        # Update fields if provided
-        if booking_update.bookingStatus is not None:
-            update_data["bookingStatus"] = booking_update.bookingStatus
-            
-            # Set timestamp based on status
-            if booking_update.bookingStatus == BookingStatus.CONFIRMED:
-                update_data["confirmedAt"] = datetime.now().isoformat()
-            elif booking_update.bookingStatus == BookingStatus.COMPLETED:
-                update_data["completedAt"] = datetime.now().isoformat()
-            elif booking_update.bookingStatus == BookingStatus.CANCELLED:
-                update_data["cancelledAt"] = datetime.now().isoformat()
+        # Update Firestore with ANY fields
+        doc_ref.update(flexible_update)
         
-        if booking_update.paymentStatus is not None:
-            update_data["paymentStatus"] = booking_update.paymentStatus
-        
-        if booking_update.personalGoals is not None:
-            update_data["personalGoals"] = booking_update.personalGoals
-        
-        if booking_update.mentorNotes is not None:
-            update_data["mentorNotes"] = booking_update.mentorNotes
-        
-        if booking_update.studentRating is not None:
-            update_data["studentRating"] = booking_update.studentRating
-        
-        if booking_update.studentReview is not None:
-            update_data["studentReview"] = booking_update.studentReview
-        
-        # Update Firestore
-        doc_ref.update(update_data)
-        
-        # Return updated booking
+        # Return updated booking as plain dict (no validation)
         updated_doc = doc_ref.get()
         data = updated_doc.to_dict()
         data["bookingId"] = booking_id
-        return SimpleBooking(**data)
+        return data
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update booking: {str(e)}")
@@ -176,21 +150,21 @@ def get_bookings_by_class(class_id: str, page: int = 1, page_size: int = 20) -> 
     
     return bookings, total
 
-def confirm_booking(booking_id: str) -> SimpleBooking:
+def confirm_booking(booking_id: str) -> dict:
     """Confirm booking and mark as paid"""
-    booking_update = SimpleBookingUpdate(
-        bookingStatus=BookingStatus.CONFIRMED,
-        paymentStatus=PaymentStatus.PAID
-    )
-    return update_simple_booking(booking_id, booking_update)
+    return update_booking_flexible(booking_id, {
+        "bookingStatus": "confirmed",
+        "paymentStatus": "paid",
+        "confirmedAt": datetime.now().isoformat()
+    })
 
-def cancel_booking(booking_id: str) -> SimpleBooking:
+def cancel_booking(booking_id: str) -> dict:
     """Cancel booking and mark as refunded"""
-    booking_update = SimpleBookingUpdate(
-        bookingStatus=BookingStatus.CANCELLED,
-        paymentStatus=PaymentStatus.REFUNDED
-    )
-    return update_simple_booking(booking_id, booking_update)
+    return update_booking_flexible(booking_id, {
+        "bookingStatus": "cancelled", 
+        "paymentStatus": "refunded",
+        "cancelledAt": datetime.now().isoformat()
+    })
 
 # OPTIONAL ATTENDANCE FUNCTIONS
 

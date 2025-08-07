@@ -573,29 +573,25 @@ def create_class(class_data: Dict) -> str:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create class: {str(e)}")
 
-def update_class(class_id: str, class_data: Dict) -> bool:
-    """
-    Update an existing class and regenerate searchMetadata.
-    Returns True if successful.
-    """
+def update_class_flexible(class_id: str, update_data: dict) -> dict:
+    """Pure MongoDB-style flexible class update - accept ANY fields"""
     try:
-        # Check if class exists
         doc_ref = db.collection("classes").document(class_id)
         doc = doc_ref.get()
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Class not found")
         
-        # Update timestamp
-        class_data["updatedAt"] = datetime.now().isoformat()
+        # Pure flexibility - use whatever frontend sends
+        flexible_update = update_data.copy()
+        flexible_update["updatedAt"] = datetime.now().isoformat()
         
-        # Regenerate searchMetadata
-        class_data["searchMetadata"] = generate_search_metadata(class_data)
+        # Update with ANY fields
+        doc_ref.update(flexible_update)
         
-        # Update document
-        doc_ref.update(class_data)
-        
-        return True
+        # Return updated class as plain dict
+        updated_doc = doc_ref.get()
+        return updated_doc.to_dict()
     
     except HTTPException:
         raise

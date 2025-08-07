@@ -4,7 +4,7 @@ from app.models.class_models import ClassItem, ClassListResponse, FeaturedClassR
 from app.services.class_service import (
     search_classes, fetch_all_classes, fetch_all_workshops, fetch_featured_classes,
     fetch_upcoming_workshops, fetch_class_by_id, get_class_categories, get_class_subjects,
-    create_class, update_class, approve_class
+    create_class, update_class_flexible, approve_class
 )
 
 router = APIRouter(
@@ -180,20 +180,18 @@ def create_new_class(class_data: dict):
     }
 
 @router.put("/{class_id}")
-def update_existing_class(class_id: str, class_data: dict):
+def update_existing_class(class_id: str, update_data: dict):
     """
-    Update an existing class and regenerate searchMetadata.
+    Pure MongoDB-style flexible class updates.
     
-    This will automatically regenerate the searchMetadata based on updated information.
+    Frontend can send ANY field it wants:
+    - { "title": "New title" }
+    - { "pricing.perSessionRate": 40.0, "capacity.maxStudents": 10 }
+    - { "status": "approved", "customField": "value" }
+    - { "schedule": {...}, "anyField": "anyValue" }
     """
-    success = update_class(class_id, class_data)
-    if success:
-        return {
-            "message": "Class updated successfully",
-            "classId": class_id
-        }
-    else:
-        raise HTTPException(status_code=500, detail="Failed to update class")
+    updated_class = update_class_flexible(class_id, update_data)
+    return {"class": updated_class}
 
 @router.post("/{class_id}/approve")
 def approve_existing_class(class_id: str, admin_notes: str = ""):

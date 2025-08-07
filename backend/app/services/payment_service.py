@@ -11,7 +11,7 @@ from app.models.payment_models import (
     Payment, RefundRequest, RefundResponse, PaymentStatus, Currency
 )
 from app.services.firestore import db
-from app.services.booking_service import get_simple_booking, update_simple_booking
+from app.services.booking_service import get_simple_booking, update_booking_flexible
 
 class PaymentService:
     """Stripe payment processing service"""
@@ -105,7 +105,7 @@ class PaymentService:
                 # Update booking payment status
                 from app.models.booking_models import SimpleBookingUpdate, PaymentStatus as BookingPaymentStatus
                 booking_update = SimpleBookingUpdate(paymentStatus=BookingPaymentStatus.PAID)
-                update_simple_booking(payment_data['bookingId'], booking_update)
+                update_booking_flexible(payment_data['bookingId'], booking_update.dict())
             
             db.collection('payments').document(payment_confirmation.paymentIntentId).update(update_data)
             
@@ -151,7 +151,7 @@ class PaymentService:
             if new_refunded_amount >= payment_data['amount']:
                 from app.models.booking_models import SimpleBookingUpdate, PaymentStatus as BookingPaymentStatus
                 booking_update = SimpleBookingUpdate(paymentStatus=BookingPaymentStatus.REFUNDED)
-                update_simple_booking(payment_data['bookingId'], booking_update)
+                update_booking_flexible(payment_data['bookingId'], booking_update.dict())
             
             return RefundResponse(
                 refundId=refund.id,

@@ -54,8 +54,8 @@ def get_user_by_id(uid: str) -> Optional[User]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get user: {str(e)}")
 
-def update_user(uid: str, user_update: UserUpdate) -> User:
-    """Update user profile"""
+def update_user_flexible(uid: str, update_data: dict) -> dict:
+    """Pure MongoDB-style flexible user update"""
     try:
         doc_ref = db.collection("users").document(uid)
         doc = doc_ref.get()
@@ -63,16 +63,16 @@ def update_user(uid: str, user_update: UserUpdate) -> User:
         if not doc.exists:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Prepare update data
-        update_data = user_update.dict(exclude_unset=True)
-        if update_data:
-            update_data["updatedAt"] = datetime.now().isoformat()
-            doc_ref.update(update_data)
+        # Pure flexibility - use whatever frontend sends
+        flexible_update = update_data.copy()
+        flexible_update["updatedAt"] = datetime.now().isoformat()
         
-        # Return updated user
+        # Update with ANY fields
+        doc_ref.update(flexible_update)
+        
+        # Return updated user as plain dict
         updated_doc = doc_ref.get()
-        data = updated_doc.to_dict()
-        return User(**data)
+        return updated_doc.to_dict()
         
     except Exception as e:
         if isinstance(e, HTTPException):
@@ -156,7 +156,7 @@ def get_student_profile(uid: str) -> Optional[StudentProfile]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get student profile: {str(e)}")
 
-def update_student_profile(uid: str, profile_update: StudentProfileUpdate) -> StudentProfile:
+def update_student_profile_flexible(uid: str, update_data: dict) -> dict:
     """Update student profile"""
     try:
         doc_ref = db.collection("students").document(uid)
@@ -165,16 +165,16 @@ def update_student_profile(uid: str, profile_update: StudentProfileUpdate) -> St
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Student profile not found")
         
-        # Prepare update data
-        update_data = profile_update.dict(exclude_unset=True)
-        if update_data:
-            update_data["updatedAt"] = datetime.now().isoformat()
-            doc_ref.update(update_data)
+        # Pure flexibility - use whatever frontend sends
+        flexible_update = update_data.copy()
+        flexible_update["updatedAt"] = datetime.now().isoformat()
         
-        # Return updated profile
+        # Update with ANY fields
+        doc_ref.update(flexible_update)
+        
+        # Return updated profile as plain dict
         updated_doc = doc_ref.get()
-        data = updated_doc.to_dict()
-        return StudentProfile(**data)
+        return updated_doc.to_dict()
         
     except Exception as e:
         if isinstance(e, HTTPException):
@@ -233,7 +233,7 @@ def get_parent_profile(uid: str) -> Optional[ParentProfile]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get parent profile: {str(e)}")
 
-def update_parent_profile(uid: str, profile_update: ParentProfileUpdate) -> ParentProfile:
+def update_parent_profile_flexible(uid: str, update_data: dict) -> dict:
     """Update parent profile"""
     try:
         doc_ref = db.collection("parents").document(uid)
@@ -242,16 +242,16 @@ def update_parent_profile(uid: str, profile_update: ParentProfileUpdate) -> Pare
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Parent profile not found")
         
-        # Prepare update data
-        update_data = profile_update.dict(exclude_unset=True)
-        if update_data:
-            update_data["updatedAt"] = datetime.now().isoformat()
-            doc_ref.update(update_data)
+        # Pure flexibility - use whatever frontend sends
+        flexible_update = update_data.copy()
+        flexible_update["updatedAt"] = datetime.now().isoformat()
         
-        # Return updated profile
+        # Update with ANY fields
+        doc_ref.update(flexible_update)
+        
+        # Return updated profile as plain dict
         updated_doc = doc_ref.get()
-        data = updated_doc.to_dict()
-        return ParentProfile(**data)
+        return updated_doc.to_dict()
         
     except Exception as e:
         if isinstance(e, HTTPException):
