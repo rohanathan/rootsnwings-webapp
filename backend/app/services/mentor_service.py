@@ -1,4 +1,5 @@
 from app.services.firestore import db
+from datetime import datetime
 from app.models.mentor_models import Mentor, MentorStats, MentorSearchQuery
 from fastapi import HTTPException
 from typing import List, Tuple
@@ -207,3 +208,27 @@ def get_mentor_cities() -> List[str]:
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch cities: {str(e)}")
+
+def update_mentor(mentor_id: str, mentor_data: dict) -> dict:
+    """Update mentor profile with any fields provided"""
+    try:
+        # Get existing mentor
+        mentor_doc = db.collection("mentors").document(mentor_id).get()
+        if not mentor_doc.exists:
+            raise HTTPException(status_code=404, detail="Mentor not found")
+        
+        existing_data = mentor_doc.to_dict()
+        
+        # Update with new data (merge strategy)
+        updated_data = {**existing_data, **mentor_data}
+        updated_data["updatedAt"] = datetime.now().isoformat()
+        
+        # Save to Firestore
+        db.collection("mentors").document(mentor_id).set(updated_data)
+        
+        return updated_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update mentor: {str(e)}")

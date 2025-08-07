@@ -1,12 +1,15 @@
 from app.services.firestore import db
-from app.models.booking_models import Booking, BookingRequest, BookingUpdate, BookingStatus, PaymentStatus
+from app.models.booking_models import (
+    SimpleBooking, SimpleBookingRequest, SimpleBookingUpdate, 
+    BookingStatus, PaymentStatus, SessionAttendance, SessionAttendanceRequest
+)
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Optional, Dict, Tuple
 from fastapi import HTTPException
 import uuid
 
-def create_booking(booking_request: BookingRequest) -> Booking:
-    """Create a new booking"""
+def create_simple_booking(booking_request: SimpleBookingRequest) -> SimpleBooking:
+    """Create a minimal booking - just references classId for all schedule info"""
     try:
         # Generate unique booking ID
         booking_id = f"booking_{uuid.uuid4().hex[:12]}"
@@ -23,23 +26,7 @@ def create_booking(booking_request: BookingRequest) -> Booking:
         student_data = student_doc.to_dict()
         class_data = class_doc.to_dict()
         
-        # Generate session slots based on class schedule
-        from app.services.session_generator_service import SessionGeneratorService
-        
-        # Use provided slots or generate from class schedule
-        if booking_request.scheduledSlots:
-            # Manual slots provided (for workshops or custom scheduling)
-            scheduled_slots = [slot.dict() for slot in booking_request.scheduledSlots]
-        else:
-            # Auto-generate slots for multi-session classes
-            generated_slots = SessionGeneratorService.generate_session_slots(class_data)
-            scheduled_slots = [slot.dict() for slot in generated_slots]
-        
-        # Create session progress tracking
-        total_sessions = class_data.get('pricing', {}).get('totalSessions', len(scheduled_slots))
-        session_progress = SessionGeneratorService.create_session_progress(total_sessions)
-        
-        # Create booking data
+        # Create minimal booking data - NO session generation!
         booking_data = {
             "bookingId": booking_id,
             "studentId": booking_request.studentId,
@@ -53,9 +40,6 @@ def create_booking(booking_request: BookingRequest) -> Booking:
             "bookingStatus": BookingStatus.PENDING,
             "paymentStatus": PaymentStatus.UNPAID,
             "pricing": booking_request.pricing.dict(),
-            "scheduledSlots": scheduled_slots,
-            "attendanceRecord": [],
-            "sessionProgress": session_progress.dict(),
             "personalGoals": booking_request.personalGoals,
             "mentorNotes": None,
             "studentRating": None,
@@ -69,23 +53,12 @@ def create_booking(booking_request: BookingRequest) -> Booking:
         # Save to Firestore
         db.collection("bookings").document(booking_id).set(booking_data)
         
-        booking = Booking(**booking_data)
-        
-        # Update student booking summary
-        try:
-            from app.services.student_booking_service import update_student_booking_summary
-            update_student_booking_summary(booking_request.studentId, booking)
-        except Exception as e:
-            # Log error but don't fail the booking creation
-            print(f"Warning: Failed to update student booking summary: {str(e)}")
-        
-        # Return booking object
-        return booking
+        return SimpleBooking(**booking_data)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create booking: {str(e)}")
 
-def get_booking_by_id(booking_id: str) -> Optional[Booking]:
+def get_simple_booking(booking_id: str) -> Optional[SimpleBooking]:
     """Get a booking by ID"""
     doc = db.collection("bookings").document(booking_id).get()
     if not doc.exists:
@@ -93,43 +66,10 @@ def get_booking_by_id(booking_id: str) -> Optional[Booking]:
     
     data = doc.to_dict()
     data["bookingId"] = doc.id
-    return Booking(**data)
+    return SimpleBooking(**data)
 
-def get_bookings_by_student(student_id: str) -> List[Booking]:
-    """Get all bookings for a student"""
-    docs = db.collection("bookings").where("studentId", "==", student_id).stream()
-    bookings = []
-    for doc in docs:
-        data = doc.to_dict()
-        data["bookingId"] = doc.id
-        bookings.append(Booking(**data))
-    
-    return sorted(bookings, key=lambda x: x.bookedAt, reverse=True)
-
-def get_bookings_by_mentor(mentor_id: str) -> List[Booking]:
-    """Get all bookings for a mentor"""
-    docs = db.collection("bookings").where("mentorId", "==", mentor_id).stream()
-    bookings = []
-    for doc in docs:
-        data = doc.to_dict()
-        data["bookingId"] = doc.id
-        bookings.append(Booking(**data))
-    
-    return sorted(bookings, key=lambda x: x.bookedAt, reverse=True)
-
-def get_bookings_by_class(class_id: str) -> List[Booking]:
-    """Get all bookings for a specific class"""
-    docs = db.collection("bookings").where("classId", "==", class_id).stream()
-    bookings = []
-    for doc in docs:
-        data = doc.to_dict()
-        data["bookingId"] = doc.id
-        bookings.append(Booking(**data))
-    
-    return sorted(bookings, key=lambda x: x.bookedAt, reverse=True)
-
-def update_booking(booking_id: str, booking_update: BookingUpdate) -> Booking:
-    """Update a booking"""
+def update_simple_booking(booking_id: str, booking_update: SimpleBookingUpdate) -> SimpleBooking:
+    """Update booking status and basic fields"""
     try:
         doc_ref = db.collection("bookings").document(booking_id)
         doc = doc_ref.get()
@@ -139,7 +79,6 @@ def update_booking(booking_id: str, booking_update: BookingUpdate) -> Booking:
         
         # Prepare update data
         update_data = {}
-        current_data = doc.to_dict()
         
         # Update fields if provided
         if booking_update.bookingStatus is not None:
@@ -156,9 +95,6 @@ def update_booking(booking_id: str, booking_update: BookingUpdate) -> Booking:
         if booking_update.paymentStatus is not None:
             update_data["paymentStatus"] = booking_update.paymentStatus
         
-        if booking_update.scheduledSlots is not None:
-            update_data["scheduledSlots"] = [slot.dict() for slot in booking_update.scheduledSlots]
-        
         if booking_update.personalGoals is not None:
             update_data["personalGoals"] = booking_update.personalGoals
         
@@ -171,99 +107,156 @@ def update_booking(booking_id: str, booking_update: BookingUpdate) -> Booking:
         if booking_update.studentReview is not None:
             update_data["studentReview"] = booking_update.studentReview
         
-        # Update the document
+        # Update Firestore
         doc_ref.update(update_data)
         
         # Return updated booking
         updated_doc = doc_ref.get()
         data = updated_doc.to_dict()
-        data["bookingId"] = updated_doc.id
-        updated_booking = Booking(**data)
-        
-        # Update student booking summary
-        try:
-            from app.services.student_booking_service import update_student_booking_summary
-            update_student_booking_summary(updated_booking.studentId, updated_booking)
-        except Exception as e:
-            # Log error but don't fail the booking update
-            print(f"Warning: Failed to update student booking summary: {str(e)}")
-        
-        return updated_booking
+        data["bookingId"] = booking_id
+        return SimpleBooking(**data)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update booking: {str(e)}")
 
-def cancel_booking(booking_id: str) -> Booking:
-    """Cancel a booking"""
-    booking_update = BookingUpdate(
-        bookingStatus=BookingStatus.CANCELLED,
-        paymentStatus=PaymentStatus.REFUNDED  # Assuming refund on cancellation
-    )
-    return update_booking(booking_id, booking_update)
-
-def confirm_booking(booking_id: str) -> Booking:
-    """Confirm a booking"""
-    booking_update = BookingUpdate(
-        bookingStatus=BookingStatus.CONFIRMED,
-        paymentStatus=PaymentStatus.PAID
-    )
-    return update_booking(booking_id, booking_update)
-
-def get_booking_stats() -> Dict:
-    """Get booking statistics"""
-    try:
-        docs = db.collection("bookings").stream()
-        
-        stats = {
-            "totalBookings": 0,
-            "pendingBookings": 0,
-            "confirmedBookings": 0,
-            "completedBookings": 0,
-            "cancelledBookings": 0,
-            "totalRevenue": 0.0,
-            "currency": "GBP"
-        }
-        
-        for doc in docs:
-            data = doc.to_dict()
-            stats["totalBookings"] += 1
-            
-            status = data.get("bookingStatus")
-            if status == BookingStatus.PENDING:
-                stats["pendingBookings"] += 1
-            elif status == BookingStatus.CONFIRMED:
-                stats["confirmedBookings"] += 1
-            elif status == BookingStatus.COMPLETED:
-                stats["completedBookings"] += 1
-            elif status == BookingStatus.CANCELLED:
-                stats["cancelledBookings"] += 1
-            
-            # Add to revenue if paid or completed
-            if data.get("paymentStatus") in [PaymentStatus.PAID] or status == BookingStatus.COMPLETED:
-                pricing = data.get("pricing", {})
-                stats["totalRevenue"] += pricing.get("finalPrice", 0)
-        
-        return stats
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get booking stats: {str(e)}")
-
-def get_all_bookings(limit: Optional[int] = None, status: Optional[BookingStatus] = None) -> List[Booking]:
-    """Get all bookings with optional filtering"""
-    query = db.collection("bookings")
+def get_bookings_by_student(student_id: str, page: int = 1, page_size: int = 20) -> Tuple[List[SimpleBooking], int]:
+    """Get bookings for a student with pagination"""
+    query = db.collection("bookings").where("studentId", "==", student_id)
     
-    if status:
-        query = query.where("bookingStatus", "==", status)
+    # Get total count
+    total = len(list(query.stream()))
     
-    if limit:
-        query = query.limit(limit)
+    # Get paginated results
+    offset = (page - 1) * page_size
+    docs = query.limit(page_size).offset(offset).stream()
     
-    docs = query.stream()
     bookings = []
-    
     for doc in docs:
         data = doc.to_dict()
         data["bookingId"] = doc.id
-        bookings.append(Booking(**data))
+        bookings.append(SimpleBooking(**data))
     
-    return sorted(bookings, key=lambda x: x.bookedAt, reverse=True)
+    return bookings, total
+
+def get_bookings_by_mentor(mentor_id: str, page: int = 1, page_size: int = 20) -> Tuple[List[SimpleBooking], int]:
+    """Get bookings for a mentor with pagination"""
+    query = db.collection("bookings").where("mentorId", "==", mentor_id)
+    
+    # Get total count
+    total = len(list(query.stream()))
+    
+    # Get paginated results
+    offset = (page - 1) * page_size
+    docs = query.limit(page_size).offset(offset).stream()
+    
+    bookings = []
+    for doc in docs:
+        data = doc.to_dict()
+        data["bookingId"] = doc.id
+        bookings.append(SimpleBooking(**data))
+    
+    return bookings, total
+
+def get_bookings_by_class(class_id: str, page: int = 1, page_size: int = 20) -> Tuple[List[SimpleBooking], int]:
+    """Get bookings for a specific class with pagination"""
+    query = db.collection("bookings").where("classId", "==", class_id)
+    
+    # Get total count
+    total = len(list(query.stream()))
+    
+    # Get paginated results
+    offset = (page - 1) * page_size
+    docs = query.limit(page_size).offset(offset).stream()
+    
+    bookings = []
+    for doc in docs:
+        data = doc.to_dict()
+        data["bookingId"] = doc.id
+        bookings.append(SimpleBooking(**data))
+    
+    return bookings, total
+
+def confirm_booking(booking_id: str) -> SimpleBooking:
+    """Confirm booking and mark as paid"""
+    booking_update = SimpleBookingUpdate(
+        bookingStatus=BookingStatus.CONFIRMED,
+        paymentStatus=PaymentStatus.PAID
+    )
+    return update_simple_booking(booking_id, booking_update)
+
+def cancel_booking(booking_id: str) -> SimpleBooking:
+    """Cancel booking and mark as refunded"""
+    booking_update = SimpleBookingUpdate(
+        bookingStatus=BookingStatus.CANCELLED,
+        paymentStatus=PaymentStatus.REFUNDED
+    )
+    return update_simple_booking(booking_id, booking_update)
+
+# OPTIONAL ATTENDANCE FUNCTIONS
+
+def mark_attendance(attendance_request: SessionAttendanceRequest, marked_by: str) -> SessionAttendance:
+    """Mark attendance for a specific session"""
+    try:
+        # Verify booking exists
+        booking = get_simple_booking(attendance_request.bookingId)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Generate attendance ID
+        attendance_id = f"attendance_{uuid.uuid4().hex[:12]}"
+        
+        # Create attendance record
+        attendance_data = {
+            "attendanceId": attendance_id,
+            "bookingId": attendance_request.bookingId,
+            "studentId": booking.studentId,
+            "classId": booking.classId,
+            "sessionDate": attendance_request.sessionDate,
+            "status": attendance_request.status,
+            "notes": attendance_request.notes,
+            "markedAt": datetime.now().isoformat(),
+            "markedBy": marked_by
+        }
+        
+        # Save to separate attendance collection
+        db.collection("attendance").document(attendance_id).set(attendance_data)
+        
+        return SessionAttendance(**attendance_data)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to mark attendance: {str(e)}")
+
+def get_attendance_by_booking(booking_id: str) -> List[SessionAttendance]:
+    """Get all attendance records for a booking"""
+    docs = db.collection("attendance").where("bookingId", "==", booking_id).stream()
+    
+    attendance_records = []
+    for doc in docs:
+        data = doc.to_dict()
+        data["attendanceId"] = doc.id
+        attendance_records.append(SessionAttendance(**data))
+    
+    return sorted(attendance_records, key=lambda x: x.sessionDate)
+
+def get_all_bookings(limit: int = 100) -> List[SimpleBooking]:
+    """Get all bookings (for reviews/testimonials)"""
+    try:
+        docs = db.collection("bookings").limit(limit).stream()
+        bookings = []
+        
+        for doc in docs:
+            booking_data = doc.to_dict()
+            booking_data["bookingId"] = doc.id
+            
+            # Convert to SimpleBooking model
+            try:
+                booking = SimpleBooking(**booking_data)
+                bookings.append(booking)
+            except Exception as e:
+                # Skip invalid bookings
+                continue
+                
+        return bookings
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get all bookings: {str(e)}")

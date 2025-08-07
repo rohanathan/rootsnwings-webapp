@@ -44,22 +44,23 @@ def get_testimonials(
     
     for booking in all_bookings:
         # Filter for bookings with reviews and high ratings
-        if (booking.studentRating and 
-            booking.studentReview and 
+        if (hasattr(booking, 'studentRating') and booking.studentRating and 
+            hasattr(booking, 'studentReview') and booking.studentReview and 
             booking.studentRating >= min_rating and
             len(booking.studentReview.strip()) > 0):
             
             # Determine user type based on parentId
-            user_type = "Parent" if booking.parentId else "Student"
+            user_type = "Parent" if hasattr(booking, 'parentId') and booking.parentId else "Student"
             
-            # Get student initial (first letter of name) - only expose first letter for privacy
-            student_initial = booking.studentName[0].upper() if booking.studentName else "S"
+            # Get student initial - need to fetch from user data since new bookings don't store names
+            student_initial = "S"  # Default fallback
             
+            # For now, use placeholder data - frontend can fetch actual names if needed
             testimonial = TestimonialResponse(
                 studentName="Anonymous",  # Always anonymous for privacy
                 studentInitial=student_initial,
-                mentorName=booking.mentorName,  # Mentors are public figures
-                className=booking.className,    # Classes are public offerings
+                mentorName="Mentor",  # Placeholder - frontend can fetch from mentorId
+                className="Class",    # Placeholder - frontend can fetch from classId
                 rating=booking.studentRating,
                 review=booking.studentReview,
                 userType=user_type
@@ -84,21 +85,22 @@ def get_mentor_reviews(mentor_id: str):
     """
     from app.services.booking_service import get_bookings_by_mentor
     
-    mentor_bookings = get_bookings_by_mentor(mentor_id)
+    mentor_bookings, total = get_bookings_by_mentor(mentor_id, page=1, page_size=100)
     
     testimonials = []
     
     for booking in mentor_bookings:
         # Include all bookings with reviews (any rating)
-        if booking.studentRating and booking.studentReview:
-            user_type = "Parent" if booking.parentId else "Student"
-            student_initial = booking.studentName[0].upper() if booking.studentName else "S"
+        if (hasattr(booking, 'studentRating') and booking.studentRating and
+            hasattr(booking, 'studentReview') and booking.studentReview):
+            user_type = "Parent" if hasattr(booking, 'parentId') and booking.parentId else "Student"
+            student_initial = "S"  # Default fallback
             
             testimonial = TestimonialResponse(
                 studentName="Anonymous",  # Always anonymous for privacy
                 studentInitial=student_initial,
-                mentorName=booking.mentorName,  # Mentors are public figures
-                className=booking.className,    # Classes are public offerings
+                mentorName="Mentor",  # Placeholder - frontend can fetch from mentorId
+                className="Class",    # Placeholder - frontend can fetch from classId
                 rating=booking.studentRating,
                 review=booking.studentReview,
                 userType=user_type

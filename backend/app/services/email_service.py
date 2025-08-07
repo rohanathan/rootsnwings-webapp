@@ -402,28 +402,84 @@ def send_password_reset_email(user_email: str, user_name: str, user_id: str) -> 
 
 def send_booking_confirmation_email(booking_data: Dict[str, Any]) -> bool:
     """Send booking confirmation email"""
-    html_content = email_templates.booking_confirmation(
-        student_name=booking_data["studentName"],
-        class_name=booking_data["className"],
-        mentor_name=booking_data["mentorName"],
-        booking_details=booking_data
-    )
-    
-    # Get student email from user document
+    # Get class and mentor data from Firestore for email template
     try:
+        class_doc = db.collection('classes').document(booking_data["classId"]).get()
+        mentor_doc = db.collection('mentors').document(booking_data["mentorId"]).get()
         user_doc = db.collection('users').document(booking_data["studentId"]).get()
-        if user_doc.exists:
-            user_email = user_doc.to_dict().get("email")
-            if user_email:
-                return email_service.send_email(
-                    to=user_email,
-                    subject=f"Booking Confirmed: {booking_data['className']} - Roots & Wings",
-                    html=html_content
-                )
+        
+        if not all([class_doc.exists, mentor_doc.exists, user_doc.exists]):
+            print("Missing class, mentor, or user data for booking confirmation")
+            return False
+            
+        class_data = class_doc.to_dict()
+        mentor_data = mentor_doc.to_dict()
+        user_data = user_doc.to_dict()
+        
+        # Build email template data
+        email_booking_data = {
+            **booking_data,
+            "className": class_data.get("title", "Class"),
+            "mentorName": mentor_data.get("displayName", "Mentor"),
+            "studentName": user_data.get("displayName", "Student"),
+            # Generate sessions from class schedule for email display
+            "scheduledSlots": generate_session_preview(class_data, booking_data)
+        }
+        
+        html_content = email_templates.booking_confirmation(
+            student_name=email_booking_data["studentName"],
+            class_name=email_booking_data["className"],
+            mentor_name=email_booking_data["mentorName"],
+            booking_details=email_booking_data
+        )
+        
+        user_email = user_data.get("email")
+        if user_email:
+            return email_service.send_email(
+                to=user_email,
+                subject=f"Booking Confirmed: {email_booking_data['className']} - Roots & Wings",
+                html=html_content
+            )
+                
     except Exception as e:
         print(f"Error sending booking confirmation: {str(e)}")
     
     return False
+
+def generate_session_preview(class_data: Dict[str, Any], booking_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Generate a preview of sessions for email (first 3 sessions)"""
+    try:
+        from datetime import datetime, timedelta
+        
+        schedule = class_data.get("schedule", {})
+        weekly_schedule = schedule.get("weeklySchedule", [])
+        
+        if not weekly_schedule:
+            return []
+        
+        # Simple preview generation - first 3 sessions
+        preview_sessions = []
+        current_date = datetime.now()
+        session_number = 1
+        
+        for week in range(3):  # Show first 3 weeks
+            for day_schedule in weekly_schedule:
+                if len(preview_sessions) >= 3:
+                    break
+                    
+                session_date = current_date + timedelta(days=week*7 + day_schedule.get("dayOfWeek", 0))
+                preview_sessions.append({
+                    "sessionNumber": session_number,
+                    "date": session_date.strftime("%Y-%m-%d"),
+                    "startTime": day_schedule.get("startTime", "18:00"),
+                    "endTime": day_schedule.get("endTime", "19:00")
+                })
+                session_number += 1
+                
+        return preview_sessions
+        
+    except Exception:
+        return []
 
 def send_mentor_status_email(mentor_id: str, status: str) -> bool:
     """Send mentor application status update"""

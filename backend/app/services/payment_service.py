@@ -11,7 +11,7 @@ from app.models.payment_models import (
     Payment, RefundRequest, RefundResponse, PaymentStatus, Currency
 )
 from app.services.firestore import db
-from app.services.booking_service import get_booking_by_id, update_booking
+from app.services.booking_service import get_simple_booking, update_simple_booking
 
 class PaymentService:
     """Stripe payment processing service"""
@@ -28,7 +28,7 @@ class PaymentService:
         """Create a Stripe payment intent"""
         try:
             # Verify booking exists
-            booking = get_booking_by_id(payment_request.bookingId)
+            booking = get_simple_booking(payment_request.bookingId)
             if not booking:
                 raise HTTPException(status_code=404, detail="Booking not found")
             
@@ -103,9 +103,9 @@ class PaymentService:
                 update_data['succeededAt'] = datetime.now().isoformat()
                 
                 # Update booking payment status
-                from app.models.booking_models import BookingUpdate, PaymentStatus as BookingPaymentStatus
-                booking_update = BookingUpdate(paymentStatus=BookingPaymentStatus.PAID)
-                update_booking(payment_data['bookingId'], booking_update)
+                from app.models.booking_models import SimpleBookingUpdate, PaymentStatus as BookingPaymentStatus
+                booking_update = SimpleBookingUpdate(paymentStatus=BookingPaymentStatus.PAID)
+                update_simple_booking(payment_data['bookingId'], booking_update)
             
             db.collection('payments').document(payment_confirmation.paymentIntentId).update(update_data)
             
@@ -149,9 +149,9 @@ class PaymentService:
             
             # Update booking status if fully refunded
             if new_refunded_amount >= payment_data['amount']:
-                from app.models.booking_models import BookingUpdate, PaymentStatus as BookingPaymentStatus
-                booking_update = BookingUpdate(paymentStatus=BookingPaymentStatus.REFUNDED)
-                update_booking(payment_data['bookingId'], booking_update)
+                from app.models.booking_models import SimpleBookingUpdate, PaymentStatus as BookingPaymentStatus
+                booking_update = SimpleBookingUpdate(paymentStatus=BookingPaymentStatus.REFUNDED)
+                update_simple_booking(payment_data['bookingId'], booking_update)
             
             return RefundResponse(
                 refundId=refund.id,

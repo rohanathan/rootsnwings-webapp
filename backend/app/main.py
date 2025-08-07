@@ -8,7 +8,6 @@ from app.routers import users
 from app.routers import payments
 from app.routers import debug
 from app.routers import availability
-from app.routers import one_on_one_bookings
 from app.routers import reviews
 from app.routers import metadata
 from app.routers import auth
@@ -50,7 +49,6 @@ app.include_router(users.router)
 app.include_router(payments.router)
 app.include_router(debug.router)
 app.include_router(availability.router)
-app.include_router(one_on_one_bookings.router)
 app.include_router(reviews.router)
 app.include_router(metadata.router)
 
@@ -75,7 +73,6 @@ def health_check():
             "mentors": "/mentors/",
             "availability": "/availability/",
             "qualifications": "/qualifications/",
-            "bookings": "/bookings/",
-            "one_on_one": "/bookings/one-on-one/"
+            "bookings": "/bookings/"
         }
     }

@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 from app.models.booking_models import (
-    Booking, BookingRequest, BookingUpdate, BookingResponse, 
-    BookingListResponse, BookingStatsResponse, BookingStatus
+    SimpleBooking, SimpleBookingRequest, SimpleBookingUpdate, 
+    SimpleBookingResponse, SimpleBookingListResponse,
+    SessionAttendance, SessionAttendanceRequest, AttendanceResponse, AttendanceListResponse
 )
 from app.services.booking_service import (
-    create_booking, get_booking_by_id, get_bookings_by_student,
-    get_bookings_by_mentor, get_bookings_by_class, update_booking,
-    cancel_booking, confirm_booking, get_booking_stats, get_all_bookings
+    create_simple_booking, get_simple_booking, update_simple_booking,
+    get_bookings_by_student, get_bookings_by_mentor, get_bookings_by_class,
+    confirm_booking, cancel_booking, mark_attendance, get_attendance_by_booking
 )
 
 router = APIRouter(
@@ -15,168 +16,129 @@ router = APIRouter(
     tags=["Bookings"]
 )
 
-@router.post("/", response_model=BookingResponse)
-def create_new_booking(booking_request: BookingRequest):
+# CORE 3 BOOKING ENDPOINTS
+
+@router.post("/", response_model=SimpleBookingResponse)
+def create_booking(booking_request: SimpleBookingRequest):
     """
-    Create a new booking for a class.
+    Create a minimal booking - just references classId for schedule info.
     
-    This endpoint:
-    - Creates a booking with PENDING status
-    - Links student to class and mentor
-    - Handles both regular students and young learners (via parent)
-    - Sets initial payment status as UNPAID
+    Frontend handles all session calculations from class.schedule.weeklySchedule
+    
+    Example:
+    {
+      "studentId": "user031",
+      "classId": "class_anime_001", 
+      "personalGoals": "Learn anime character design",
+      "pricing": {
+        "finalPrice": 480,
+        "currency": "GBP"
+      }
+    }
     """
-    booking = create_booking(booking_request)
+    booking = create_simple_booking(booking_request)
     return {"booking": booking}
 
-@router.get("/{booking_id}", response_model=BookingResponse)
-def get_booking(booking_id: str):
-    """Get a specific booking by ID"""
-    booking = get_booking_by_id(booking_id)
+@router.put("/{booking_id}", response_model=SimpleBookingResponse) 
+def update_booking_status(booking_id: str, booking_update: SimpleBookingUpdate):
+    """
+    Update booking status and basic fields.
+    
+    Common updates:
+    - Confirm: { "bookingStatus": "confirmed", "paymentStatus": "paid" }
+    - Cancel: { "bookingStatus": "cancelled", "paymentStatus": "refunded" }
+    - Complete: { "bookingStatus": "completed" }
+    - Review: { "studentRating": 5, "studentReview": "Great class!" }
+    """
+    booking = update_simple_booking(booking_id, booking_update)
+    return {"booking": booking}
+
+@router.get("/", response_model=SimpleBookingListResponse)
+def get_bookings(
+    studentId: Optional[str] = Query(None, description="Get bookings for student"),
+    mentorId: Optional[str] = Query(None, description="Get bookings for mentor"), 
+    classId: Optional[str] = Query(None, description="Get bookings for class"),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(20, ge=1, le=100, description="Items per page")
+):
+    """
+    Get bookings with filtering and pagination.
+    
+    Examples:
+    - /simple-bookings?studentId=user031 - Student's bookings
+    - /simple-bookings?mentorId=user026 - Mentor's bookings  
+    - /simple-bookings?classId=class_anime_001 - Class bookings
+    """
+    if studentId:
+        bookings, total = get_bookings_by_student(studentId, page, pageSize)
+    elif mentorId:
+        bookings, total = get_bookings_by_mentor(mentorId, page, pageSize)
+    elif classId:
+        bookings, total = get_bookings_by_class(classId, page, pageSize)
+    else:
+        raise HTTPException(status_code=400, detail="Must provide studentId, mentorId, or classId")
+    
+    total_pages = (total + pageSize - 1) // pageSize
+    
+    return {
+        "bookings": bookings,
+        "total": total,
+        "page": page,
+        "pageSize": pageSize,
+        "totalPages": total_pages
+    }
+
+# CONVENIENCE ENDPOINTS
+
+@router.get("/{booking_id}", response_model=SimpleBookingResponse)
+def get_booking_by_id(booking_id: str):
+    """Get specific booking by ID"""
+    booking = get_simple_booking(booking_id)
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     return {"booking": booking}
 
-@router.put("/{booking_id}", response_model=BookingResponse)
-def update_booking_details(booking_id: str, booking_update: BookingUpdate):
-    """
-    Update booking details.
-    
-    Can update:
-    - Booking status (pending -> confirmed -> completed)
-    - Payment status
-    - Scheduled slots (for rescheduling)
-    - Personal goals
-    - Mentor notes
-    - Student rating and review
-    """
-    booking = update_booking(booking_id, booking_update)
-    return {"booking": booking}
-
-@router.post("/{booking_id}/confirm", response_model=BookingResponse)
+@router.post("/{booking_id}/confirm", response_model=SimpleBookingResponse)
 def confirm_booking_payment(booking_id: str):
-    """
-    Confirm a booking and mark as paid.
-    This moves status from PENDING to CONFIRMED.
-    """
+    """Confirm booking and mark as paid (moves from pending → confirmed)"""
     booking = confirm_booking(booking_id)
-    
-    # Send booking confirmation email
-    try:
-        from app.services.email_service import send_booking_confirmation_email
-        booking_dict = booking.dict() if hasattr(booking, 'dict') else booking
-        send_booking_confirmation_email(booking_dict)
-    except Exception as e:
-        print(f"Error sending booking confirmation email: {str(e)}")
-    
     return {"booking": booking}
 
-@router.post("/{booking_id}/cancel", response_model=BookingResponse)
+@router.post("/{booking_id}/cancel", response_model=SimpleBookingResponse)
 def cancel_booking_request(booking_id: str):
-    """
-    Cancel a booking and process refund.
-    This moves status to CANCELLED and payment to REFUNDED.
-    """
+    """Cancel booking and mark as refunded"""
     booking = cancel_booking(booking_id)
     return {"booking": booking}
 
-@router.post("/{booking_id}/review", response_model=BookingResponse)
-def submit_booking_review(booking_id: str, rating: int = Query(..., ge=1, le=5), review: Optional[str] = None):
-    """
-    Submit a rating and optional review for a booking.
-    
-    Requirements:
-    - Booking must be in 'confirmed' or 'completed' status (students can review ongoing classes)
-    - Rating must be between 1-5
-    - Can only be submitted by the student who made the booking
-    
-    This will also trigger mentor stats update.
-    """
-    from app.models.booking_models import BookingUpdate
-    
-    # Create update with review data
-    booking_update = BookingUpdate(
-        studentRating=rating,
-        studentReview=review
-    )
-    
-    booking = update_booking(booking_id, booking_update)
-    
-    # Trigger mentor stats update
-    from app.services.mentor_stats_service import update_mentor_stats
-    update_mentor_stats(booking.mentorId)
-    
-    return {"booking": booking}
+# OPTIONAL ATTENDANCE ENDPOINTS
 
-@router.get("/student/{student_id}", response_model=BookingListResponse)
-def get_student_bookings(student_id: str):
-    """
-    Get all bookings for a specific student.
-    Returns bookings sorted by booking date (newest first).
-    """
-    bookings = get_bookings_by_student(student_id)
-    return {"bookings": bookings}
-
-@router.get("/mentor/{mentor_id}", response_model=BookingListResponse)
-def get_mentor_bookings(mentor_id: str):
-    """
-    Get all bookings for a specific mentor.
-    Useful for mentor dashboard to see all their students.
-    """
-    bookings = get_bookings_by_mentor(mentor_id)
-    return {"bookings": bookings}
-
-@router.get("/class/{class_id}", response_model=BookingListResponse)
-def get_class_bookings(class_id: str):
-    """
-    Get all bookings for a specific class.
-    Useful to see enrollment and manage capacity.
-    """
-    bookings = get_bookings_by_class(class_id)
-    return {"bookings": bookings}
-
-@router.get("/my-bookings", response_model=BookingListResponse)
-def get_my_bookings(user_id: str = Query(..., description="User ID (temporary - will be from auth token)")):
-    """
-    Get all bookings for the currently logged-in user.
-    
-    Returns bookings where:
-    - studentId matches the authenticated user (for regular students)
-    - parentId matches the authenticated user (for young learners)
-    
-    TODO: Replace user_id query param with authentication middleware
-    """
-    # Get bookings where user is either student or parent
-    student_bookings = get_bookings_by_student(user_id)
-    # TODO: Add logic to also get bookings where parentId matches user_id
-    return {"bookings": student_bookings}
-
-@router.get("/admin/bookings", response_model=BookingListResponse)
-def get_all_bookings_admin(
-    limit: Optional[int] = Query(None, description="Limit number of results"),
-    status: Optional[BookingStatus] = Query(None, description="Filter by booking status")
+@router.post("/{booking_id}/attendance", response_model=AttendanceResponse)
+def mark_session_attendance(
+    booking_id: str, 
+    attendance_request: SessionAttendanceRequest,
+    marked_by: str = Query(..., description="Mentor ID marking attendance")
 ):
     """
-    [ADMIN ONLY] Get all bookings with optional filtering.
+    Mark attendance for a specific session (optional feature).
     
-    Query parameters:
-    - limit: Limit number of results returned
-    - status: Filter by booking status (pending, confirmed, completed, cancelled)
-    
-    Security: This endpoint should be protected with admin authentication
+    Example:
+    {
+      "bookingId": "booking_123",
+      "sessionDate": "2025-08-05", 
+      "status": "present",
+      "notes": "Great participation"
+    }
     """
-    bookings = get_all_bookings(limit=limit, status=status)
-    return {"bookings": bookings}
+    # Override bookingId from URL path
+    attendance_request.bookingId = booking_id
+    attendance = mark_attendance(attendance_request, marked_by)
+    return {"attendance": attendance}
 
-@router.get("/admin/stats", response_model=BookingStatsResponse)
-def get_booking_statistics():
-    """
-    Get booking statistics for admin dashboard.
-    
-    Returns:
-    - Total bookings count
-    - Bookings by status
-    - Total revenue
-    """
-    stats = get_booking_stats()
-    return stats
+@router.get("/{booking_id}/attendance", response_model=AttendanceListResponse)
+def get_booking_attendance(booking_id: str):
+    """Get all attendance records for a booking"""
+    attendance_records = get_attendance_by_booking(booking_id)
+    return {
+        "attendance": attendance_records,
+        "total": len(attendance_records)
+    }
