@@ -39,6 +39,12 @@ def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
             
         if query.format:
             filters.append(("format", "==", query.format))
+            
+        if query.mentorId:
+            filters.append(("mentorId", "==", query.mentorId))
+            
+        if query.status:
+            filters.append(("status", "==", query.status))
         
         # Apply basic filters to query (one at a time to avoid composite index issues)
         current_query = base_query
@@ -73,7 +79,7 @@ def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
             should_include = True
             
             # Apply remaining Firestore filters in Python
-            for i, (field, op, value) in enumerate(filters[1:], 1):
+            for field, op, value in filters:
                 field_value = data.get(field)
                 if op == "==" and field_value != value:
                     should_include = False
@@ -136,6 +142,12 @@ def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
             # Apply recurring filter
             if query.isRecurring is not None and data.get("isRecurring", False) != query.isRecurring:
                 continue
+            
+            # Apply mentor name filter
+            if query.mentorName:
+                mentor_name = data.get("mentorName", "").lower()
+                if query.mentorName.lower() not in mentor_name:
+                    continue
             
             # Apply text search
             if query.q:

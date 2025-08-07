@@ -25,6 +25,8 @@ def get_classes(
     format: str = Query(None, description="Class format: online, in-person, hybrid"),
     city: str = Query(None, description="City location"),
     country: str = Query(None, description="Country location"),
+    mentorId: str = Query(None, description="Filter classes by specific mentor ID"),
+    mentorName: str = Query(None, description="Filter classes by mentor name"),
     minRating: float = Query(None, ge=0, le=5, description="Minimum mentor rating"),
     maxPrice: float = Query(None, ge=0, description="Maximum price per session"),
     minPrice: float = Query(None, ge=0, description="Minimum price per session"),
@@ -33,6 +35,7 @@ def get_classes(
     hasAvailability: bool = Query(None, description="Filter classes with available spots"),
     startDateFrom: str = Query(None, description="Classes starting from date (YYYY-MM-DD)"),
     startDateTo: str = Query(None, description="Classes starting before date (YYYY-MM-DD)"),
+    status: str = Query(None, description="Filter by class status: approved, pending_approval, rejected"),
     # Pagination & Sorting
     sortBy: str = Query("createdAt", description="Sort field"),
     sortOrder: str = Query("desc", description="Sort order: asc or desc"),
@@ -47,6 +50,8 @@ def get_classes(
     - /classes?featured=true - Get featured classes
     - /classes?type=workshop&upcoming=true - Get upcoming workshops
     - /classes?q=guitar&level=beginner - Search beginner guitar classes
+    - /classes?mentorId=user026&status=approved - Get approved classes by specific mentor
+    - /classes?mentorName=Sarah&subject=anime - Find anime classes by mentors named Sarah
     """
     
     # Handle featured classes
@@ -87,6 +92,8 @@ def get_classes(
         format=format,
         city=city,
         country=country,
+        mentorId=mentorId,
+        mentorName=mentorName,
         minRating=minRating,
         maxPrice=maxPrice,
         minPrice=minPrice,
@@ -94,6 +101,7 @@ def get_classes(
         hasAvailability=hasAvailability,
         startDateFrom=startDateFrom,
         startDateTo=startDateTo,
+        status=status,
         sortBy=sortBy,
         sortOrder=sortOrder,
         page=page,

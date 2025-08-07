@@ -21,12 +21,12 @@ const renderStars = (rating) => {
     );
 };
 
-const mentorMock =  {
+const mentorMock = {
     "uid": "user_default_mentor",
     "displayName": "Arjun S",
-    "photoURL": "",
+    "photoURL": "https://randomuser.me/api/portraits/men/32.jpg",
     "category": "music",
-    "searchKeywords": [],
+    "searchKeywords": ["music", "guitar", "piano", "languages", "hindi", "spanish"],
     "headline": "Experienced Music & Language Tutor",
     "bio": "I'm a passionate tutor with a deep love for music and languages. I have extensive experience teaching various instruments and helping students master new languages. My approach is patient and tailored to each student's unique learning style, focusing on building a strong foundation while making learning enjoyable. I believe in fostering a supportive environment where students feel comfortable to explore and grow. Let's embark on a rewarding learning journey together!",
     "languages": ["English", "Hindi", "Gujarati"],
@@ -38,7 +38,10 @@ const mentorMock =  {
     "region": "West Midlands",
     "country": "UK",
     "postcode": "B1 1AA",
-    "coordinates": null,
+    "coordinates": {
+        "lat": 52.4862,
+        "lng": -1.8904
+    },
     "pricing": {
         "oneOnOneRate": 40,
         "groupRate": 25,
@@ -51,7 +54,7 @@ const mentorMock =  {
         "totalStudents": 80,
         "totalSessions": 620,
         "responseTimeMinutes": 25,
-        "repeatStudentRate": 0.90 // 90%
+        "repeatStudentRate": 0.90
     },
     "status": "active",
     "isVerified": true,
@@ -60,8 +63,40 @@ const mentorMock =  {
         "group": true,
         "oneOnOne": true
     },
-    "qualifications": [],
-    "availabilitySummary": null,
+    "qualifications": [
+        {
+            "id": "qual_001",
+            "type": "degree",
+            "title": "Bachelor of Music",
+            "institution": "Birmingham Conservatoire",
+            "year": "2018",
+            "icon": "🎓",
+            "certUrl": "https://example.com/cert1"
+        },
+        {
+            "id": "qual_002",
+            "type": "certification",
+            "title": "TEFL Certificate",
+            "institution": "International TEFL Academy",
+            "year": "2020",
+            "icon": "📜",
+            "certUrl": "https://example.com/cert2"
+        },
+        {
+            "id": "qual_003",
+            "type": "diploma",
+            "title": "Advanced Guitar Performance Diploma",
+            "institution": "Trinity College London",
+            "year": "2019",
+            "icon": "🎸",
+            "certUrl": "https://example.com/cert3"
+        }
+    ],
+    "availabilitySummary": {
+        "timezone": "Europe/London",
+        "generallyAvailable": ["Mon", "Wed", "Fri", "Sat"],
+        "preferredHours": ["afternoon", "evening"]
+    },
     "createdAt": "2025-01-15T10:00:00Z",
     "updatedAt": "2025-08-01T14:30:00Z"
 };
@@ -299,12 +334,18 @@ const MentorDetail = () => {
                                 </button>
                                 {mentorData?.acceptingNewStudents?.group && (
                                     <button
-                                        className={`session-tab px-6 py-3 border-b-2 font-semibold transition-colors ${activeTab === 'group' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-primary'}`}
-                                        onClick={() => handleTabClick('group')}
+                                        className={`session-tab px-6 py-3 border-b-2 font-semibold transition-colors ${activeTab === 'group-batches' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-primary'}`}
+                                        onClick={() => handleTabClick('group-batches')}
                                     >
-                                        Group Sessions
+                                        Group Batches
                                     </button>
                                 )}
+                                <button
+                                    className={`session-tab px-6 py-3 border-b-2 font-semibold transition-colors ${activeTab === 'workshops' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-primary'}`}
+                                    onClick={() => handleTabClick('workshops')}
+                                >
+                                    Workshops
+                                </button>
                             </div>
 
                             {/* Tab Content */}
@@ -334,14 +375,15 @@ const MentorDetail = () => {
                                     </div>
                                 )}
 
-                                {/* Group Sessions */}
-                                {activeTab === 'group' && mentorData.acceptingNewStudents.group && (
-                                    <div id="group-sessions" className="tab-pane">
+                                {/* Group Batches */}
+                                {activeTab === 'group-batches' && mentorData.acceptingNewStudents.group && (
+                                    <div id="group-batches" className="tab-pane">
                                         <div className="grid md:grid-cols-2 gap-6">
                                             <div>
-                                                <h3 className="text-lg font-semibold text-primary-dark mb-3">Group Learning Sessions</h3>
-                                                <p className="text-gray-700 mb-4">Join small group sessions for collaborative learning and shared experiences. Perfect for general topics and skill-building.</p>
+                                                <h3 className="text-lg font-semibold text-primary-dark mb-3">Group Learning Batches</h3>
+                                                <p className="text-gray-700 mb-4">Join structured group batches for collaborative learning over multiple sessions. Perfect for comprehensive skill development with peers.</p>
                                                 <ul className="space-y-2 text-gray-600">
+                                                    <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Structured curriculum over multiple weeks</li>
                                                     <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Interactive group environment</li>
                                                     <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Cost-effective learning</li>
                                                     <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Learn from peers</li>
@@ -349,9 +391,34 @@ const MentorDetail = () => {
                                             </div>
                                             <div className="bg-primary-light p-6 rounded-xl">
                                                 <div className="text-2xl font-bold text-primary-dark mb-2">{mentorData.pricing.currency}{mentorData.pricing.groupRate}/session</div>
-                                                <div className="text-sm text-gray-600 mb-4">Availability varies, check schedule for upcoming batches.</div>
+                                                <div className="text-sm text-gray-600 mb-4">Multi-week structured learning programs</div>
                                                 <button className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors">
-                                                    Explore Group Batches
+                                                    Explore Sessions
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Workshops */}
+                                {activeTab === 'workshops' && (
+                                    <div id="workshops" className="tab-pane">
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-primary-dark mb-3">Intensive Workshops</h3>
+                                                <p className="text-gray-700 mb-4">Join focused, intensive workshops designed to teach specific skills or topics in a short timeframe. Perfect for learning new techniques or diving deep into particular areas.</p>
+                                                <ul className="space-y-2 text-gray-600">
+                                                    <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Intensive focused learning</li>
+                                                    <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Specific skill development</li>
+                                                    <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Short-term commitment</li>
+                                                    <li className="flex items-center"><span className="text-green-500 mr-2">✓</span> Project-based outcomes</li>
+                                                </ul>
+                                            </div>
+                                            <div className="bg-primary-light p-6 rounded-xl">
+                                                <div className="text-2xl font-bold text-primary-dark mb-2">Variable Pricing</div>
+                                                <div className="text-sm text-gray-600 mb-4">Pricing depends on workshop duration and materials</div>
+                                                <button className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors">
+                                                    Explore Sessions
                                                 </button>
                                             </div>
                                         </div>
@@ -363,6 +430,279 @@ const MentorDetail = () => {
                             <div className="mt-8 p-4 bg-gray-50 rounded-xl text-center">
                                 <p className="text-gray-600 mb-3">❓ Not able to find a suitable session?</p>
                                 <button className="text-primary hover:text-primary-dark font-semibold transition-colors"> Contact Mentor for Custom Class </button>
+                            </div>
+                        </div>
+
+                        {/* Two Column Layout: Availability + Reviews/Qualifications */}
+                        <div className="grid lg:grid-cols-3 gap-8 mb-8">
+                            
+                            {/* Left Side: Availability + Reviews */}
+                            <div className="lg:col-span-2 space-y-8">
+                                
+                                {/* Availability Component */}
+                                <div className="bg-white rounded-2xl p-8 shadow-lg">
+                                    <h2 className="text-2xl font-bold text-primary-dark mb-6">Availability Snapshot</h2>
+                                    
+                                    {/* Generally Available Days */}
+                                    <div className="mb-6">
+                                        <h4 className="font-semibold text-gray-700 mb-3">Generally Available</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {mentorData?.availabilitySummary?.generallyAvailable?.map((day, index) => (
+                                                <span key={index} className="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium">
+                                                    {day}
+                                                </span>
+                                            )) || <span className="text-gray-500">Not specified</span>}
+                                        </div>
+                                    </div>
+
+                                    {/* Preferred Hours */}
+                                    <div className="mb-6">
+                                        <h4 className="font-semibold text-gray-700 mb-3">Preferred Hours</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {mentorData?.availabilitySummary?.preferredHours?.map((hour, index) => (
+                                                <span key={index} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium capitalize">
+                                                    {hour}
+                                                </span>
+                                            )) || <span className="text-gray-500">Not specified</span>}
+                                        </div>
+                                    </div>
+
+                                    {/* Timezone */}
+                                    {mentorData?.availabilitySummary?.timezone && (
+                                        <div className="mb-4">
+                                            <h4 className="font-semibold text-gray-700 mb-2">Timezone</h4>
+                                            <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                                                {mentorData.availabilitySummary.timezone}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="bg-primary-light p-4 rounded-lg">
+                                        <p className="text-sm text-gray-600">
+                                            💡 This is a general availability overview. Specific slots and detailed scheduling will be available when booking individual sessions.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Student Reviews Section */}
+                                <div className="bg-white rounded-2xl p-8 shadow-lg">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-2xl font-bold text-primary-dark">Student Reviews</h2>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex text-yellow-400">
+                                                {renderStars(mentorData?.stats?.avgRating)}
+                                            </div>
+                                            <span className="font-semibold text-primary-dark">{mentorData?.stats?.avgRating?.toFixed(1)}</span>
+                                            <span className="text-gray-600">({mentorData?.stats?.totalReviews} reviews)</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Hardcoded Reviews */}
+                                    <div className="space-y-6">
+                                        <div className="border-b border-gray-100 pb-6">
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white font-bold">
+                                                    S
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <h4 className="font-semibold text-gray-800">Sarah M.</h4>
+                                                        <div className="flex text-yellow-400 text-sm">★★★★★</div>
+                                                    </div>
+                                                    <p className="text-gray-700 text-sm leading-relaxed mb-2">
+                                                        "Excellent teacher! Very patient and explains concepts clearly. My child has improved so much in just a few weeks."
+                                                    </p>
+                                                    <span className="text-gray-500 text-xs">2 weeks ago</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="border-b border-gray-100 pb-6">
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white font-bold">
+                                                    A
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <h4 className="font-semibold text-gray-800">Alex T.</h4>
+                                                        <div className="flex text-yellow-400 text-sm">★★★★★</div>
+                                                    </div>
+                                                    <p className="text-gray-700 text-sm leading-relaxed mb-2">
+                                                        "Great mentor! Really knows their subject and makes learning enjoyable. Highly recommended!"
+                                                    </p>
+                                                    <span className="text-gray-500 text-xs">1 month ago</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pb-6">
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white font-bold">
+                                                    M
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <h4 className="font-semibold text-gray-800">Maya P.</h4>
+                                                        <div className="flex text-yellow-400 text-sm">★★★★☆</div>
+                                                    </div>
+                                                    <p className="text-gray-700 text-sm leading-relaxed mb-2">
+                                                        "Good experience overall. Very professional and well-prepared for each session."
+                                                    </p>
+                                                    <span className="text-gray-500 text-xs">2 months ago</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Side: Qualifications + Subjects + Contact */}
+                            <div className="lg:col-span-1 space-y-8">
+                                
+                                {/* Qualifications Component */}
+                                <div className="bg-white rounded-2xl p-6 shadow-lg">
+                                    <h2 className="text-xl font-bold text-primary-dark mb-4">Certifications & Education</h2>
+                                    
+                                    {mentorData?.qualifications && mentorData.qualifications.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {mentorData.qualifications.map((qual, index) => (
+                                                <div key={index} className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="w-8 h-8 bg-primary-light rounded-lg flex items-center justify-center text-primary font-bold text-xs">
+                                                            {qual.icon || "🎓"}
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h4 className="font-semibold text-gray-800">{qual.title}</h4>
+                                                            <p className="text-sm text-gray-600">{qual.institution}</p>
+                                                            {qual.year && <p className="text-sm text-gray-500">{qual.year}</p>}
+                                                            {qual.type && <span className="text-xs text-primary bg-primary-light px-2 py-1 rounded-full mt-1 inline-block">{qual.type}</span>}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500">No qualifications listed yet.</p>
+                                    )}
+                                    
+                                    {/* Background Check Status */}
+                                    <div className="mt-4 pt-4 border-t border-gray-100">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-8 h-8 bg-primary-light rounded-lg flex items-center justify-center text-primary font-bold text-xs">
+                                                {mentorData?.backgroundChecked ? "✅" : "⚠️"}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-gray-800">Background Check</h4>
+                                                <p className="text-sm text-gray-600">
+                                                    {mentorData?.backgroundChecked ? "Verified" : "Pending"}
+                                                </p>
+                                                <p className="text-sm text-gray-500">
+                                                    {mentorData?.backgroundChecked ? "Enhanced DBS cleared" : "Background check in progress"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Subjects & Levels Component */}
+                                <div className="bg-white rounded-2xl p-6 shadow-lg">
+                                    <h2 className="text-xl font-bold text-primary-dark mb-4">Subjects & Levels</h2>
+                                    
+                                    {/* Subject Areas */}
+                                    <div className="mb-6">
+                                        <h4 className="font-semibold text-gray-700 mb-3">Subject Areas</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {mentorData?.subjects?.map((subject, index) => (
+                                                <span key={index} className="px-3 py-1 bg-primary text-white text-sm rounded-full">
+                                                    {subject}
+                                                </span>
+                                            )) || <span className="text-gray-500">No subjects specified</span>}
+                                        </div>
+                                    </div>
+
+                                    {/* Levels */}
+                                    <div className="mb-6">
+                                        <h4 className="font-semibold text-gray-700 mb-3">Levels</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {mentorData?.teachingLevels?.map((level, index) => (
+                                                <span key={index} className={`px-3 py-1 text-sm rounded-full ${
+                                                    level.toLowerCase() === 'beginner' ? 'bg-green-100 text-green-700' :
+                                                    level.toLowerCase() === 'intermediate' ? 'bg-yellow-100 text-yellow-700' :
+                                                    level.toLowerCase() === 'advanced' ? 'bg-red-100 text-red-700' :
+                                                    'bg-gray-100 text-gray-700'
+                                                }`}>
+                                                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                                                </span>
+                                            )) || <span className="text-gray-500">No levels specified</span>}
+                                        </div>
+                                    </div>
+
+                                    {/* Age Groups */}
+                                    <div>
+                                        <h4 className="font-semibold text-gray-700 mb-3">Age Groups</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {mentorData?.ageGroups?.map((ageGroup, index) => (
+                                                <span key={index} className={`px-3 py-1 text-sm rounded-full ${
+                                                    ageGroup.toLowerCase().includes('child') ? 'bg-blue-100 text-blue-700' :
+                                                    ageGroup.toLowerCase().includes('teen') ? 'bg-purple-100 text-purple-700' :
+                                                    ageGroup.toLowerCase().includes('adult') ? 'bg-indigo-100 text-indigo-700' :
+                                                    'bg-gray-100 text-gray-700'
+                                                }`}>
+                                                    {ageGroup.charAt(0).toUpperCase() + ageGroup.slice(1)}
+                                                </span>
+                                            )) || <span className="text-gray-500">No age groups specified</span>}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Contact Mentor Component */}
+                                <div className="bg-white rounded-2xl p-6 shadow-lg">
+                                    <h2 className="text-xl font-bold text-primary-dark mb-4">Contact Mentor</h2>
+                                    
+                                    <form className="space-y-4">
+                                        {/* Subject */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Subject</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-primary focus:outline-none" 
+                                                placeholder="What would you like to learn?"
+                                            />
+                                        </div>
+
+                                        {/* Message */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
+                                            <textarea 
+                                                rows="4" 
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-primary focus:outline-none resize-none" 
+                                                placeholder="Tell me about your learning goals..."
+                                            ></textarea>
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div className="space-y-3">
+                                            <button 
+                                                type="button"
+                                                className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors"
+                                            >
+                                                Request Free Video Chat
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white py-3 rounded-full font-semibold transition-colors"
+                                            >
+                                                Request Custom Batch
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                className="w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-50 py-3 rounded-full font-semibold transition-colors"
+                                            >
+                                                Send Message
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
                         </div>
 
