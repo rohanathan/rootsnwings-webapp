@@ -21,27 +21,18 @@ class AttendanceStatus(str, Enum):
 
 # MINIMAL BOOKING MODELS
 
-class SimpleBookingPricing(BaseModel):
-    finalPrice: float
-    currency: str = "GBP"
-    discountApplied: Optional[float] = None
-    discountReason: Optional[str] = None
-
 class SimpleBookingRequest(BaseModel):
     studentId: str
     classId: str
     personalGoals: Optional[str] = None
     parentId: Optional[str] = None  # For young learners
     youngLearnerName: Optional[str] = None
-    pricing: SimpleBookingPricing
 
 class SimpleBookingUpdate(BaseModel):
     bookingStatus: Optional[BookingStatus] = None
     paymentStatus: Optional[PaymentStatus] = None
     personalGoals: Optional[str] = None
     mentorNotes: Optional[str] = None
-    studentRating: Optional[float] = Field(None, ge=1, le=5)
-    studentReview: Optional[str] = None
 
 class SimpleBooking(BaseModel):
     bookingId: str
@@ -55,11 +46,8 @@ class SimpleBooking(BaseModel):
     youngLearnerName: Optional[str] = None
     bookingStatus: BookingStatus
     paymentStatus: PaymentStatus
-    pricing: SimpleBookingPricing
     personalGoals: Optional[str] = None
     mentorNotes: Optional[str] = None
-    studentRating: Optional[float] = Field(None, ge=1, le=5)
-    studentReview: Optional[str] = None
     bookedAt: str
     confirmedAt: Optional[str] = None
     completedAt: Optional[str] = None

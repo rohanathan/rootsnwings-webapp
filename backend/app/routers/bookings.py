@@ -47,7 +47,7 @@ def update_booking_status(booking_id: str, update_data: dict):
     Frontend can send ANY field it wants:
     - { "isCancelled": true }
     - { "bookingStatus": "confirmed", "paymentStatus": "paid", "customField": "value" }
-    - { "studentRating": 5, "studentReview": "Great class!", "mentorNotes": "Excellent student" }
+    - { "mentorNotes": "Excellent student" }
     - { "anyField": "anyValue" }
     """
     booking = update_booking_flexible(booking_id, update_data)

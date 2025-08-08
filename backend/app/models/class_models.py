@@ -13,15 +13,15 @@ class Location(BaseModel):
     details: Optional[dict]
 
 class Capacity(BaseModel):
-    maxStudents: int
-    minStudents: int
-    currentEnrollment: int
+    maxStudents: Optional[int] = None
+    minStudents: Optional[int] = None
+    currentEnrollment: Optional[int] = 0
 
 class Pricing(BaseModel):
-    perSessionRate: float
-    totalSessions: int
-    subtotal: float
-    currency: str
+    perSessionRate: Optional[float] = None
+    totalSessions: Optional[int] = None
+    subtotal: Optional[float] = None
+    currency: Optional[str] = None
 
 class ClassItem(BaseModel):
     classId: str
@@ -40,6 +40,8 @@ class ClassItem(BaseModel):
     schedule: Optional[Schedule] = None
     capacity: Optional[Capacity] = None
     pricing: Optional[Pricing] = None
+    avgRating: Optional[float] = None
+    totalReviews: Optional[int] = 0
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
 

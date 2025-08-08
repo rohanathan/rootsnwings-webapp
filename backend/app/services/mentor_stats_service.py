@@ -1,5 +1,8 @@
 """
-Service for updating mentor statistics when reviews are submitted.
+DEPRECATED: Service for updating mentor statistics when reviews are submitted.
+
+This service is now replaced by real-time stats updates in review_service.py
+Reviews are no longer stored in bookings, but in a separate reviews collection.
 """
 from typing import Optional
 from app.services.firestore import db

@@ -1,47 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 // Helper function to format date strings
 const formatDate = (date, formatOptions) => {
   return date.toLocaleDateString('en-GB', formatOptions);
 };
 
-// Data for time slots (a more scalable approach than hardcoding HTML)
-const getWeekData = (startDate) => {
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const week = [];
+// Helper to convert 24-hour to 12-hour format
+const formatTime = (time24) => {
+  const [hours, minutes] = time24.split(':');
+  const hour = parseInt(hours);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${displayHour}:${minutes} ${ampm}`;
+};
 
-  for (let i = 0; i < 7; i++) {
-    const dayDate = new Date(startDate);
-    dayDate.setDate(startDate.getDate() + i);
-
-    const timeSlots = [
-      { time: '9:00 AM', type: 'paid', available: true },
-      { time: '11:00 AM', type: 'paid', available: false },
-      { time: '1:00 PM', type: 'paid', available: true },
-      { time: '4:00 PM', type: 'free', available: true },
-    ];
-    
-    // Simulate some randomness for demo purposes
-    if (Math.random() > 0.5) {
-      timeSlots[0].available = false;
-    }
-    if (Math.random() > 0.7) {
-      timeSlots[2].available = false;
-    }
-
-    week.push({
-      dayOfWeek: days[dayDate.getDay()],
-      date: dayDate.getDate(),
-      month: months[dayDate.getMonth()],
-      isWeekend: dayDate.getDay() === 0 || dayDate.getDay() === 6,
-      slots: timeSlots,
-      fullDate: dayDate.toISOString().split('T')[0],
-    });
-  }
-  return week;
+// Helper to calculate if this is student's first session with mentor
+const isFirstSession = (studentBookings, mentorId) => {
+  return !studentBookings.some(booking => 
+    booking.mentorId === mentorId && 
+    ['confirmed', 'completed'].includes(booking.bookingStatus)
+  );
 };
 
 export default function OneOnOneSessions() {
@@ -50,6 +31,63 @@ export default function OneOnOneSessions() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [weekData, setWeekData] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [mentor, setMentor] = useState(null);
+  const [availability, setAvailability] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [studentBookings, setStudentBookings] = useState([]);
+  const [creatingClass, setCreatingClass] = useState(false);
+  
+  const searchParams = useSearchParams();
+  const mentorId = searchParams.get('mentorId') || 'user_8956af6c6b35'; // Default for testing
+
+  // Load mentor data and availability
+  useEffect(() => {
+    const loadMentorData = async () => {
+      setLoading(true);
+      try {
+        // Load mentor details
+        const mentorResponse = await fetch(`http://localhost:8000/mentors/${mentorId}`);
+        if (mentorResponse.ok) {
+          const mentorData = await mentorResponse.json();
+          setMentor(mentorData);
+        }
+
+        // Load mentor availability
+        const availabilityResponse = await fetch(`http://localhost:8000/availability/mentors/${mentorId}`);
+        if (availabilityResponse.ok) {
+          const availabilityData = await availabilityResponse.json();
+          setAvailability(availabilityData.availability);
+        } else if (availabilityResponse.status === 404) {
+          setError('This mentor has not set their availability yet.');
+        }
+
+        // Load student's previous bookings (for first session detection)
+        // TODO: Replace with actual student ID from auth
+        const bookingsResponse = await fetch(`http://localhost:8000/bookings/?studentId=user031`);
+        if (bookingsResponse.ok) {
+          const bookingsData = await bookingsResponse.json();
+          setStudentBookings(bookingsData.bookings || []);
+        }
+      } catch (error) {
+        console.error('Error loading mentor data:', error);
+        setError('Failed to load mentor information');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (mentorId) {
+      loadMentorData();
+    }
+  }, [mentorId]);
+
+  // Generate week data from mentor availability
+  useEffect(() => {
+    if (availability) {
+      generateWeekData();
+    }
+  }, [availability, weekOffset]);
 
   // Function to handle window resizing for responsive calendar
   const handleResize = () => {
@@ -57,42 +95,145 @@ export default function OneOnOneSessions() {
   };
 
   useEffect(() => {
-    // Initial data load and resize listener
-    const today = new Date();
-    const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + weekOffset * 7));
-    setWeekData(getWeekData(startOfWeek));
-    
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [weekOffset]);
+  }, []);
+
+  // Generate week data from mentor's availability
+  const generateWeekData = () => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const week = [];
+    const today = new Date();
+    const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + weekOffset * 7));
+
+    for (let i = 0; i < 7; i++) {
+      const dayDate = new Date(startOfWeek);
+      dayDate.setDate(startOfWeek.getDate() + i);
+      const dayName = days[dayDate.getDay()];
+      const fullDate = dayDate.toISOString().split('T')[0];
+
+      // Find availability for this day
+      const dayAvailability = availability?.availability?.find(d => d.day === dayName);
+      const timeSlots = [];
+
+      if (dayAvailability && dayAvailability.timeRanges) {
+        dayAvailability.timeRanges.forEach(range => {
+          // Generate 1-hour slots within each time range
+          const startHour = parseInt(range.startTime.split(':')[0]);
+          const endHour = parseInt(range.endTime.split(':')[0]);
+          
+          for (let hour = startHour; hour < endHour; hour++) {
+            const slotTime = `${hour.toString().padStart(2, '0')}:00`;
+            const slotEndTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
+            
+            // Check if this slot is in the past
+            const slotDateTime = new Date(`${fullDate}T${slotTime}`);
+            const now = new Date();
+            const isPastSlot = slotDateTime < now;
+            
+            // Determine if this should be a free session
+            const isFirstSessionForMentor = isFirstSession(studentBookings, mentorId);
+            const slotType = isFirstSessionForMentor && timeSlots.length === 0 ? 'free' : 'paid';
+            
+            timeSlots.push({
+              startTime: slotTime,
+              endTime: slotEndTime,
+              displayTime: formatTime(slotTime),
+              type: slotType,
+              available: !isPastSlot // Simple availability check for now
+            });
+          }
+        });
+      }
+
+      week.push({
+        dayOfWeek: dayName,
+        date: dayDate.getDate(),
+        month: months[dayDate.getMonth()],
+        isWeekend: dayDate.getDay() === 0 || dayDate.getDay() === 6,
+        slots: timeSlots,
+        fullDate: fullDate
+      });
+    }
+    
+    setWeekData(week);
+  };
 
   // Handle slot selection
   const handleSlotClick = (day, slot) => {
+    const sessionDateTime = new Date(`${day.fullDate}T${slot.startTime}`);
+    const basePrice = mentor?.pricing?.oneOnOneRate || 50;
+    
     setSelectedSession({
+      mentorId: mentorId,
+      mentorName: mentor?.displayName || 'Mentor',
       date: day.fullDate,
-      time: slot.time,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      displayTime: slot.displayTime,
       type: slot.type,
-      price: slot.type === 'free' ? 'FREE' : '£35',
-      displayDate: formatDate(new Date(`${day.fullDate}T${slot.time.replace(/\sPM|\sAM/g, '')}:00`), { 
+      price: slot.type === 'free' ? 'FREE' : `£${basePrice}`,
+      displayDate: formatDate(sessionDateTime, { 
         weekday: 'long', 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-      })
+      }),
+      subject: 'One-on-One Session',
+      format: 'online', // Default
+      specialRequests: ''
     });
     setShowModal(true);
   };
 
-  // Handle modal actions
-  const handleConfirmBooking = () => {
-    alert(`Booking confirmed! You'll receive a confirmation email shortly. 
-           \nSession: ${selectedSession.price} session with Priya Sharma
-           \nDate: ${selectedSession.date} at ${selectedSession.time}`);
-    setShowModal(false);
-    setSelectedSession(null);
+  // Handle booking confirmation - create class and redirect to booking page
+  const handleConfirmBooking = async () => {
+    if (!selectedSession) return;
+    
+    setCreatingClass(true);
+    try {
+      // Create one-on-one class dynamically
+      const response = await fetch('http://localhost:8000/classes/one-on-one/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mentorId: selectedSession.mentorId,
+          studentId: 'user031', // TODO: Get from auth
+          sessionDate: selectedSession.date,
+          startTime: selectedSession.startTime,
+          endTime: selectedSession.endTime,
+          subject: selectedSession.subject,
+          format: selectedSession.format,
+          specialRequests: selectedSession.specialRequests,
+          isFirstSession: selectedSession.type === 'free'
+        })
+      });
+
+      if (response.ok) {
+        const { classId } = await response.json();
+        // Redirect to existing booking confirmation page
+        window.location.href = `/booking/confirmbooking?classId=${classId}`;
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to create booking: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      alert('Failed to create booking. Please try again.');
+    } finally {
+      setCreatingClass(false);
+    }
+  };
+
+  // Update session details in modal
+  const updateSessionDetails = (field, value) => {
+    setSelectedSession(prev => ({ ...prev, [field]: value }));
   };
 
   const handleCancelBooking = () => {
@@ -157,14 +298,22 @@ export default function OneOnOneSessions() {
                 P
               </div>
               <div>
-                <h2 className="text-xl font-bold text-primary-dark">Priya Sharma</h2>
-                <p className="text-sm text-gray-600">Kathak Dance & Cultural Arts</p>
+                <h2 className="text-xl font-bold text-primary-dark">{mentor?.displayName || 'Loading...'}</h2>
+                <p className="text-sm text-gray-600">{mentor?.headline || 'Loading...'}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <div className="flex text-yellow-400 text-sm">★★★★★</div>
-                  <span className="text-sm text-gray-600">4.9 (32 reviews)</span>
-                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full ml-2">
-                    First Session Free
-                  </span>
+                  {mentor?.avgRating && (
+                    <>
+                      <div className="flex text-yellow-400 text-sm">
+                        {'★'.repeat(Math.floor(mentor.avgRating))}{'☆'.repeat(5 - Math.floor(mentor.avgRating))}
+                      </div>
+                      <span className="text-sm text-gray-600">{mentor.avgRating} ({mentor.totalReviews || 0} reviews)</span>
+                    </>
+                  )}
+                  {isFirstSession(studentBookings, mentorId) && (
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full ml-2">
+                      First Session Free
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -198,8 +347,10 @@ export default function OneOnOneSessions() {
                     <div className="flex items-center text-gray-700">
                       <span className="text-2xl mr-3">💰</span>
                       <div>
-                        <div className="font-semibold">£35 per session</div>
-                        <div className="text-sm text-gray-500">First session is FREE</div>
+                        <div className="font-semibold">£{mentor?.pricing?.oneOnOneRate || 50} per session</div>
+                        {isFirstSession(studentBookings, mentorId) && (
+                          <div className="text-sm text-gray-500">First session is FREE</div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center text-gray-700">
@@ -290,35 +441,59 @@ export default function OneOnOneSessions() {
               </button>
             </div>
 
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading mentor availability...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="text-center py-12">
+                <div className="text-red-500 mb-4">⚠️</div>
+                <p className="text-red-600 font-medium">{error}</p>
+              </div>
+            )}
+
             {/* 7-Day Calendar Grid */}
-            <div className={`grid gap-6 ${isMobile ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 lg:grid-cols-7'}`}>
-              {weekData.map((day, dayIndex) => (
-                <div key={dayIndex} className="calendar-day">
-                  <div className={`text-center mb-4 p-3 rounded-lg ${day.isWeekend ? 'bg-primary-light' : 'bg-gray-50'}`}>
-                    <div className={`text-sm font-medium ${day.isWeekend ? 'text-primary' : 'text-gray-500'}`}>{day.dayOfWeek}</div>
-                    <div className={`text-xl font-bold ${day.isWeekend ? 'text-primary-dark' : 'text-gray-800'}`}>{day.date}</div>
-                    <div className={`text-xs ${day.isWeekend ? 'text-primary' : 'text-gray-500'}`}>{day.month}</div>
+            {!loading && !error && (
+              <div className={`grid gap-6 ${isMobile ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 lg:grid-cols-7'}`}>
+                {weekData.map((day, dayIndex) => (
+                  <div key={dayIndex} className="calendar-day">
+                    <div className={`text-center mb-4 p-3 rounded-lg ${day.isWeekend ? 'bg-primary-light' : 'bg-gray-50'}`}>
+                      <div className={`text-sm font-medium ${day.isWeekend ? 'text-primary' : 'text-gray-500'}`}>{day.dayOfWeek}</div>
+                      <div className={`text-xl font-bold ${day.isWeekend ? 'text-primary-dark' : 'text-gray-800'}`}>{day.date}</div>
+                      <div className={`text-xs ${day.isWeekend ? 'text-primary' : 'text-gray-500'}`}>{day.month}</div>
+                    </div>
+                    <div className="space-y-2">
+                      {day.slots.length === 0 ? (
+                        <div className="text-center py-4 text-gray-500 text-sm">
+                          No availability
+                        </div>
+                      ) : (
+                        day.slots.map((slot, slotIndex) => (
+                          <button 
+                            key={slotIndex}
+                            onClick={() => slot.available && handleSlotClick(day, slot)}
+                            disabled={!slot.available}
+                            className={`w-full py-3 rounded-lg font-medium transition-colors 
+                              ${slot.available ? 
+                                (slot.type === 'free' ? 'bg-blue-100 hover:bg-blue-200 text-blue-800' : 'bg-green-100 hover:bg-green-200 text-green-800') : 
+                                'bg-gray-200 text-gray-500 cursor-not-allowed'
+                              }`}
+                          >
+                            {slot.displayTime} {slot.type === 'free' && <span className="text-xs">(FREE)</span>}
+                            {!slot.available && ' - Past'}
+                          </button>
+                        ))
+                      )}
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    {day.slots.map((slot, slotIndex) => (
-                      <button 
-                        key={slotIndex}
-                        onClick={() => slot.available && handleSlotClick(day, slot)}
-                        disabled={!slot.available}
-                        className={`w-full py-3 rounded-lg font-medium transition-colors 
-                          ${slot.available ? 
-                            (slot.type === 'free' ? 'bg-blue-100 hover:bg-blue-200 text-blue-800' : 'bg-green-100 hover:bg-green-200 text-green-800') : 
-                            'bg-gray-200 text-gray-500 cursor-not-allowed'
-                          }`}
-                      >
-                        {slot.time} {slot.type === 'free' && <span className="text-xs">(FREE)</span>}
-                        {!slot.available && ' - Booked'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Contact Option Component */}
@@ -356,7 +531,7 @@ export default function OneOnOneSessions() {
               <div className="bg-gray-50 p-4 rounded-xl">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-gray-600">Mentor</span>
-                  <span className="font-semibold text-primary-dark">Priya Sharma</span>
+                  <span className="font-semibold text-primary-dark">{selectedSession?.mentorName}</span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-gray-600">Session Type</span>
@@ -364,7 +539,7 @@ export default function OneOnOneSessions() {
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-gray-600">Date & Time</span>
-                  <span className="font-semibold text-primary-dark" id="selected-datetime">{selectedSession.displayDate}</span>
+                  <span className="font-semibold text-primary-dark">{selectedSession?.displayDate}</span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-gray-600">Duration</span>
@@ -372,7 +547,7 @@ export default function OneOnOneSessions() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-gray-600">Price</span>
-                  <span className={`font-bold text-lg ${selectedSession.type === 'free' ? 'text-green-600' : 'text-primary-dark'}`} id="session-price">{selectedSession.price}</span>
+                  <span className={`font-bold text-lg ${selectedSession?.type === 'free' ? 'text-green-600' : 'text-primary-dark'}`}>{selectedSession?.price}</span>
                 </div>
               </div>
 
@@ -381,11 +556,24 @@ export default function OneOnOneSessions() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Session Format</label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors">
-                    <input type="radio" name="format" value="online" className="text-primary mr-3" defaultChecked />
+                    <input 
+                      type="radio" 
+                      name="format" 
+                      value="online" 
+                      className="text-primary mr-3" 
+                      defaultChecked
+                      onChange={(e) => updateSessionDetails('format', e.target.value)}
+                    />
                     <span className="text-sm">📱 Online</span>
                   </label>
                   <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors">
-                    <input type="radio" name="format" value="in-person" className="text-primary mr-3" />
+                    <input 
+                      type="radio" 
+                      name="format" 
+                      value="in-person" 
+                      className="text-primary mr-3"
+                      onChange={(e) => updateSessionDetails('format', e.target.value)}
+                    />
                     <span className="text-sm">🏠 In-Person</span>
                   </label>
                 </div>
@@ -393,8 +581,13 @@ export default function OneOnOneSessions() {
 
               {/* Special Requests */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Special Requests (Optional)</label>
-                <textarea className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:border-primary focus:outline-none" rows="3" placeholder="Any specific topics or goals for this session?"></textarea>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Learning Goals (Optional)</label>
+                <textarea 
+                  className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:border-primary focus:outline-none" 
+                  rows="3" 
+                  placeholder="What would you like to focus on in this session?"
+                  onChange={(e) => updateSessionDetails('specialRequests', e.target.value)}
+                ></textarea>
               </div>
             </div>
 
@@ -407,8 +600,16 @@ export default function OneOnOneSessions() {
               </button>
               <button 
                 onClick={handleConfirmBooking}
-                className="flex-1 bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors">
-                Confirm Booking
+                disabled={creatingClass}
+                className="flex-1 bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {creatingClass ? (
+                  <>
+                    <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+                    Creating Session...
+                  </>
+                ) : (
+                  'Confirm Booking'
+                )}
               </button>
             </div>
           </div>

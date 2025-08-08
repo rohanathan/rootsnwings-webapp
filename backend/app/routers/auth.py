@@ -226,7 +226,6 @@ def login_user(login_data: UserLogin):
 def logout_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Logout user (client should discard token).
-    In a more advanced system, we'd blacklist the token.
     """
     return {"message": "Logged out successfully"}
 

@@ -6,6 +6,10 @@ from app.services.class_service import (
     fetch_upcoming_workshops, fetch_class_by_id, get_class_categories, get_class_subjects,
     create_class, update_class_flexible, approve_class
 )
+from app.services.mentor_service import fetch_mentor_by_id
+from app.services.firestore import db
+import uuid
+from datetime import datetime
 
 router = APIRouter(
     prefix="/classes",
@@ -209,6 +213,121 @@ def approve_existing_class(class_id: str, admin_notes: str = ""):
         }
     else:
         raise HTTPException(status_code=500, detail="Failed to approve class")
+
+@router.post("/one-on-one/create")
+def create_one_on_one_class(request: dict):
+    """
+    Create a one-on-one class dynamically for booking flow.
+    
+    Pure MongoDB-style flexible endpoint. Frontend can send ANY fields it wants:
+    - Required: mentorId, sessionDate, startTime, endTime
+    - Optional: subject, format, specialRequests, isFirstSession, customField, etc.
+    
+    This creates a temporary class that:
+    - Will not appear in any class listings (type: "one-on-one" is filtered out)
+    - Is auto-approved for immediate booking
+    - Has dynamic title based on mentor's subjects
+    - Includes first session discount if applicable
+    
+    Returns classId for immediate redirect to booking confirmation page.
+    """
+    try:
+        # Required fields validation
+        required_fields = ['mentorId', 'sessionDate', 'startTime', 'endTime']
+        for field in required_fields:
+            if field not in request:
+                raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+        
+        # Get mentor details for title generation and pricing
+        mentor = fetch_mentor_by_id(request['mentorId'])
+        if not mentor:
+            raise HTTPException(status_code=404, detail=f"Mentor {request['mentorId']} not found")
+        
+        # Generate dynamic title: "One-on-One [Subject] with [Mentor Name]"
+        subject = None
+        if hasattr(mentor, 'subjects') and mentor.subjects:
+            subject = mentor.subjects[0]
+        elif hasattr(mentor, 'category') and mentor.category:
+            subject = mentor.category
+        else:
+            subject = "Session"
+        
+        title = f"One-on-One {subject} with {mentor.displayName}"
+        
+        # Calculate pricing with first session discount
+        base_rate = getattr(mentor.pricing, 'oneOnOneRate', 50.0) if hasattr(mentor, 'pricing') and mentor.pricing else 50.0
+        is_first_session = request.get('isFirstSession', False)
+        discount_percentage = 100 if is_first_session else 0
+        final_price = 0.0 if is_first_session else base_rate
+        
+        # Generate unique class ID
+        session_date = request['sessionDate'].replace('-', '')
+        start_time = request['startTime'].replace(':', '')
+        class_id = f"onetoone_{request['mentorId']}_{session_date}_{start_time}_{str(uuid.uuid4())[:8]}"
+        
+        # Create base class data structure
+        class_data = {
+            "classId": class_id,
+            "type": "one-on-one",  # This will be filtered out from all listings
+            "title": title,
+            "subject": subject,
+            "category": getattr(mentor, 'category', 'General') if hasattr(mentor, 'category') else 'General',
+            "description": f"Personalised one-on-one session. {request.get('specialRequests', '')}".strip(),
+            "mentorId": request['mentorId'],
+            "mentorName": mentor.displayName,
+            "level": "all-levels",
+            "ageGroup": "all-ages", 
+            "format": request.get('format', 'online'),
+            "schedule": {
+                "startDate": request['sessionDate'],
+                "endDate": request['sessionDate'],
+                "weeklySchedule": [{
+                    "day": datetime.strptime(request['sessionDate'], '%Y-%m-%d').strftime('%A'),
+                    "startTime": request['startTime'],
+                    "endTime": request['endTime']
+                }],
+                "sessionDuration": 60
+            },
+            "capacity": {
+                "maxStudents": 1,
+                "minStudents": 1,
+                "currentEnrollment": 0
+            },
+            "pricing": {
+                "perSessionRate": base_rate,
+                "totalSessions": 1,
+                "discountPercentage": discount_percentage,
+                "subtotal": final_price,
+                "currency": "GBP"
+            },
+            "status": "approved",  # Auto-approve one-on-one classes
+            "isRecurring": False,
+            "createdAt": datetime.now().isoformat(),
+            "updatedAt": datetime.now().isoformat()
+        }
+        
+        # MongoDB-style flexibility: Frontend can override ANY field or add custom fields
+        for key, value in request.items():
+            # Skip the required fields we already handled
+            if key not in ['mentorId', 'sessionDate', 'startTime', 'endTime']:
+                # Allow frontend to override any generated field or add custom fields
+                if key not in ['classId']:  # Protect classId from being overridden
+                    class_data[key] = value
+        
+        # Save to Firestore
+        doc_ref = db.collection('classes').document(class_id)
+        doc_ref.set(class_data)
+        
+        return {
+            "message": "One-on-one class created successfully",
+            "classId": class_id,
+            "title": class_data.get('title', title),
+            "finalPrice": class_data.get('pricing', {}).get('subtotal', final_price),
+            "isFirstSession": is_first_session
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create one-on-one class: {str(e)}")
 
 
 

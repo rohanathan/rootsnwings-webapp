@@ -73,6 +73,7 @@ def health_check():
             "mentors": "/mentors/",
             "availability": "/availability/",
             "qualifications": "/qualifications/",
-            "bookings": "/bookings/"
+            "bookings": "/bookings/",
+            "reviews": "/reviews/"
         }
     }

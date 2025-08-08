@@ -158,8 +158,6 @@ class OneOnOneBookingService:
             'totalSessions': 1,
             'attendanceStatus': None,
             'mentorNotes': None,
-            'studentRating': None,
-            'studentReview': None,
             'bookedAt': datetime.utcnow(),
             'confirmedAt': None,
             'completedAt': None,

@@ -13,9 +13,8 @@ def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
     composite indexes. We'll implement this step-by-step to identify required indexes.
     """
     try:
-        # Start with base query - status filter REMOVED for testing
-        # base_query = db.collection("classes").where("status", "==", "approved")  # COMMENTED OUT
-        base_query = db.collection("classes")  # NO STATUS FILTER for testing
+        # Start with base query - exclude one-on-one classes from all listings
+        base_query = db.collection("classes").where("type", "!=", "one-on-one")
         
         # We'll apply filters very carefully to avoid composite index issues
         # Start with the most basic filters first
@@ -214,8 +213,8 @@ def fetch_all_workshops(page: int = 1, page_size: int = 20) -> Tuple[List[ClassI
 def fetch_featured_classes(limit: int = 6) -> List[ClassItem]:
     """Get featured classes based on performance metrics"""
     try:
-        # docs = db.collection("classes").where("type", "==", "batch").where("status", "==", "approved").stream()  # COMMENTED OUT
-        docs = db.collection("classes").where("type", "==", "batch").stream()  # NO STATUS FILTER for testing
+        # Exclude one-on-one classes and get batches only
+        docs = db.collection("classes").where("type", "==", "batch").stream()
         class_scores = []
         
         for doc in docs:
