@@ -1,12 +1,12 @@
-from fastapi import APIRouter, HTTPException, Depends
-from typing import List
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
+from typing import List, Optional
 from app.models.review_models import (
     ReviewRequest, ReviewResponse, ReviewListResponse, 
     TestimonialsListResponse, Review
 )
 from app.services.review_service import (
-    create_or_update_review, get_class_reviews, get_mentor_reviews,
-    get_testimonials, delete_review
+    create_or_update_review, get_mentor_reviews,
+    get_testimonials, delete_review, get_my_reviews
 )
 from app.services.auth_service import get_current_user
 
@@ -36,50 +36,70 @@ def create_review(
     review = create_or_update_review(student_id, review_request)
     return ReviewResponse(review=review)
 
-@router.get("/class/{class_id}", response_model=ReviewListResponse)
-def get_reviews_for_class(class_id: str):
-    """
-    Get all reviews for a specific class.
-    Used for class detail pages.
-    """
-    reviews, avg_rating = get_class_reviews(class_id)
-    return ReviewListResponse(
-        reviews=reviews,
-        total=len(reviews),
-        avgRating=avg_rating
-    )
-
-@router.get("/mentor/{mentor_id}", response_model=ReviewListResponse)
-def get_reviews_for_mentor(mentor_id: str):
-    """
-    Get all reviews for a specific mentor.
-    Used for mentor profile pages.
-    """
-    reviews, avg_rating = get_mentor_reviews(mentor_id)
-    return ReviewListResponse(
-        reviews=reviews,
-        total=len(reviews),
-        avgRating=avg_rating
-    )
-
-@router.get("/testimonials", response_model=TestimonialsListResponse)
-def get_testimonials_for_homepage(
-    min_rating: int = 4,
-    limit: int = 10
+@router.get("/")
+def get_reviews(
+    request: Request,
+    type: str = Query(..., description="mentor, testimonials, or my-reviews"),
+    id: Optional[str] = Query(None, description="mentor_id when type=mentor"),
+    limit: int = Query(10, description="Number of results to return"),
+    min_rating: int = Query(4, description="Minimum rating for testimonials")
 ):
     """
-    Get high-rated reviews for homepage testimonials.
+    Unified reviews endpoint:
     
-    Filters:
-    - Rating >= min_rating (default 4)
-    - Anonymized student info
-    - Includes mentor and class names
+    Examples:
+    - GET /reviews?type=mentor&id=user026 - Get mentor reviews
+    - GET /reviews?type=testimonials&limit=10 - Get homepage testimonials  
+    - GET /reviews?type=my-reviews - Get user's reviews (requires auth header)
     """
-    testimonials = get_testimonials(min_rating, limit)
-    return TestimonialsListResponse(
-        testimonials=testimonials,
-        count=len(testimonials)
-    )
+    
+    if type == "mentor":
+        if not id:
+            raise HTTPException(status_code=400, detail="mentor_id required when type=mentor")
+        
+        reviews, avg_rating = get_mentor_reviews(id)
+        return ReviewListResponse(
+            reviews=reviews,
+            total=len(reviews),
+            avgRating=avg_rating
+        )
+    
+    elif type == "testimonials":
+        testimonials = get_testimonials(min_rating, limit)
+        return TestimonialsListResponse(
+            testimonials=testimonials,
+            count=len(testimonials)
+        )
+    
+    elif type == "my-reviews":
+        # Frontend handles auth - extract token from headers
+        auth_header = request.headers.get("authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Authorization required")
+        
+        try:
+            # Simple token extraction - frontend responsibility to send valid token
+            token = auth_header.split(" ")[1]
+            # For now, extract user_id from token (simplified)
+            # In production, you'd validate the JWT token properly
+            from app.services.auth_service import verify_token
+            user_data = verify_token(token)
+            student_id = user_data.get("uid")
+            
+            reviews, avg_rating = get_my_reviews(student_id)
+            return ReviewListResponse(
+                reviews=reviews,
+                total=len(reviews),
+                avgRating=avg_rating
+            )
+        except Exception as e:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    
+    else:
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid type. Must be: mentor, testimonials, or my-reviews"
+        )
 
 @router.delete("/{review_id}")
 def delete_user_review(
@@ -96,27 +116,3 @@ def delete_user_review(
     delete_review(review_id, student_id)
     return {"message": "Review deleted successfully"}
 
-@router.get("/my-reviews", response_model=ReviewListResponse)
-def get_my_reviews(current_user: dict = Depends(get_current_user)):
-    """
-    Get all reviews written by the current user.
-    """
-    from app.services.firestore import db
-    
-    student_id = current_user.get("uid")
-    query = db.collection("reviews").where("studentId", "==", student_id)
-    docs = list(query.stream())
-    
-    reviews = []
-    for doc in docs:
-        data = doc.to_dict()
-        data["reviewId"] = doc.id
-        reviews.append(Review(**data))
-    
-    avg_rating = sum(r.rating for r in reviews) / len(reviews) if reviews else 0
-    
-    return ReviewListResponse(
-        reviews=reviews,
-        total=len(reviews),
-        avgRating=round(avg_rating, 2)
-    )

@@ -48,18 +48,21 @@ def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
         # Apply basic filters to query (one at a time to avoid composite index issues)
         current_query = base_query
         
-        # Apply type filter directly to Firestore if it exists (single field index)
-        type_filter = None
+        # Apply only type filter to Firestore to avoid composite index issues
+        firestore_filters = []
         other_filters = []
         
         for filter_item in filters:
-            if filter_item[0] == "type":
-                type_filter = filter_item
+            if filter_item[0] == "type":  # Only apply type filter to Firestore
+                firestore_filters.append(filter_item)
             else:
-                other_filters.append(filter_item)
+                other_filters.append(filter_item)  # Apply mentorId in Python
         
-        if type_filter:
-            field, op, value = type_filter
+        # Apply Firestore filters (only type)
+        print(f"DEBUG: Applying Firestore filters: {firestore_filters}")
+        print(f"DEBUG: Python filters: {other_filters}")
+        for field, op, value in firestore_filters:
+            print(f"DEBUG: Adding Firestore filter - {field} {op} {value}")
             current_query = current_query.where(field, op, value)
         
         # Get all documents and do remaining filtering in Python
@@ -267,6 +270,21 @@ def fetch_class_by_id(class_id: str):
         
         data = doc.to_dict()
         data["classId"] = doc.id
+        
+        # Ensure mentorName is set (required field for ClassItem validation)
+        if not data.get("mentorName") and data.get("mentorId"):
+            try:
+                from app.services.mentor_service import fetch_mentor_by_id
+                mentor = fetch_mentor_by_id(data["mentorId"])
+                if mentor and hasattr(mentor, 'displayName'):
+                    data["mentorName"] = mentor.displayName
+                else:
+                    data["mentorName"] = "Unknown Mentor"
+            except:
+                data["mentorName"] = "Unknown Mentor"
+        elif not data.get("mentorName"):
+            data["mentorName"] = "Unknown Mentor"
+        
         cleaned_data = clean_data(data)
         
         return ClassItem(**cleaned_data)
@@ -360,6 +378,21 @@ def clean_data(data: Dict) -> Dict:
     # Ensure classId is set
     if "classId" not in data and "id" in data:
         data["classId"] = data["id"]
+    
+    # Ensure mentorName is set (required field for ClassItem validation)
+    if not data.get("mentorName"):
+        if data.get("mentorId"):
+            try:
+                from app.services.mentor_service import fetch_mentor_by_id
+                mentor = fetch_mentor_by_id(data["mentorId"])
+                if mentor and hasattr(mentor, 'displayName'):
+                    data["mentorName"] = mentor.displayName
+                else:
+                    data["mentorName"] = "Unknown Mentor"
+            except:
+                data["mentorName"] = "Unknown Mentor"
+        else:
+            data["mentorName"] = "Unknown Mentor"
     
     return data
 

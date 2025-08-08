@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import axios from 'axios';
+import { calculateTotalPayable, formatPrice } from '../../utils/pricingCalculator';
 
 // Helper functions for conditional visual styling (same as group-batches)
 const getLevelBadge = (level) => {
@@ -239,13 +242,16 @@ const workshopsData = [
 ];
 
 export default function Workshops() {
+  const searchParams = useSearchParams();
+  
   const [filters, setFilters] = useState({
     level: '',
     ageGroup: '',
     format: '',
     subject: '',
   });
-  const [filteredWorkshops, setFilteredWorkshops] = useState(workshopsData);
+  const [workshops, setWorkshops] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Function to handle filter changes
   const handleFilterChange = (e) => {
@@ -256,27 +262,79 @@ export default function Workshops() {
     }));
   };
 
-  // Effect to apply filters whenever the filter state changes
+  // Fetch workshops from API
   useEffect(() => {
-    const applyFilters = () => {
-      const { level, ageGroup, format, subject } = filters;
-      const newFilteredWorkshops = workshopsData.filter((workshop) => {
-        const levelMatch = !level || workshop.level?.toLowerCase() === level.toLowerCase();
-        const ageMatch = !ageGroup || workshop.ageGroup?.toLowerCase() === ageGroup.toLowerCase();
-        const formatMatch = !format || workshop.format?.toLowerCase() === format.toLowerCase();
-        const subjectMatch = !subject || workshop.subject?.toLowerCase().includes(subject.toLowerCase());
-        return levelMatch && ageMatch && formatMatch && subjectMatch;
-      });
-      setFilteredWorkshops(newFilteredWorkshops);
+    const fetchWorkshopsData = async () => {
+      setLoading(true);
+      try {
+        // Get mentorId from URL params or localStorage
+        const urlMentorId = searchParams.get('mentorId');
+        const urlType = searchParams.get('type');
+        
+        let mentorId = urlMentorId;
+        let mentor = null;
+        
+        // If no URL params, fetch all workshops
+        if (!mentorId) {
+          const storedMentor = localStorage.getItem("mentor");
+          if (storedMentor) {
+            mentor = JSON.parse(storedMentor);
+            mentorId = mentor.uid;
+          }
+        }
+        
+        // Build API URL with query parameters
+        let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?type=workshop`;
+        if (mentorId) {
+          apiUrl += `&mentorId=${mentorId}`;
+        }
+        
+        console.log('Fetching workshops from:', apiUrl);
+        
+        const response = await axios.get(apiUrl);
+        console.log('API Response:', response.data);
+        console.log('Number of workshops returned:', response.data.classes?.length);
+        console.log('Workshop mentorIds:', response.data.classes?.map(w => w.mentorId));
+        setWorkshops(response.data.classes || []);
+        
+        // If we have URL params, also try to fetch mentor info for display
+        if (urlMentorId && !mentor) {
+          try {
+            const mentorResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${urlMentorId}`);
+            if (mentorResponse.data?.mentor) {
+              localStorage.setItem('mentor', JSON.stringify(mentorResponse.data.mentor));
+            }
+          } catch (mentorError) {
+            console.warn('Could not fetch mentor details:', mentorError);
+          }
+        }
+        
+      } catch (error) {
+        console.error('Error fetching workshops data:', error);
+        setWorkshops([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    applyFilters();
-  }, [filters]);
+    fetchWorkshopsData();
+  }, [searchParams]);
+  
+  // Apply filters to workshops
+  const filteredWorkshops = workshops.filter((workshop) => {
+    const { level, ageGroup, format, subject } = filters;
+    const levelMatch = !level || workshop.level?.toLowerCase() === level.toLowerCase();
+    const ageMatch = !ageGroup || workshop.ageGroup?.toLowerCase() === ageGroup.toLowerCase();
+    const formatMatch = !format || workshop.format?.toLowerCase() === format.toLowerCase();
+    const subjectMatch = !subject || workshop.subject?.toLowerCase().includes(subject.toLowerCase());
+    return levelMatch && ageMatch && formatMatch && subjectMatch;
+  });
 
   // Handle enrollment button click
   const handleEnrollNow = (workshop) => {
-    alert(`Enrolling you in "${workshop.title}". Redirecting to payment...`);
-    // TODO: Replace with actual navigation when API integration is ready
+    // Store workshop data for booking confirmation
+    localStorage.setItem('selectedMentorClass', JSON.stringify(workshop));
+    window.location.href = `/booking/confirmbooking/${workshop.classId}`;
   };
 
   return (
@@ -319,28 +377,28 @@ export default function Workshops() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {/* Dynamic Mentor Photo */}
-              {workshopsData[0]?.mentorPhotoURL ? (
+              {workshops[0]?.mentorPhotoURL ? (
                 <img 
-                  src={workshopsData[0].mentorPhotoURL} 
-                  alt={workshopsData[0].mentorName}
+                  src={workshops[0].mentorPhotoURL} 
+                  alt={workshops[0].mentorName}
                   className="w-14 h-14 rounded-full object-cover"
                 />
               ) : (
                 <div className="w-14 h-14 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white text-lg font-bold">
-                  {workshopsData[0]?.mentorName?.charAt(0) || 'M'}
+                  {workshops[0]?.mentorName?.charAt(0) || 'M'}
                 </div>
               )}
               <div>
                 <h2 className="text-lg font-bold primary-dark">
-                  {workshopsData[0]?.mentorName || 'Mentor Name'}
+                  {workshops[0]?.mentorName || 'Mentor Name'}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  {[...new Set(workshopsData.map(w => w.subject))].join(' & ').replace(/^\w/, c => c.toUpperCase())} Workshops
+                  {[...new Set(workshops.map(w => w.subject))].join(' & ').replace(/^\w/, c => c.toUpperCase())} Workshops
                 </p>
                 <div className="flex items-center gap-2">
                   <div className="flex text-yellow-400 text-xs">★★★★★</div>
                   <span className="text-xs text-gray-600">
-                    {workshopsData[0]?.mentorRating || 4.9} (32 reviews)
+                    {workshops[0]?.mentorRating || 4.9} ({workshops[0]?.totalReviews || 0} reviews)
                   </span>
                   <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full ml-2">
                     Workshop Specialist
@@ -475,9 +533,18 @@ export default function Workshops() {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading workshops...</p>
+            </div>
+          )}
+
           {/* Workshop Cards Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {filteredWorkshops.length > 0 ? (
+          {!loading && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+              {filteredWorkshops.length > 0 ? (
               filteredWorkshops.map((workshop) => {
                 const levelBadge = getLevelBadge(workshop.level);
                 const ageBadge = getAgeGroupBadge(workshop.ageGroup);
@@ -507,12 +574,24 @@ export default function Workshops() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold primary-dark">
-                          {workshop.pricing.currency}{workshop.pricing.total}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {workshop.pricing.sessions === 1 ? 'Single session' : `${workshop.pricing.sessions} sessions`}
-                        </div>
+                        {(() => {
+                          const pricing = calculateTotalPayable(workshop);
+                          return (
+                            <>
+                              <div className="text-2xl font-bold primary-dark">
+                                {formatPrice(pricing.finalPrice, pricing.currency)}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {pricing.totalSessions === 1 ? 'Single session' : `${pricing.totalSessions || 1} sessions`}
+                                {pricing.discountAmount > 0 && (
+                                  <div className="text-green-600 text-xs">
+                                    Save {formatPrice(pricing.discountAmount, pricing.currency)}
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -585,7 +664,8 @@ export default function Workshops() {
                 No workshops found matching your filters.
               </p>
             )}
-          </div>
+            </div>
+          )}
 
           {/* Bottom CTA Section */}
           <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-orange-100 rounded-2xl p-8 text-center">

@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
+import { calculateTotalPayable, formatPrice } from '../../utils/pricingCalculator';
 // Helper functions for conditional visual styling
 const getLevelBadge = (level) => {
   switch(level?.toLowerCase()) {
@@ -167,6 +169,8 @@ const formatSchedule = (weeklySchedule) => {
 // }
 
 export default function GroupBatches() {
+  const searchParams = useSearchParams();
+  
   const [filters, setFilters] = useState({
     level: '',
     ageGroup: '',
@@ -203,27 +207,69 @@ export default function GroupBatches() {
 
   const [mentorData, setMentorData] = useState(null);
   const [mentorClasses, setMentorClasses] = useState([]);
-console.log(mentorData,'mentorData mentorData mentorData');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const mentor = JSON.parse(localStorage.getItem("mentor"));
-    const uid = mentor.uid;
-    const fetchMentorData = async () => {
+    const fetchClassesData = async () => {
+      setLoading(true);
       try {
-        const response = await axios.get(
-          'https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId='+uid
-          // 'https://rootsnwings-api-944856745086.europe-west2.run.app/classes/'+uid+'?include_classes=true'
-        );
+        // Get mentorId from URL params or localStorage
+        const urlMentorId = searchParams.get('mentorId');
+        const urlType = searchParams.get('type');
+        
+        let mentorId = urlMentorId;
+        let mentor = null;
+        
+        // If no URL params, fall back to localStorage
+        if (!mentorId) {
+          const storedMentor = localStorage.getItem("mentor");
+          if (storedMentor) {
+            mentor = JSON.parse(storedMentor);
+            mentorId = mentor.uid;
+          }
+        }
+        
+        if (!mentorId) {
+          console.error('No mentor ID found in URL params or localStorage');
+          setLoading(false);
+          return;
+        }
+        
+        // Build API URL with query parameters
+        let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${mentorId}`;
+        if (urlType) {
+          apiUrl += `&type=${urlType}`;
+        }
+        
+        console.log('Fetching classes from:', apiUrl);
+        
+        const response = await axios.get(apiUrl);
         setMentorData(response.data);
-        setMentorClasses(response.data.classes);
-        localStorage.setItem('availableMentorClass', JSON.stringify(response.data.classes));
+        setMentorClasses(response.data.classes || []);
+        localStorage.setItem('availableMentorClass', JSON.stringify(response.data.classes || []));
+        
+        // If we have URL params, also try to fetch mentor info for display
+        if (urlMentorId && !mentor) {
+          try {
+            const mentorResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${urlMentorId}`);
+            if (mentorResponse.data?.mentor) {
+              localStorage.setItem('mentor', JSON.stringify(mentorResponse.data.mentor));
+            }
+          } catch (mentorError) {
+            console.warn('Could not fetch mentor details:', mentorError);
+          }
+        }
+        
       } catch (error) {
-        console.error('Error fetching mentor data:', error);
+        console.error('Error fetching classes data:', error);
+        setMentorClasses([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchMentorData();
-  }, []);
+    fetchClassesData();
+  }, [searchParams]);
 
   // Handle enrollment button click
   const handleEnrollNow = (batch) => {
@@ -425,9 +471,18 @@ console.log(mentorData,'mentorData mentorData mentorData');
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading classes...</p>
+            </div>
+          )}
+
           {/* Group Batch Cards Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {mentorClasses?.length > 0 ? (
+          {!loading && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+              {mentorClasses?.length > 0 ? (
               mentorClasses.map((batch) => {
                 const levelBadge = getLevelBadge(batch.level);
                 const ageBadge = getAgeGroupBadge(batch.ageGroup);
@@ -451,12 +506,24 @@ console.log(mentorData,'mentorData mentorData mentorData');
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold primary-dark">
-                        {batch.pricing.subtotal } {batch.pricing.currency}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {batch.pricing.totalSessions} sessions
-                        </div>
+                        {(() => {
+                          const pricing = calculateTotalPayable(batch);
+                          return (
+                            <>
+                              <div className="text-2xl font-bold primary-dark">
+                                {formatPrice(pricing.finalPrice, pricing.currency)}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {pricing.totalSessions} sessions
+                                {pricing.discountAmount > 0 && (
+                                  <div className="text-green-600 text-xs">
+                                    Save {formatPrice(pricing.discountAmount, pricing.currency)}
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -526,7 +593,8 @@ console.log(mentorData,'mentorData mentorData mentorData');
                 No group batches found matching your filters.
               </p>
             )}
-          </div>
+            </div>
+          )}
 
           {/* Bottom CTA Section */}
           <div className="bg-gradient-to-r from-orange-100 via-pink-100 to-purple-100 rounded-2xl p-8 text-center">

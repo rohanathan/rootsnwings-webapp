@@ -1,10 +1,10 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, validator
+from typing import List, Optional, Union
 from datetime import date, datetime
 
 class Schedule(BaseModel):
-    startDate: Optional[date] = None
-    endDate: Optional[date] = None
+    startDate: Optional[Union[date, List[date]]] = None  # Support single date or array of dates
+    endDate: Optional[Union[date, List[date]]] = None    # Support single date or array of dates
     weeklySchedule: Optional[List[dict]] = Field(default_factory=list)
     sessionDuration: Optional[int]
 
@@ -15,13 +15,46 @@ class Location(BaseModel):
 class Capacity(BaseModel):
     maxStudents: Optional[int] = None
     minStudents: Optional[int] = None
-    currentEnrollment: Optional[int] = 0
+    currentEnrollment: Optional[Union[int, str]] = 0
+    
+    @validator('currentEnrollment', pre=True)
+    def convert_current_enrollment(cls, v):
+        if v is None:
+            return 0
+        if isinstance(v, str):
+            try:
+                return int(v)
+            except ValueError:
+                return 0
+        return v
 
 class Pricing(BaseModel):
     perSessionRate: Optional[float] = None
     totalSessions: Optional[int] = None
-    subtotal: Optional[float] = None
+    subtotal: Optional[Union[float, str]] = None
     currency: Optional[str] = None
+    
+    @validator('subtotal', pre=True)
+    def convert_subtotal(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return float(v)
+            except ValueError:
+                return None
+        return v
+    
+    @validator('perSessionRate', pre=True)
+    def convert_per_session_rate(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return float(v)
+            except ValueError:
+                return None
+        return v
 
 class ClassItem(BaseModel):
     classId: str
@@ -31,7 +64,7 @@ class ClassItem(BaseModel):
     category: str
     description: Optional[str] = None
     mentorId: str
-    mentorName: str
+    mentorName: Optional[str] = "Unknown Mentor"  # Made optional with default
     mentorPhotoURL: Optional[str] = None
     mentorRating: Optional[float] = None
     level: Optional[str] = None

@@ -1,29 +1,90 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import axios from 'axios';
+import { calculateTotalPayable, formatPrice, getDiscountDescription, getPricePerSession } from '../../../utils/pricingCalculator';
 
 
 export default function BookingConfirmation() {
+  const params = useParams();
+  const classId = params.classid;
+  
   const [isTermsAccepted, setIsTermsAccepted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [isPromoApplied, setIsPromoApplied] = useState(false);
-  const [bookingTotal, setBookingTotal] = useState(187.50);
+  const [bookingTotal, setBookingTotal] = useState(0);
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [pricingBreakdown, setPricingBreakdown] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [selectedMentorClass, setSelectedMentorClass] = useState({});
   const [mentor, setMentor] = useState({});
 
 
   useEffect(() => {
-    const selectedMentorClass = JSON.parse(localStorage.getItem('selectedMentorClass'));
-    setSelectedMentorClass(selectedMentorClass);
-    const mentor = JSON.parse(localStorage.getItem('mentor'));
-    setMentor(mentor);
-  }, []);
+    const loadClassData = async () => {
+      setLoading(true);
+      try {
+        // First try to get from localStorage (for immediate data)
+        const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+        const storedMentor = JSON.parse(localStorage.getItem('mentor') || '{}');
+        
+        if (storedClass.classId && storedMentor.uid) {
+          setSelectedMentorClass(storedClass);
+          setMentor(storedMentor);
+          
+          // Calculate pricing with first session free logic
+          const pricing = calculateTotalPayable(storedClass, storedMentor, true); // Assume first session for now
+          setPricingBreakdown(pricing);
+          setBookingTotal(pricing.finalPrice);
+        }
+        
+        // Then fetch live data from API using classId
+        if (classId) {
+          const classResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${classId}`);
+          if (classResponse.data?.class) {
+            const classData = classResponse.data.class;
+            setSelectedMentorClass(classData);
+            
+            // Calculate pricing with first session free logic
+            const pricing = calculateTotalPayable(classData, mentor, true); // Assume first session for now
+            setPricingBreakdown(pricing);
+            setBookingTotal(pricing.finalPrice);
+            
+            // Fetch mentor data if we have mentorId
+            if (classData.mentorId) {
+              const mentorResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${classData.mentorId}`);
+              if (mentorResponse.data?.mentor) {
+                setMentor(mentorResponse.data.mentor);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading class data:', error);
+        // Fall back to localStorage data if API fails
+        const fallbackClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+        const fallbackMentor = JSON.parse(localStorage.getItem('mentor') || '{}');
+        if (fallbackClass.classId) {
+          setSelectedMentorClass(fallbackClass);
+          setMentor(fallbackMentor);
+          
+          // Calculate pricing with first session free logic
+          const pricing = calculateTotalPayable(fallbackClass, fallbackMentor, true); // Assume first session for now
+          setPricingBreakdown(pricing);
+          setBookingTotal(pricing.finalPrice);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadClassData();
+  }, [classId]);
   
   // Function to simulate a confetti effect (replicated from original JS)
   const createConfetti = () => {
@@ -121,9 +182,9 @@ pricing : {
 
     if (validCodes[code]) {
       const discountPercentage = validCodes[code];
-      const initialTotal = 187.50;
-      const discount = (initialTotal * discountPercentage) / 100;
-      const newTotal = initialTotal - discount;
+      const originalPrice = selectedMentorClass.pricing?.subtotal || bookingTotal;
+      const discount = (originalPrice * discountPercentage) / 100;
+      const newTotal = originalPrice - discount;
 
       setBookingTotal(newTotal);
       setDiscountAmount(discount);
@@ -269,7 +330,15 @@ const getAgeGroupBadge = (ageGroup) => {
             <p className="text-gray-600">Review your selection before proceeding to payment</p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading booking details...</p>
+            </div>
+          )}
+
+          {!loading && <div className="grid lg:grid-cols-3 gap-8">
             {/* Left Column: Mentor Snapshot */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl p-6 shadow-lg sticky top-40">
@@ -313,32 +382,96 @@ const getAgeGroupBadge = (ageGroup) => {
                       <span className="text-2xl mr-3">📚</span>
                       <div>
                         <div className="font-semibold text-gray-700">Session Type</div>
-                        <div className="text-primary-dark font-bold">Weekend Group Batch</div>
+                        <div className="text-primary-dark font-bold">
+                          {selectedMentorClass.type === 'one-on-one' ? 'One-on-One Sessions' : 
+                           selectedMentorClass.type === 'workshop' ? 'Workshop' : 
+                           'Group Class'}
+                        </div>
                       </div>
                     </div>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">Group Class</span>
+                    <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                      selectedMentorClass.type === 'one-on-one' ? 'bg-purple-100 text-purple-700' :
+                      selectedMentorClass.type === 'workshop' ? 'bg-orange-100 text-orange-700' :
+                      'bg-blue-100 text-blue-700'
+                    }`}>
+                      {selectedMentorClass.type === 'one-on-one' ? 'Personal' : 
+                       selectedMentorClass.type === 'workshop' ? 'Workshop' : 
+                       'Group Class'}
+                    </span>
                   </div>
                   <div className="flex items-start">
                     <span className="text-2xl mr-3">🎯</span>
                     <div>
-                      <div className="font-semibold text-gray-700">Batch Name</div>
-                      <div className="text-primary-dark font-bold text-lg">{selectedMentorClass.title}</div>
+                      <div className="font-semibold text-gray-700">
+                        {selectedMentorClass.type === 'one-on-one' ? 'Session Title' : 'Class Name'}
+                      </div>
+                      <div className="text-primary-dark font-bold text-lg">{selectedMentorClass.title || 'Loading...'}</div>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <span className="text-2xl mr-3">📅</span>
                     <div>
                       <div className="font-semibold text-gray-700">Schedule</div>
-                      <div className="text-primary-dark font-bold">   {formatDate(selectedMentorClass.schedule?.startDate)} - {formatDate(selectedMentorClass.schedule?.endDate)}</div>
-                      <div className="text-sm text-gray-500"> {Math.ceil((new Date(selectedMentorClass.schedule?.endDate) - new Date(selectedMentorClass.schedule?.startDate)) / (1000 * 60 * 60 * 24 * 7))} weeks program</div>
+                      <div className="text-primary-dark font-bold">
+                        {(() => {
+                          const startDate = selectedMentorClass.schedule?.startDate;
+                          const endDate = selectedMentorClass.schedule?.endDate;
+                          
+                          if (selectedMentorClass.type === 'one-on-one') {
+                            // Handle array format for one-on-one sessions
+                            if (Array.isArray(startDate) && Array.isArray(endDate)) {
+                              const firstDate = formatDate(startDate[0]);
+                              const lastDate = formatDate(endDate[endDate.length - 1]);
+                              return firstDate === lastDate ? firstDate : `${firstDate} - ${lastDate}`;
+                            } else if (startDate) {
+                              return formatDate(startDate);
+                            }
+                          } else {
+                            // Handle single date format for regular classes
+                            if (startDate && endDate) {
+                              return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+                            }
+                          }
+                          return 'Schedule TBD';
+                        })()}
+                      </div>
+                      {selectedMentorClass.type !== 'one-on-one' && (
+                        <div className="text-sm text-gray-500">
+                          {(() => {
+                            const startDate = selectedMentorClass.schedule?.startDate;
+                            const endDate = selectedMentorClass.schedule?.endDate;
+                            if (startDate && endDate) {
+                              const weeks = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24 * 7));
+                              return `${weeks > 0 ? weeks : 1} weeks program`;
+                            }
+                            return '';
+                          })()}
+                        </div>
+                      )}
+                      {selectedMentorClass.type === 'one-on-one' && (
+                        <div className="text-sm text-gray-500">
+                          {selectedMentorClass.pricing?.totalSessions || 1} session{(selectedMentorClass.pricing?.totalSessions || 1) > 1 ? 's' : ''} scheduled
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-start">
                     <span className="text-2xl mr-3">💻</span>
                     <div>
                       <div className="font-semibold text-gray-700">Delivery Mode</div>
-                      <div className="text-primary-dark font-bold">In-Person (Birmingham)</div>
-                      <div className="text-sm text-gray-500">Community Centre, Birmingham B12 8JA</div>
+                      <div className="text-primary-dark font-bold">
+                        {selectedMentorClass.format === 'online' ? 'Online' : 
+                         selectedMentorClass.format === 'in-person' ? 'In-Person' :
+                         selectedMentorClass.format === 'hybrid' ? 'Hybrid' : 
+                         'Online'}
+                        {selectedMentorClass.format === 'in-person' && ' (Birmingham)'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {selectedMentorClass.format === 'online' ? 'Zoom link will be provided' :
+                         selectedMentorClass.format === 'in-person' ? 'Community Centre, Birmingham B12 8JA' :
+                         selectedMentorClass.format === 'hybrid' ? 'Online and in-person options available' :
+                         'Zoom link will be provided'}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-start">
@@ -362,26 +495,34 @@ const getAgeGroupBadge = (ageGroup) => {
                   <h3 className="text-lg font-bold text-primary-dark mb-4">💰 Fee Summary</h3>
                   <div className="space-y-3 mb-6">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">8-Week Batch (16 sessions)</span>
-                      <span className="font-semibold">£200.00</span>
+                      <span className="text-gray-600">
+                        {pricingBreakdown?.totalSessions || selectedMentorClass.pricing?.totalSessions || 1} Session{(pricingBreakdown?.totalSessions || selectedMentorClass.pricing?.totalSessions || 1) > 1 ? 's' : ''} 
+                        {selectedMentorClass.type === 'one-on-one' ? ' One-on-One' : ''}
+                      </span>
+                      <span className="font-semibold">
+                        {formatPrice(pricingBreakdown?.subtotal || (selectedMentorClass.pricing?.perSessionRate || 0) * (selectedMentorClass.pricing?.totalSessions || 1), pricingBreakdown?.currency || selectedMentorClass.pricing?.currency || 'GBP')}
+                      </span>
                     </div>
-                    {discountAmount === 0 && (
+                    {pricingBreakdown?.discountAmount > 0 && (
                       <div className="flex justify-between text-green-600">
-                        <span>First Session Discount</span>
-                        <span className="font-semibold">-£12.50</span>
+                        <span>{getDiscountDescription(pricingBreakdown.discountType, pricingBreakdown.discountAmount, pricingBreakdown.currency)}</span>
+                        <span className="font-semibold">-{formatPrice(pricingBreakdown.discountAmount, pricingBreakdown.currency)}</span>
                       </div>
                     )}
                     {discountAmount > 0 && (
                       <div className="flex justify-between text-green-600">
                         <span>Promo Code ({promoCode.toUpperCase()})</span>
-                        <span className="font-semibold">-£{discountAmount.toFixed(2)}</span>
+                        <span className="font-semibold">-{formatPrice(discountAmount, pricingBreakdown?.currency || 'GBP')}</span>
                       </div>
                     )}
                     <div className="flex justify-between border-t pt-3">
                       <span className="font-bold text-lg">Total Payable</span>
-                      <span className="font-bold text-xl text-primary-dark">£{bookingTotal.toFixed(2)}</span>
+                      <span className="font-bold text-xl text-primary-dark">{formatPrice(bookingTotal, pricingBreakdown?.currency || selectedMentorClass.pricing?.currency || 'GBP')}</span>
                     </div>
-                    <div className="text-sm text-gray-500">≈ £11.72 per session (excellent value!)</div>
+                    <div className="text-sm text-gray-500">
+                      ≈ {formatPrice(getPricePerSession(bookingTotal, pricingBreakdown?.totalSessions || selectedMentorClass.pricing?.totalSessions || 1), pricingBreakdown?.currency || selectedMentorClass.pricing?.currency || 'GBP')} per session
+                      {bookingTotal === 0 && pricingBreakdown?.discountType === 'first_session_free' ? ' (First session free!)' : ' (excellent value!)'}
+                    </div>
                   </div>
 
                   {/* Promo Code */}
@@ -434,7 +575,7 @@ const getAgeGroupBadge = (ageGroup) => {
                   className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
                     ${isTermsAccepted && !isProcessing ? 'bg-primary hover:bg-blue-500 text-white' : 'bg-gray-300 text-gray-500'}`}
                 >
-                  {isProcessing ? 'Processing Payment...' : `🔒 Pay & Confirm Booking - £${bookingTotal.toFixed(2)}`}
+                  {isProcessing ? 'Processing Payment...' : `🔒 Pay & Confirm Booking - ${formatPrice(bookingTotal, pricingBreakdown?.currency || selectedMentorClass.pricing?.currency || 'GBP')}`}
                 </button>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <button onClick={handleContactSupport} className="w-full border-2 border-gray-300 hover:border-primary text-gray-700 hover:text-primary py-3 rounded-lg font-semibold transition-colors">❓ Need Help? Contact Support</button>
@@ -453,7 +594,7 @@ const getAgeGroupBadge = (ageGroup) => {
                 </ul>
               </div>
             </div>
-          </div>
+          </div>}
         </div>
       </main>
 

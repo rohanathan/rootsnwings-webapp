@@ -1,5 +1,5 @@
 from app.services.firestore import db
-from app.models.review_models import Review, ReviewRequest, ReviewUpdate, TestimonialResponse
+from app.models.review_models import Review, ReviewRequest, TestimonialResponse
 from app.services.booking_service import get_bookings_by_student, get_simple_booking
 from datetime import datetime
 from typing import List, Optional, Tuple
@@ -238,6 +238,25 @@ def get_testimonials(min_rating: int = 4, limit: int = 10) -> List[TestimonialRe
             continue
     
     return testimonials
+
+def get_my_reviews(student_id: str) -> Tuple[List[Review], float]:
+    """Get all reviews written by a specific student"""
+    query = db.collection("reviews").where("studentId", "==", student_id)
+    docs = list(query.stream())
+    
+    reviews = []
+    total_rating = 0
+    
+    for doc in docs:
+        data = doc.to_dict()
+        data["reviewId"] = doc.id
+        review = Review(**data)
+        reviews.append(review)
+        total_rating += review.rating
+    
+    avg_rating = round(total_rating / len(reviews), 2) if reviews else 0
+    
+    return reviews, avg_rating
 
 def delete_review(review_id: str, student_id: str):
     """Delete a review and update stats"""

@@ -165,10 +165,18 @@ console.log(mentorDetails,'mentorDetails mentorDetails mentorDetails');
       }
     };
 
-    const user = JSON.parse(localStorage.getItem("user"));
-    setUser(user.user);
-
-    fetchMentorDetails(user);
+    // Fix: Add null check to prevent crash when localStorage is empty
+    // Error was: "Cannot read properties of null (reading 'user')"
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      const user = JSON.parse(userData);
+      if (user && user.user) {
+        setUser(user.user);
+        fetchMentorDetails(user);
+      }
+    } else {
+      console.warn("No user data found in localStorage - user needs to login");
+    }
 
     const handleResize = () => {
       if (window.innerWidth >= 768) {

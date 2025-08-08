@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import axios from 'axios';
 
 // Helper function to render star ratings
 const renderStars = (rating) => {
@@ -106,6 +107,8 @@ const MentorDetail = () => {
     const [isBioExpanded, setIsBioExpanded] = useState(false);
     const [activeTab, setActiveTab] = useState('one-on-one');
     const [mentorData, setMentorData] = useState(mentorMock);
+    const [reviews, setReviews] = useState([]);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
 
 
 
@@ -121,6 +124,49 @@ const MentorDetail = () => {
         setMentorData(initialMentorData);
         console.log(initialMentorData, 'initialMentorData initialMentorData');
     }, []);
+
+    // Load reviews and fresh mentor data when mentor UID is available
+    useEffect(() => {
+        if (mentorData?.uid) {
+            loadMentorReviews(mentorData.uid);
+            loadFreshMentorData(mentorData.uid);
+        }
+    }, [mentorData?.uid]);
+
+    const loadMentorReviews = async (mentorId) => {
+        try {
+            console.log('Starting to load reviews for mentor:', mentorId);
+            setReviewsLoading(true);
+            const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/?type=mentor&id=${mentorId}`);
+            console.log('Reviews API response:', response.data);
+            console.log('Reviews array:', response.data.reviews);
+            console.log('Reviews count:', response.data.reviews?.length || 0);
+            setReviews(response.data.reviews || []);
+        } catch (error) {
+            console.error('Failed to load reviews:', error);
+            console.error('Error details:', error.response?.data);
+            setReviews([]); // Fallback to empty array
+        } finally {
+            console.log('Reviews loading finished, setting loading to false');
+            setReviewsLoading(false);
+        }
+    };
+
+    const loadFreshMentorData = async (mentorId) => {
+        try {
+            console.log('Fetching mentor data for ID:', mentorId);
+            const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${mentorId}`);
+            if (response.data.mentor) {
+                console.log('Fresh mentor data structure:', response.data.mentor);
+                console.log('Qualifications field:', response.data.mentor.qualifications);
+                console.log('QualificationsSummary field:', response.data.mentor.qualificationsSummary);
+                setMentorData(response.data.mentor);
+            }
+        } catch (error) {
+            console.error('Failed to load fresh mentor data. Error:', error.message);
+            console.log('Using fallback data from localStorage/mock');
+        }
+    };
 
 
  
@@ -166,8 +212,7 @@ const MentorDetail = () => {
 
     return (
         <>
-        
-            <body className="font-sans text-gray-800 bg-gray-50">
+            <div className="min-h-screen font-sans text-gray-800 bg-gray-50">
 
                 {/* Navigation Component */}
                 <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
@@ -369,7 +414,14 @@ const MentorDetail = () => {
                                             <div className="bg-primary-light p-6 rounded-xl">
                                                 <div className="text-2xl font-bold text-primary-dark mb-2">{mentorData.pricing.currency}{mentorData.pricing.oneOnOneRate}/session</div>
                                                 <div className="text-sm text-gray-600 mb-4">Available slots throughout the week</div>
-                                                <button className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors">
+                                                <button 
+                                                    onClick={() => {
+                                                        // Store mentor data for one-on-one booking
+                                                        localStorage.setItem('selectedMentor', JSON.stringify(mentorData));
+                                                        window.location.href = '/explore/onetoone';
+                                                    }}
+                                                    className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors"
+                                                >
                                                     Explore Sessions
                                                 </button>
                                             </div>
@@ -394,7 +446,14 @@ const MentorDetail = () => {
                                             <div className="bg-primary-light p-6 rounded-xl">
                                                 <div className="text-2xl font-bold text-primary-dark mb-2">{mentorData.pricing.currency}{mentorData.pricing.groupRate}/session</div>
                                                 <div className="text-sm text-gray-600 mb-4">Multi-week structured learning programs</div>
-                                                <button className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors">
+                                                <button 
+                                                    onClick={() => {
+                                                        // Store mentor data for group classes
+                                                        localStorage.setItem('selectedMentor', JSON.stringify(mentorData));
+                                                        window.location.href = `/explore/group-batches?mentorId=${mentorData.uid}&type=batch`;
+                                                    }}
+                                                    className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors"
+                                                >
                                                     Explore Sessions
                                                 </button>
                                             </div>
@@ -419,7 +478,14 @@ const MentorDetail = () => {
                                             <div className="bg-primary-light p-6 rounded-xl">
                                                 <div className="text-2xl font-bold text-primary-dark mb-2">Variable Pricing</div>
                                                 <div className="text-sm text-gray-600 mb-4">Pricing depends on workshop duration and materials</div>
-                                                <button className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors">
+                                                <button 
+                                                    onClick={() => {
+                                                        // Store mentor data for workshops
+                                                        localStorage.setItem('selectedMentor', JSON.stringify(mentorData));
+                                                        window.location.href = `/explore/workshops?mentorId=${mentorData.uid}&type=workshop`;
+                                                    }}
+                                                    className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors"
+                                                >
                                                     Explore Sessions
                                                 </button>
                                             </div>
@@ -445,45 +511,78 @@ const MentorDetail = () => {
                                 <div className="bg-white rounded-2xl p-8 shadow-lg">
                                     <h2 className="text-2xl font-bold text-primary-dark mb-6">Availability Snapshot</h2>
                                     
-                                    {/* Generally Available Days */}
-                                    <div className="mb-6">
-                                        <h4 className="font-semibold text-gray-700 mb-3">Generally Available</h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {mentorData?.availabilitySummary?.generallyAvailable?.map((day, index) => (
-                                                <span key={index} className="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium">
-                                                    {day}
-                                                </span>
-                                            )) || <span className="text-gray-500">Not specified</span>}
-                                        </div>
-                                    </div>
+                                    {/* Check if availability summary exists */}
+                                    {mentorData?.availabilitySummary ? (
+                                        <>
+                                            {/* Generally Available Days */}
+                                            <div className="mb-6">
+                                                <h4 className="font-semibold text-gray-700 mb-3">Generally Available</h4>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {mentorData.availabilitySummary.generallyAvailable && mentorData.availabilitySummary.generallyAvailable.length > 0 ? (
+                                                        mentorData.availabilitySummary.generallyAvailable.map((day, index) => (
+                                                            <span key={index} className="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium">
+                                                                {day}
+                                                            </span>
+                                                        ))
+                                                    ) : (
+                                                        <span className="text-gray-500">Not specified</span>
+                                                    )}
+                                                </div>
+                                            </div>
 
-                                    {/* Preferred Hours */}
-                                    <div className="mb-6">
-                                        <h4 className="font-semibold text-gray-700 mb-3">Preferred Hours</h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {mentorData?.availabilitySummary?.preferredHours?.map((hour, index) => (
-                                                <span key={index} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium capitalize">
-                                                    {hour}
-                                                </span>
-                                            )) || <span className="text-gray-500">Not specified</span>}
-                                        </div>
-                                    </div>
+                                            {/* Preferred Hours */}
+                                            <div className="mb-6">
+                                                <h4 className="font-semibold text-gray-700 mb-3">Preferred Hours</h4>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {mentorData.availabilitySummary.preferredHours && mentorData.availabilitySummary.preferredHours.length > 0 ? (
+                                                        mentorData.availabilitySummary.preferredHours.map((hour, index) => (
+                                                            <span key={index} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium capitalize">
+                                                                {hour}
+                                                            </span>
+                                                        ))
+                                                    ) : (
+                                                        <span className="text-gray-500">Not specified</span>
+                                                    )}
+                                                </div>
+                                            </div>
 
-                                    {/* Timezone */}
-                                    {mentorData?.availabilitySummary?.timezone && (
-                                        <div className="mb-4">
-                                            <h4 className="font-semibold text-gray-700 mb-2">Timezone</h4>
-                                            <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                                                {mentorData.availabilitySummary.timezone}
-                                            </span>
+                                            {/* Timezone */}
+                                            {mentorData.availabilitySummary.timezone && (
+                                                <div className="mb-4">
+                                                    <h4 className="font-semibold text-gray-700 mb-2">Timezone</h4>
+                                                    <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                                                        {mentorData.availabilitySummary.timezone}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            <div className="bg-primary-light p-4 rounded-lg">
+                                                <p className="text-sm text-gray-600">
+                                                    💡 This is a general availability overview. Specific slots and detailed scheduling will be available when booking individual sessions.
+                                                </p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        /* No availability data - show alternate message */
+                                        <div className="text-center py-8">
+                                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                                                <div className="text-yellow-600 mb-2">📅</div>
+                                                <h4 className="font-semibold text-gray-800 mb-2">Availability Not Set</h4>
+                                                <p className="text-gray-600 text-sm mb-4">
+                                                    This mentor hasn't updated their general availability yet. You can still book sessions by contacting them directly or explore their available time slots in the booking flow.
+                                                </p>
+                                                <button 
+                                                    onClick={() => {
+                                                        localStorage.setItem('selectedMentor', JSON.stringify(mentorData));
+                                                        window.location.href = '/explore/onetoone';
+                                                    }}
+                                                    className="text-primary hover:text-primary-dark font-medium text-sm"
+                                                >
+                                                    Check Available Slots →
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
-
-                                    <div className="bg-primary-light p-4 rounded-lg">
-                                        <p className="text-sm text-gray-600">
-                                            💡 This is a general availability overview. Specific slots and detailed scheduling will be available when booking individual sessions.
-                                        </p>
-                                    </div>
                                 </div>
 
                                 {/* Student Reviews Section */}
@@ -499,7 +598,45 @@ const MentorDetail = () => {
                                         </div>
                                     </div>
 
-                                    {/* Hardcoded Reviews */}
+                                    {/* Real Reviews from API */}
+                                    {reviewsLoading ? (
+                                        <div className="text-center py-8">
+                                            <div className="text-gray-500">Loading reviews...</div>
+                                        </div>
+                                    ) : reviews.length > 0 ? (
+                                        <div className="space-y-6">
+                                            {reviews.map((review) => (
+                                                <div key={review.reviewId} className="border-b border-gray-100 pb-6 last:border-b-0">
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white font-bold">
+                                                            A
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <h4 className="font-semibold text-gray-800">Anonymous</h4>
+                                                                <div className="flex text-yellow-400 text-sm">
+                                                                    {renderStars(review.rating)}
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-gray-700 text-sm leading-relaxed mb-2">
+                                                                "{review.review}"
+                                                            </p>
+                                                            <span className="text-gray-500 text-xs">
+                                                                {new Date(review.createdAt).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8">
+                                            <div className="text-gray-500">No reviews yet</div>
+                                        </div>
+                                    )}
+
+                                    {/* COMMENTED OUT - Hardcoded Reviews for Testing */}
+                                    {/*
                                     <div className="space-y-6">
                                         <div className="border-b border-gray-100 pb-6">
                                             <div className="flex items-start gap-4">
@@ -518,43 +655,8 @@ const MentorDetail = () => {
                                                 </div>
                                             </div>
                                         </div>
-
-                                        <div className="border-b border-gray-100 pb-6">
-                                            <div className="flex items-start gap-4">
-                                                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white font-bold">
-                                                    A
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <h4 className="font-semibold text-gray-800">Alex T.</h4>
-                                                        <div className="flex text-yellow-400 text-sm">★★★★★</div>
-                                                    </div>
-                                                    <p className="text-gray-700 text-sm leading-relaxed mb-2">
-                                                        "Great mentor! Really knows their subject and makes learning enjoyable. Highly recommended!"
-                                                    </p>
-                                                    <span className="text-gray-500 text-xs">1 month ago</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="pb-6">
-                                            <div className="flex items-start gap-4">
-                                                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white font-bold">
-                                                    M
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <h4 className="font-semibold text-gray-800">Maya P.</h4>
-                                                        <div className="flex text-yellow-400 text-sm">★★★★☆</div>
-                                                    </div>
-                                                    <p className="text-gray-700 text-sm leading-relaxed mb-2">
-                                                        "Good experience overall. Very professional and well-prepared for each session."
-                                                    </p>
-                                                    <span className="text-gray-500 text-xs">2 months ago</span>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
+                                    */}
                                 </div>
                             </div>
 
@@ -710,7 +812,7 @@ const MentorDetail = () => {
 
                     </div>
                 </main>
-            </body>
+            </div>
         </>
     );
 };

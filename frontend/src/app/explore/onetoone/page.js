@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import axios from 'axios';
 
 // Helper function to format date strings
 const formatDate = (date, formatOptions) => {
@@ -26,8 +27,7 @@ const isFirstSession = (studentBookings, mentorId) => {
 };
 
 export default function OneOnOneSessions() {
-  const [showModal, setShowModal] = useState(false);
-  const [selectedSession, setSelectedSession] = useState(null);
+  const [selectedSessions, setSelectedSessions] = useState([]);
   const [weekOffset, setWeekOffset] = useState(0);
   const [weekData, setWeekData] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
@@ -37,6 +37,7 @@ export default function OneOnOneSessions() {
   const [error, setError] = useState('');
   const [studentBookings, setStudentBookings] = useState([]);
   const [creatingClass, setCreatingClass] = useState(false);
+  const [showLimitWarning, setShowLimitWarning] = useState(false);
   
   const searchParams = useSearchParams();
   const mentorId = searchParams.get('mentorId') || 'user_8956af6c6b35'; // Default for testing
@@ -47,27 +48,30 @@ export default function OneOnOneSessions() {
       setLoading(true);
       try {
         // Load mentor details
-        const mentorResponse = await fetch(`http://localhost:8000/mentors/${mentorId}`);
-        if (mentorResponse.ok) {
-          const mentorData = await mentorResponse.json();
-          setMentor(mentorData);
+        const mentorResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${mentorId}`);
+        if (mentorResponse.data?.mentor) {
+          setMentor(mentorResponse.data.mentor);
         }
 
         // Load mentor availability
-        const availabilityResponse = await fetch(`http://localhost:8000/availability/mentors/${mentorId}`);
-        if (availabilityResponse.ok) {
-          const availabilityData = await availabilityResponse.json();
-          setAvailability(availabilityData.availability);
-        } else if (availabilityResponse.status === 404) {
-          setError('This mentor has not set their availability yet.');
+        try {
+          const availabilityResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/availability/mentors/${mentorId}`);
+          if (availabilityResponse.data) {
+            setAvailability(availabilityResponse.data.availability);
+          }
+        } catch (availabilityError) {
+          if (availabilityError.response?.status === 404) {
+            setError('This mentor has not set their availability yet.');
+          } else {
+            console.error('Error loading availability:', availabilityError);
+          }
         }
 
         // Load student's previous bookings (for first session detection)
         // TODO: Replace with actual student ID from auth
-        const bookingsResponse = await fetch(`http://localhost:8000/bookings/?studentId=user031`);
-        if (bookingsResponse.ok) {
-          const bookingsData = await bookingsResponse.json();
-          setStudentBookings(bookingsData.bookings || []);
+        const bookingsResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?studentId=user031`);
+        if (bookingsResponse.data) {
+          setStudentBookings(bookingsResponse.data.bookings || []);
         }
       } catch (error) {
         console.error('Error loading mentor data:', error);
@@ -161,85 +165,127 @@ export default function OneOnOneSessions() {
     setWeekData(week);
   };
 
-  // Handle slot selection
+  // Handle multiple slot selection
   const handleSlotClick = (day, slot) => {
     const sessionDateTime = new Date(`${day.fullDate}T${slot.startTime}`);
     const basePrice = mentor?.pricing?.oneOnOneRate || 50;
+    const slotId = `${day.fullDate}_${slot.startTime}`;
     
-    setSelectedSession({
-      mentorId: mentorId,
-      mentorName: mentor?.displayName || 'Mentor',
-      date: day.fullDate,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      displayTime: slot.displayTime,
-      type: slot.type,
-      price: slot.type === 'free' ? 'FREE' : `£${basePrice}`,
-      displayDate: formatDate(sessionDateTime, { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      subject: 'One-on-One Session',
-      format: 'online', // Default
-      specialRequests: ''
-    });
-    setShowModal(true);
+    // Check if slot is already selected
+    const isSelected = selectedSessions.some(s => s.slotId === slotId);
+    
+    if (isSelected) {
+      // Remove from selection
+      setSelectedSessions(prev => prev.filter(s => s.slotId !== slotId));
+    } else {
+      // Check 5-slot limit
+      if (selectedSessions.length >= 5) {
+        setShowLimitWarning(true);
+        setTimeout(() => setShowLimitWarning(false), 3000);
+        return;
+      }
+      
+      // Add to selection
+      const newSession = {
+        slotId,
+        mentorId: mentorId,
+        mentorName: mentor?.displayName || 'Mentor',
+        date: day.fullDate,
+        day: new Date(day.fullDate).toLocaleDateString('en-US', { weekday: 'long' }),
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        displayTime: slot.displayTime,
+        type: slot.type,
+        price: slot.type === 'free' ? 0 : basePrice,
+        displayDate: formatDate(sessionDateTime, { 
+          weekday: 'short', 
+          month: 'short', 
+          day: 'numeric'
+        }),
+        subject: 'One-on-One Session',
+        format: 'online'
+      };
+      
+      setSelectedSessions(prev => [...prev, newSession]);
+    }
   };
 
-  // Handle booking confirmation - create class and redirect to booking page
+  // Check if slot is selected
+  const isSlotSelected = (day, slot) => {
+    const slotId = `${day.fullDate}_${slot.startTime}`;
+    return selectedSessions.some(s => s.slotId === slotId);
+  };
+
+  // Handle booking confirmation - create class with multiple sessions
   const handleConfirmBooking = async () => {
-    if (!selectedSession) return;
+    if (selectedSessions.length === 0) return;
     
     setCreatingClass(true);
     try {
-      // Create one-on-one class dynamically
-      const response = await fetch('http://localhost:8000/classes/one-on-one/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          mentorId: selectedSession.mentorId,
-          studentId: 'user031', // TODO: Get from auth
-          sessionDate: selectedSession.date,
-          startTime: selectedSession.startTime,
-          endTime: selectedSession.endTime,
-          subject: selectedSession.subject,
-          format: selectedSession.format,
-          specialRequests: selectedSession.specialRequests,
-          isFirstSession: selectedSession.type === 'free'
-        })
-      });
+      // Prepare request payload
+      let requestPayload = {
+        mentorId: selectedSessions[0].mentorId,
+        studentId: 'user031', // TODO: Get from auth
+        subject: selectedSessions[0].subject,
+        format: selectedSessions[0].format,
+        isFirstSession: selectedSessions.some(s => s.type === 'free'),
+        totalSessions: selectedSessions.length
+      };
 
-      if (response.ok) {
-        const { classId } = await response.json();
-        // Redirect to existing booking confirmation page
-        window.location.href = `/booking/confirmbooking?classId=${classId}`;
+      if (selectedSessions.length === 1) {
+        // Single session: Use traditional sessionDate, startTime, endTime fields
+        const session = selectedSessions[0];
+        requestPayload = {
+          ...requestPayload,
+          sessionDate: session.date,
+          startTime: session.startTime,
+          endTime: session.endTime
+        };
       } else {
-        const errorData = await response.json();
-        alert(`Failed to create booking: ${errorData.detail || 'Unknown error'}`);
+        // Multiple sessions: Use weeklySchedule array
+        requestPayload.weeklySchedule = selectedSessions.map(session => ({
+          day: session.day,
+          startTime: session.startTime,
+          endTime: session.endTime,
+          sessionDate: session.date // Include specific date for backend
+        }));
+      }
+
+      // Create one-on-one class
+      const response = await axios.post('https://rootsnwings-api-944856745086.europe-west2.run.app/classes/one-on-one/create', requestPayload);
+
+      if (response.data?.classId) {
+        // Store class data for booking confirmation page
+        localStorage.setItem('selectedMentorClass', JSON.stringify({
+          classId: response.data.classId,
+          title: response.data.title,
+          totalSessions: response.data.totalSessions,
+          pricing: {
+            subtotal: response.data.finalPrice,
+            totalSessions: response.data.totalSessions
+          },
+          schedule: {
+            startDate: selectedSessions.sort((a, b) => new Date(a.date) - new Date(b.date))[0].date,
+            endDate: selectedSessions.sort((a, b) => new Date(b.date) - new Date(a.date))[0].date
+          }
+        }));
+
+        // Store mentor data
+        localStorage.setItem('mentor', JSON.stringify(mentor));
+        
+        // Redirect to existing booking confirmation page using dynamic route
+        window.location.href = `/booking/confirmbooking/${response.data.classId}`;
+      } else {
+        alert('Failed to create booking: No class ID returned');
       }
     } catch (error) {
       console.error('Error creating booking:', error);
-      alert('Failed to create booking. Please try again.');
+      alert(`Failed to create booking: ${error.response?.data?.detail || error.message}`);
     } finally {
       setCreatingClass(false);
     }
   };
 
-  // Update session details in modal
-  const updateSessionDetails = (field, value) => {
-    setSelectedSession(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleCancelBooking = () => {
-    setShowModal(false);
-    setSelectedSession(null);
-  };
 
   // Handle week navigation
   const handlePrevWeek = () => {
@@ -407,7 +453,10 @@ export default function OneOnOneSessions() {
           {/* Date & Time Slot Picker Component */}
           <div id="calendar-section" className="bg-white rounded-2xl p-8 shadow-lg mb-8">
             <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-              <h2 className="text-2xl font-bold text-primary-dark">Select Date & Time</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-primary-dark">Select Date & Time</h2>
+                <p className="text-sm text-gray-600 mt-1">You can select up to 5 sessions. Click slots to add/remove them.</p>
+              </div>
               <div className="flex items-center gap-4 text-sm flex-wrap">
                 <div className="flex items-center">
                   <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
@@ -478,13 +527,15 @@ export default function OneOnOneSessions() {
                             key={slotIndex}
                             onClick={() => slot.available && handleSlotClick(day, slot)}
                             disabled={!slot.available}
-                            className={`w-full py-3 rounded-lg font-medium transition-colors 
+                            className={`w-full py-3 rounded-lg font-medium transition-colors relative
                               ${slot.available ? 
-                                (slot.type === 'free' ? 'bg-blue-100 hover:bg-blue-200 text-blue-800' : 'bg-green-100 hover:bg-green-200 text-green-800') : 
+                                isSlotSelected(day, slot) ?
+                                  'bg-primary text-white border-2 border-primary-dark' :
+                                  (slot.type === 'free' ? 'bg-blue-100 hover:bg-blue-200 text-blue-800' : 'bg-green-100 hover:bg-green-200 text-green-800') : 
                                 'bg-gray-200 text-gray-500 cursor-not-allowed'
                               }`}
                           >
-                            {slot.displayTime} {slot.type === 'free' && <span className="text-xs">(FREE)</span>}
+                            {slot.displayTime}
                             {!slot.available && ' - Past'}
                           </button>
                         ))
@@ -496,11 +547,78 @@ export default function OneOnOneSessions() {
             )}
           </div>
 
+          {/* Selection Summary and Book Button */}
+          {selectedSessions.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 border-2 border-primary shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-primary-dark">Selected Sessions ({selectedSessions.length}/5)</h3>
+                <button 
+                  onClick={() => setSelectedSessions([])}
+                  className="text-gray-500 hover:text-red-600 text-sm"
+                >
+                  Clear All
+                </button>
+              </div>
+              
+              <div className="space-y-3 mb-6 max-h-40 overflow-y-auto">
+                {selectedSessions.map((session, index) => (
+                  <div key={session.slotId} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                    <div>
+                      <div className="font-medium text-gray-900">{session.day}, {session.displayDate}</div>
+                      <div className="text-sm text-gray-600">{session.displayTime} (60 min)</div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-primary-dark">
+                        {session.price === 0 ? 'FREE' : `£${session.price}`}
+                      </span>
+                      <button
+                        onClick={() => setSelectedSessions(prev => prev.filter(s => s.slotId !== session.slotId))}
+                        className="text-gray-400 hover:text-red-600 p-1"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-lg font-semibold text-gray-900">Total Price:</span>
+                  <span className="text-xl font-bold text-primary-dark">
+                    £{selectedSessions.reduce((total, session) => total + session.price, 0)}
+                  </span>
+                </div>
+                <button 
+                  onClick={handleConfirmBooking}
+                  disabled={creatingClass}
+                  className="w-full bg-primary hover:bg-blue-500 text-white py-4 rounded-full font-semibold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingClass ? (
+                    <>
+                      <span className="animate-spin inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+                      Creating Sessions...
+                    </>
+                  ) : (
+                    `Book ${selectedSessions.length} Session${selectedSessions.length === 1 ? '' : 's'}`
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Limit Warning */}
+          {showLimitWarning && (
+            <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-bounce">
+              You can select up to 5 sessions maximum
+            </div>
+          )}
+
           {/* Contact Option Component */}
           <div className="bg-gradient-to-r from-primary-light to-accent-light rounded-2xl p-8 text-center">
             <h3 className="text-xl font-bold text-primary-dark mb-3">Not finding a suitable time?</h3>
             <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Can't see a time that works for you? Priya offers flexible scheduling and can often accommodate special requests. Send her a message to discuss custom timing.
+              Can't see a time that works for you? {mentor?.displayName} offers flexible scheduling and can often accommodate special requests. Send a message to discuss custom timing.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button className="bg-primary hover:bg-blue-500 text-white px-8 py-3 rounded-full font-semibold transition-colors">
@@ -514,107 +632,6 @@ export default function OneOnOneSessions() {
         </div>
       </main>
 
-      {/* Booking Confirmation Modal Component */}
-      {showModal && selectedSession && (
-        <div id="booking-modal" className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto modal-content-animation">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">✓</span>
-              </div>
-              <h3 className="text-2xl font-bold text-primary-dark mb-2">Confirm Your Session</h3>
-              <p className="text-gray-600">Review your booking details before confirming</p>
-            </div>
-
-            {/* Booking Details */}
-            <div className="space-y-4 mb-6">
-              <div className="bg-gray-50 p-4 rounded-xl">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-600">Mentor</span>
-                  <span className="font-semibold text-primary-dark">{selectedSession?.mentorName}</span>
-                </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-600">Session Type</span>
-                  <span className="font-semibold text-primary-dark">One-on-One</span>
-                </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-600">Date & Time</span>
-                  <span className="font-semibold text-primary-dark">{selectedSession?.displayDate}</span>
-                </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-600">Duration</span>
-                  <span className="font-semibold text-primary-dark">60 minutes</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600">Price</span>
-                  <span className={`font-bold text-lg ${selectedSession?.type === 'free' ? 'text-green-600' : 'text-primary-dark'}`}>{selectedSession?.price}</span>
-                </div>
-              </div>
-
-              {/* Session Format */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Session Format</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors">
-                    <input 
-                      type="radio" 
-                      name="format" 
-                      value="online" 
-                      className="text-primary mr-3" 
-                      defaultChecked
-                      onChange={(e) => updateSessionDetails('format', e.target.value)}
-                    />
-                    <span className="text-sm">📱 Online</span>
-                  </label>
-                  <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors">
-                    <input 
-                      type="radio" 
-                      name="format" 
-                      value="in-person" 
-                      className="text-primary mr-3"
-                      onChange={(e) => updateSessionDetails('format', e.target.value)}
-                    />
-                    <span className="text-sm">🏠 In-Person</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Special Requests */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Learning Goals (Optional)</label>
-                <textarea 
-                  className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:border-primary focus:outline-none" 
-                  rows="3" 
-                  placeholder="What would you like to focus on in this session?"
-                  onChange={(e) => updateSessionDetails('specialRequests', e.target.value)}
-                ></textarea>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button 
-                onClick={handleCancelBooking}
-                className="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-full font-semibold hover:border-gray-400 transition-colors">
-                Cancel
-              </button>
-              <button 
-                onClick={handleConfirmBooking}
-                disabled={creatingClass}
-                className="flex-1 bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                {creatingClass ? (
-                  <>
-                    <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
-                    Creating Session...
-                  </>
-                ) : (
-                  'Confirm Booking'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

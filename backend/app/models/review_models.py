@@ -13,10 +13,10 @@ class ReviewUpdate(BaseModel):
 
 class Review(BaseModel):
     reviewId: str
-    classId: str
-    mentorId: str  # Auto-populated from class
-    studentId: str
-    bookingId: str  # Reference back to booking
+    classId: Optional[str] = None
+    mentorId: Optional[str] = None
+    studentId: Optional[str] = None     
+    bookingId: Optional[str] = None
     rating: int = Field(ge=1, le=5)
     review: str
     isAnonymous: bool = True
