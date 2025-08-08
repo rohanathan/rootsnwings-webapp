@@ -1,5 +1,6 @@
 "use client";
 
+import Navbar from "@/components/NavBar";
 import axios from "axios";
 import React, { useState, useEffect } from "react";
 
@@ -15,10 +16,12 @@ const MentorDirectory = () => {
   const [sortBy, setSortBy] = useState("relevance");
   const [mentors, setMentors] = useState([]);
 
+  const [user, setUser] = useState({});
+
   const fetchBookings = async () => {
     try {
       const response = await axios.get(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/?page=1&pageSize=20&sortBy=avgRating&sortOrder=desc"
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/?page=1&pageSize=50&sortBy=avgRating&sortOrder=desc"
       );
       if (response.data && response.data.mentors) {
         setMentors(response.data.mentors);
@@ -29,6 +32,9 @@ const MentorDirectory = () => {
   };
 
   useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    setUser(user.user);
+
     fetchBookings();
   }, []);
 
@@ -79,57 +85,8 @@ const MentorDirectory = () => {
     <>
       <body className="font-sans text-gray-800 bg-white">
         {/* Navigation Component */}
-        <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
-          <div className="max-w-7xl mx-auto px-5">
-            <div className="flex justify-between items-center py-4">
-              {/* Logo */}
-              <a href="#" className="text-2xl font-bold text-primary-dark">
-                Roots & Wings
-              </a>
 
-              {/* Desktop Menu */}
-              <ul className="hidden md:flex space-x-8">
-                <li>
-                  <a
-                    href="#home"
-                    className="text-gray-700 hover:text-primary font-medium transition-colors"
-                  >
-                    Home
-                  </a>
-                </li>
-                <li>
-                  <a href="#mentors" className="text-primary font-medium">
-                    Mentor Profiles
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#workshops"
-                    className="text-gray-700 hover:text-primary font-medium transition-colors"
-                  >
-                    Workshops
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#enroll"
-                    className="text-gray-700 hover:text-primary font-medium transition-colors"
-                  >
-                    Enroll
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#faq"
-                    className="text-gray-700 hover:text-primary font-medium transition-colors"
-                  >
-                    FAQ
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </nav>
+        <Navbar user={user} />
 
         {/* Hero Section Component */}
         <section className="bg-gradient-to-br from-primary-light to-accent-light pt-20 pb-12 mt-16">

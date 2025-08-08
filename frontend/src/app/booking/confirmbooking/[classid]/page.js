@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import axios from 'axios';
+
 
 export default function BookingConfirmation() {
   const [isTermsAccepted, setIsTermsAccepted] = useState(false);
@@ -12,6 +14,17 @@ export default function BookingConfirmation() {
   const [bookingTotal, setBookingTotal] = useState(187.50);
   const [discountAmount, setDiscountAmount] = useState(0);
 
+  const [selectedMentorClass, setSelectedMentorClass] = useState({});
+  const [mentor, setMentor] = useState({});
+
+
+  useEffect(() => {
+    const selectedMentorClass = JSON.parse(localStorage.getItem('selectedMentorClass'));
+    setSelectedMentorClass(selectedMentorClass);
+    const mentor = JSON.parse(localStorage.getItem('mentor'));
+    setMentor(mentor);
+  }, []);
+  
   // Function to simulate a confetti effect (replicated from original JS)
   const createConfetti = () => {
     const confettiContainer = document.createElement('div');
@@ -59,24 +72,42 @@ export default function BookingConfirmation() {
   };
 
   // Replicating the functions from the original HTML
-  const proceedToPayment = () => {
+  const proceedToPayment = async () => {
     if (!isTermsAccepted) {
       alert('Please accept the terms and conditions to proceed.');
       return;
     }
 
     setIsProcessing(true);
-    
-    setTimeout(() => {
-      const success = Math.random() > 0.1; // 90% success rate for demo
-      if (success) {
-        setShowSuccessModal(true);
-        createConfetti();
-      } else {
-        setShowErrorAlert(true);
+
+
+    const user = JSON.parse(localStorage.getItem('user'));
+    console.log(user,'user user user');
+
+    const response = await axios.post(
+      'https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/',
+      {
+        mentorId: mentor.uid,
+        classId: selectedMentorClass.classId,
+        studentId: user.user.uid,
+
+pricing : {
+  finalPrice:320,
+  ...selectedMentorClass.pricing,
+}
+
+        
       }
-      setIsProcessing(false);
-    }, 2500);
+    );
+    console.log(response,'response response response');
+
+    if(response.status === 200) {
+      setShowSuccessModal(true);
+      createConfetti();
+    } else {
+      setShowErrorAlert(true);
+    }
+    
   };
 
   const applyPromoCode = () => {
@@ -114,11 +145,11 @@ export default function BookingConfirmation() {
   };
 
   const handleChatWithMentor = () => {
-    alert('Starting chat with Priya Sharma...\nShe typically responds within 30 minutes.');
+    // alert('Starting chat with Priya Sharma...\nShe typically responds within 30 minutes.');
   };
 
   const handleContactSupport = () => {
-    alert('Opening support chat...\nOur team is available 24/7 to help with your booking!');
+    // alert('Opening support chat...\nOur team is available 24/7 to help with your booking!');
   };
 
   useEffect(() => {
@@ -130,6 +161,38 @@ export default function BookingConfirmation() {
       return () => clearTimeout(timer);
     }
   }, [showErrorAlert]);
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-GB', { 
+      day: 'numeric', month: 'short' 
+    });
+  };
+
+  // Helper functions for conditional visual styling
+const getLevelBadge = (level) => {
+  switch(level?.toLowerCase()) {
+    case 'beginner': return { color: 'bg-blue-100 text-blue-700', icon: '⭐', label: 'Beginner' };
+    case 'intermediate': return { color: 'bg-yellow-100 text-yellow-700', icon: '⚡', label: 'Intermediate' };
+    case 'advanced': return { color: 'bg-red-100 text-red-700', icon: '🏆', label: 'Advanced' };
+    default: return { color: 'bg-gray-100 text-gray-700', icon: '📚', label: 'All Levels' };
+  }
+};
+
+const getAgeGroupBadge = (ageGroup) => {
+  switch(ageGroup?.toLowerCase()) {
+    case 'child': 
+    case 'children': 
+      return { color: 'bg-green-100 text-green-700', icon: '👶', label: 'Children (5-12)' };
+    case 'teen': 
+    case 'teens': 
+      return { color: 'bg-purple-100 text-purple-700', icon: '🎓', label: 'Teens (13-17)' };
+    case 'adult': 
+    case 'adults': 
+      return { color: 'bg-indigo-100 text-indigo-700', icon: '👩‍💼', label: 'Adults (18+)' };
+    default: return { color: 'bg-gray-100 text-gray-700', icon: '👥', label: 'All Ages' };
+  }
+};
+  
   
   // Custom global CSS for body and animation
   const globalStyle = `
@@ -144,6 +207,9 @@ export default function BookingConfirmation() {
     }
   `;
 
+  const levelBadge = getLevelBadge(selectedMentorClass.level);
+  const ageBadge = getAgeGroupBadge(selectedMentorClass.ageGroup);
+
   return (
     <>
       <style jsx global>{globalStyle}</style>
@@ -154,7 +220,7 @@ export default function BookingConfirmation() {
           <div className="flex justify-between items-center py-4">
             <a href="#" className="text-2xl font-bold text-primary-dark">Roots & Wings</a>
             <div className="flex items-center space-x-6">
-              <a href="#" className="text-gray-600 hover:text-primary transition-colors">← Back to Sessions</a>
+              <a href="/mentor/directory" className="text-gray-600 hover:text-primary transition-colors">← Back to Sessions</a>
               <a href="#" className="text-gray-600 hover:text-primary transition-colors">Help</a>
             </div>
           </div>
@@ -212,13 +278,14 @@ export default function BookingConfirmation() {
                     <div className="w-24 h-24 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto">P</div>
                     <div className="absolute -bottom-2 -right-2 bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">✓</div>
                   </div>
-                  <h3 className="text-xl font-bold text-primary-dark mb-2">Priya Sharma</h3>
-                  <p className="text-gray-600 mb-3">Kathak Dance & Cultural Arts</p>
+                  <h3 className="text-xl font-bold text-primary-dark mb-2">{mentor?.displayName}</h3>
+                  <p className="text-gray-600 mb-3">{mentor?.headline}</p>
                   <div className="flex items-center justify-center gap-2 mb-4">
                     <div className="flex text-yellow-400">★★★★★</div>
-                    <span className="text-sm text-gray-600">4.9 (32 reviews)</span>
+                    <span className="text-sm text-gray-600">{mentor?.stats?.avgRating} ({mentor?.stats?.totalReviews} reviews)</span>
                   </div>
-                  <div className="inline-block bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold mb-6">🎉 First Session is FREE</div>
+                  { mentor?.pricing?.firstSessionFree &&
+                    <div className="inline-block bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold mb-6">🎉 {mentor?.pricing?.firstSessionFree ? 'First Session is FREE' : ''}</div>}
                   <a href="#" className="text-primary hover:text-primary-dark font-semibold text-sm transition-colors">👤 View Full Profile →</a>
                 </div>
                 <div className="border-t pt-6">
@@ -255,15 +322,15 @@ export default function BookingConfirmation() {
                     <span className="text-2xl mr-3">🎯</span>
                     <div>
                       <div className="font-semibold text-gray-700">Batch Name</div>
-                      <div className="text-primary-dark font-bold text-lg">8-Week Weekend Batch – Intermediate</div>
+                      <div className="text-primary-dark font-bold text-lg">{selectedMentorClass.title}</div>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <span className="text-2xl mr-3">📅</span>
                     <div>
                       <div className="font-semibold text-gray-700">Schedule</div>
-                      <div className="text-primary-dark font-bold">Saturday & Sunday | 2:00 PM - 3:00 PM</div>
-                      <div className="text-sm text-gray-500">17 Aug 2025 - 15 Sep 2025 (8 weekends)</div>
+                      <div className="text-primary-dark font-bold">   {formatDate(selectedMentorClass.schedule?.startDate)} - {formatDate(selectedMentorClass.schedule?.endDate)}</div>
+                      <div className="text-sm text-gray-500"> {Math.ceil((new Date(selectedMentorClass.schedule?.endDate) - new Date(selectedMentorClass.schedule?.startDate)) / (1000 * 60 * 60 * 24 * 7))} weeks program</div>
                     </div>
                   </div>
                   <div className="flex items-start">
@@ -279,8 +346,12 @@ export default function BookingConfirmation() {
                     <div>
                       <div className="font-semibold text-gray-700">Level & Age Group</div>
                       <div className="flex gap-2 mt-1">
-                        <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-full">⚡ Intermediate</span>
-                        <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-medium rounded-full">👦 Teens (13-17)</span>
+                        <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-full">
+                        {ageBadge?.icon} {ageBadge?.label}
+                        </span>
+                        <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-medium rounded-full">
+                        {levelBadge?.icon} {levelBadge?.label}
+                        </span>
                       </div>
                     </div>
                   </div>

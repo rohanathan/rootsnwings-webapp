@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Navbar from '@/components/NavBar';
 
 const workshopsData = [
   {
@@ -262,7 +263,9 @@ export default function Home() {
       <div className="font-sans text-gray-800 bg-gray-50">
 
         {/* Navigation Component */}
-        <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
+        <Navbar   />
+
+        {/* <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
           <div className="max-w-7xl mx-auto px-5">
             <div className="flex justify-between items-center py-4">
               <a href="#" className="text-2xl font-bold text-primary-dark">Roots & Wings</a>
@@ -278,7 +281,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </nav>
+        </nav> */}
 
         {/* Page Header Component */}
         <section className="bg-gradient-to-br from-primary-light to-accent-light pt-20 pb-12 mt-16">

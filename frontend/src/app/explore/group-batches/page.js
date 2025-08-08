@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
+import axios from 'axios';
 // Helper functions for conditional visual styling
 const getLevelBadge = (level) => {
   switch(level?.toLowerCase()) {
@@ -51,159 +51,120 @@ const formatDate = (dateString) => {
 
 const formatSchedule = (weeklySchedule) => {
   if (!weeklySchedule || weeklySchedule.length === 0) return 'Schedule TBD';
+
+  // Get unique days by filtering duplicates
+  const uniqueDays = [...new Set(weeklySchedule.map(s => s.day))];
   
-  const days = weeklySchedule.map(s => s.day.slice(0, 3)).join(' & ');
+  // Sort days according to day of week
+  const dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  uniqueDays.sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
+
+  // Format days to 3 letter abbreviation
+  const days = uniqueDays.map(day => day.slice(0, 3)).join(' & ');
+
+  // Get time from first schedule entry since they're all the same
   const time = weeklySchedule[0].startTime + ' - ' + weeklySchedule[0].endTime;
+
   return `${days} | ${time}`;
 };
 
-// API-ready mock data for Group Batches (type: "batch" or "group")
-const groupBatchesData = [
-  {
-    id: "class_batch_001",
-    type: "batch",
-    title: "4-Week Evening Intensive",
-    level: "beginner",
-    ageGroup: "adult",
-    format: "online",
-    subject: "kathak",
-    description: "Learn Kathak fundamentals in this structured 4-week intensive program with daily practice sessions.",
-    mentorName: "Priya Sharma",
-    mentorPhotoURL: "https://randomuser.me/api/portraits/women/45.jpg",
-    mentorRating: 4.9,
-    pricing: {
-      total: 280,
-      perSession: 14,
-      sessions: 20,
-      currency: "GBP"
-    },
-    schedule: {
-      startDate: "2025-08-05",
-      endDate: "2025-08-30",
-      weeklySchedule: [
-        {day: "Monday", startTime: "18:00", endTime: "19:00"},
-        {day: "Tuesday", startTime: "18:00", endTime: "19:00"},
-        {day: "Wednesday", startTime: "18:00", endTime: "19:00"},
-        {day: "Thursday", startTime: "18:00", endTime: "19:00"},
-        {day: "Friday", startTime: "18:00", endTime: "19:00"}
-      ],
-      sessionDuration: 60
-    },
-    capacity: {
-      maxStudents: 8,
-      currentEnrollment: 4,
-      available: 4
-    }
-  },
-  {
-    id: "class_batch_002",
-    type: "batch",
-    title: "8-Week Teen Accelerator",
-    level: "intermediate",
-    ageGroup: "teen",
-    format: "in-person",
-    subject: "dance",
-    description: "Accelerated learning program for teens with performance opportunities and skill advancement.",
-    mentorName: "Priya Sharma",
-    mentorPhotoURL: "https://randomuser.me/api/portraits/women/45.jpg",
-    mentorRating: 4.9,
-    pricing: {
-      total: 480,
-      perSession: 12,
-      sessions: 40,
-      currency: "GBP"
-    },
-    schedule: {
-      startDate: "2025-08-12",
-      endDate: "2025-10-04",
-      weeklySchedule: [
-        {day: "Monday", startTime: "16:00", endTime: "17:00"},
-        {day: "Tuesday", startTime: "16:00", endTime: "17:00"},
-        {day: "Wednesday", startTime: "16:00", endTime: "17:00"},
-        {day: "Thursday", startTime: "16:00", endTime: "17:00"},
-        {day: "Friday", startTime: "16:00", endTime: "17:00"}
-      ],
-      sessionDuration: 60
-    },
-    capacity: {
-      maxStudents: 10,
-      currentEnrollment: 8,
-      available: 2
-    }
-  },
-  {
-    id: "class_batch_003",
-    type: "batch",
-    title: "12-Week Master Program",
-    level: "advanced",
-    ageGroup: "adult",
-    format: "hybrid",
-    subject: "kathak",
-    description: "Comprehensive mastery program combining traditional techniques with modern performance styles.",
-    mentorName: "Priya Sharma",
-    mentorPhotoURL: "https://randomuser.me/api/portraits/women/45.jpg",
-    mentorRating: 4.9,
-    pricing: {
-      total: 850,
-      perSession: 14.17,
-      sessions: 60,
-      currency: "GBP"
-    },
-    schedule: {
-      startDate: "2025-08-19",
-      endDate: "2025-11-08",
-      weeklySchedule: [
-        {day: "Monday", startTime: "10:00", endTime: "11:00"},
-        {day: "Wednesday", startTime: "10:00", endTime: "11:00"},
-        {day: "Friday", startTime: "10:00", endTime: "11:00"},
-        {day: "Saturday", startTime: "14:00", endTime: "15:00"},
-        {day: "Sunday", startTime: "14:00", endTime: "15:00"}
-      ],
-      sessionDuration: 60
-    },
-    capacity: {
-      maxStudents: 6,
-      currentEnrollment: 0,
-      available: 6
-    }
-  },
-  {
-    id: "class_batch_004",
-    type: "batch",
-    title: "6-Week Kids Foundation",
-    level: "beginner",
-    ageGroup: "child",
-    format: "in-person",
-    subject: "dance",
-    description: "Fun and engaging foundation program designed specifically for young learners with age-appropriate activities.",
-    mentorName: "Priya Sharma",
-    mentorPhotoURL: "https://randomuser.me/api/portraits/women/45.jpg",
-    mentorRating: 4.9,
-    pricing: {
-      total: 350,
-      perSession: 11.67,
-      sessions: 30,
-      currency: "GBP"
-    },
-    schedule: {
-      startDate: "2025-08-26",
-      endDate: "2025-10-04",
-      weeklySchedule: [
-        {day: "Monday", startTime: "15:30", endTime: "16:30"},
-        {day: "Tuesday", startTime: "15:30", endTime: "16:30"},
-        {day: "Wednesday", startTime: "15:30", endTime: "16:30"},
-        {day: "Thursday", startTime: "15:30", endTime: "16:30"},
-        {day: "Friday", startTime: "15:30", endTime: "16:30"}
-      ],
-      sessionDuration: 60
-    },
-    capacity: {
-      maxStudents: 8,
-      currentEnrollment: 3,
-      available: 5
-    }
-  }
-];
+
+
+// {
+//   "classId": "class_50ddb1a0",
+//   "type": "group",
+//   "title": "Guitar class",
+//   "subject": "dance",
+//   "category": "Dance",
+//   "description": "Learn guitar fundamentals - updated",
+//   "mentorId": "user_72b1365b989b",
+//   "mentorName": "Tester",
+//   "mentorPhotoURL": null,
+//   "mentorRating": null,
+//   "level": "beginner",
+//   "ageGroup": "teen",
+//   "format": "online",
+//   "schedule": {
+//       "startDate": "2025-08-01",
+//       "endDate": "2025-08-31",
+//       "weeklySchedule": [
+//           {
+//               "endTime": "11:00",
+//               "day": "Monday",
+//               "startTime": "10:00"
+//           },
+//           {
+//               "endTime": "11:00",
+//               "day": "Tuesday",
+//               "startTime": "10:00"
+//           },
+//           {
+//               "endTime": "11:00",
+//               "day": "Wednesday",
+//               "startTime": "10:00"
+//           },
+//           {
+//               "endTime": "11:00",
+//               "day": "Monday",
+//               "startTime": "10:00"
+//           },
+//           {
+//               "endTime": "11:00",
+//               "day": "Tuesday",
+//               "startTime": "10:00"
+//           },
+//           {
+//               "endTime": "11:00",
+//               "day": "Wednesday",
+//               "startTime": "10:00"
+//           },
+//           {
+//               "endTime": "11:00",
+//               "day": "Monday",
+//               "startTime": "10:00"
+//           },
+//           {
+//               "endTime": "11:00",
+//               "day": "Tuesday",
+//               "startTime": "10:00"
+//           },
+//           {
+//               "endTime": "11:00",
+//               "day": "Wednesday",
+//               "startTime": "10:00"
+//           },
+//           {
+//               "endTime": "11:00",
+//               "day": "Monday",
+//               "startTime": "10:00"
+//           },
+//           {
+//               "endTime": "11:00",
+//               "day": "Tuesday",
+//               "startTime": "10:00"
+//           },
+//           {
+//               "endTime": "11:00",
+//               "day": "Wednesday",
+//               "startTime": "10:00"
+//           }
+//       ],
+//       "sessionDuration": 60
+//   },
+//   "capacity": {
+//       "maxStudents": 6,
+//       "minStudents": 2,
+//       "currentEnrollment": 0
+//   },
+//   "pricing": {
+//       "perSessionRate": 120,
+//       "totalSessions": 12,
+//       "subtotal": 340,
+//       "currency": "GBP"
+//   },
+//   "createdAt": "2025-08-06T10:13:30.451207",
+//   "updatedAt": "2025-08-06T11:42:08.467058"
+// }
 
 export default function GroupBatches() {
   const [filters, setFilters] = useState({
@@ -212,7 +173,7 @@ export default function GroupBatches() {
     format: '',
     subject: '',
   });
-  const [filteredBatches, setFilteredBatches] = useState(groupBatchesData);
+  // const [filteredBatches, setFilteredBatches] = useState({});
 
   // Function to handle filter changes
   const handleFilterChange = (e) => {
@@ -222,28 +183,53 @@ export default function GroupBatches() {
       [name]: value,
     }));
   };
-
   // Effect to apply filters whenever the filter state changes
   useEffect(() => {
     const applyFilters = () => {
       const { level, ageGroup, format, subject } = filters;
-      const newFilteredBatches = groupBatchesData.filter((batch) => {
-        const levelMatch = !level || batch.level?.toLowerCase() === level.toLowerCase();
-        const ageMatch = !ageGroup || batch.ageGroup?.toLowerCase() === ageGroup.toLowerCase();
-        const formatMatch = !format || batch.format?.toLowerCase() === format.toLowerCase();
-        const subjectMatch = !subject || batch.subject?.toLowerCase() === subject.toLowerCase();
-        return levelMatch && ageMatch && formatMatch && subjectMatch;
-      });
-      setFilteredBatches(newFilteredBatches);
+      // const newFilteredBatches = mentorClasses.filter((batch) => {
+      //   const levelMatch = !level || batch.level?.toLowerCase() === level.toLowerCase();
+      //   const ageMatch = !ageGroup || batch.ageGroup?.toLowerCase() === ageGroup.toLowerCase();
+      //   const formatMatch = !format || batch.format?.toLowerCase() === format.toLowerCase();
+      //   const subjectMatch = !subject || batch.subject?.toLowerCase() === subject.toLowerCase();
+      //   return levelMatch && ageMatch && formatMatch && subjectMatch;
+      // });
+      // setFilteredBatches(newFilteredBatches);
     };
 
     applyFilters();
   }, [filters]);
 
+
+  const [mentorData, setMentorData] = useState(null);
+  const [mentorClasses, setMentorClasses] = useState([]);
+console.log(mentorData,'mentorData mentorData mentorData');
+
+  useEffect(() => {
+    const mentor = JSON.parse(localStorage.getItem("mentor"));
+    const uid = mentor.uid;
+    const fetchMentorData = async () => {
+      try {
+        const response = await axios.get(
+          'https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId='+uid
+          // 'https://rootsnwings-api-944856745086.europe-west2.run.app/classes/'+uid+'?include_classes=true'
+        );
+        setMentorData(response.data);
+        setMentorClasses(response.data.classes);
+        localStorage.setItem('availableMentorClass', JSON.stringify(response.data.classes));
+      } catch (error) {
+        console.error('Error fetching mentor data:', error);
+      }
+    };
+
+    fetchMentorData();
+  }, []);
+
   // Handle enrollment button click
   const handleEnrollNow = (batch) => {
     alert(`Enrolling you in "${batch.title}". Redirecting to payment...`);
-    // TODO: Replace with actual navigation when API integration is ready
+    window.location.href = '/booking/confirmbooking/'+batch.classId;
+    localStorage.setItem('selectedMentorClass', JSON.stringify(batch));
   };
 
   return (
@@ -281,33 +267,33 @@ export default function GroupBatches() {
       </nav>
 
       {/* Dynamic Mentor Info Header */}
-      <div className="fixed top-16 w-full z-40 bg-white border-b border-gray-200 shadow-sm">
+      <div className="fixed top-20 w-full z-40 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-5 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {/* Dynamic Mentor Photo */}
-              {groupBatchesData[0]?.mentorPhotoURL ? (
+              {mentorClasses[0]?.mentorPhotoURL ? (
                 <img 
-                  src={groupBatchesData[0].mentorPhotoURL} 
-                  alt={groupBatchesData[0].mentorName}
+                  src={mentorClasses[0].mentorPhotoURL} 
+                  alt={mentorClasses[0].mentorName}
                   className="w-14 h-14 rounded-full object-cover"
                 />
               ) : (
                 <div className="w-14 h-14 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white text-lg font-bold">
-                  {groupBatchesData[0]?.mentorName?.charAt(0) || 'M'}
+                  {mentorClasses[0]?.mentorName?.charAt(0) || 'M'}
                 </div>
               )}
               <div>
                 <h2 className="text-lg font-bold primary-dark">
-                  {groupBatchesData[0]?.mentorName || 'Mentor Name'}
+                  {mentorClasses[0]?.mentorName || 'Mentor Name'}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  {[...new Set(groupBatchesData.map(b => b.subject))].join(' & ').replace(/^\w/, c => c.toUpperCase())} Specialist
+                  {[...new Set(mentorClasses.map(b => b.subject))].join(' & ').replace(/^\w/, c => c.toUpperCase())} Specialist
                 </p>
                 <div className="flex items-center gap-2">
                   <div className="flex text-yellow-400 text-xs">★★★★★</div>
                   <span className="text-xs text-gray-600">
-                    {groupBatchesData[0]?.mentorRating || 4.9} (32 reviews)
+                    {mentorClasses[0]?.mentorRating || 4.9} (32 reviews)
                   </span>
                   <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full ml-2">
                     Group Batch Specialist
@@ -326,7 +312,7 @@ export default function GroupBatches() {
       </div>
 
       {/* Main Content */}
-      <main className="pt-32 pb-16">
+      <main className="pt-40 pb-16">
         <div className="max-w-7xl mx-auto px-5">
           
           {/* Page Header */}
@@ -422,7 +408,7 @@ export default function GroupBatches() {
                 <button
                   onClick={() => {
                     const { level, ageGroup, format, subject } = filters;
-                    const filtered = groupBatchesData.filter(batch => {
+                    const filtered = mentorClasses.filter(batch => {
                       const levelMatch = !level || batch.level?.toLowerCase() === level.toLowerCase();
                       const ageMatch = !ageGroup || batch.ageGroup?.toLowerCase() === ageGroup.toLowerCase();
                       const formatMatch = !format || batch.format?.toLowerCase() === format.toLowerCase();
@@ -441,8 +427,8 @@ export default function GroupBatches() {
 
           {/* Group Batch Cards Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {filteredBatches.length > 0 ? (
-              filteredBatches.map((batch) => {
+            {mentorClasses?.length > 0 ? (
+              mentorClasses.map((batch) => {
                 const levelBadge = getLevelBadge(batch.level);
                 const ageBadge = getAgeGroupBadge(batch.ageGroup);
                 const availabilityStatus = getAvailabilityStatus(batch.capacity.available, batch.capacity.maxStudents);
@@ -454,29 +440,29 @@ export default function GroupBatches() {
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold primary-dark mb-2">{batch.title}</h3>
+                        <h3 className="text-xl font-bold primary-dark mb-2 min-h-[2rem] max-h-[2rem] overflow-hidden text-ellipsis line-clamp-1">{batch.title}</h3>
                         <div className="flex items-center gap-2 mb-3">
-                          <span className={`px-3 py-1 text-sm font-medium rounded-full ${ageBadge.color}`}>
+                          <span className={`px-3 py-1 text-sm font-medium rounded-full whitespace-nowrap inline-block ${ageBadge.color}`}>
                             {ageBadge.icon} {ageBadge.label}
                           </span>
-                          <span className={`px-3 py-1 text-sm font-medium rounded-full ${levelBadge.color}`}>
+                          <span className={`px-3 py-1 text-sm font-medium rounded-full whitespace-nowrap inline-block ${levelBadge.color}`}>
                             {levelBadge.icon} {levelBadge.label}
                           </span>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold primary-dark">
-                          {batch.pricing.currency}{batch.pricing.total}
+                        {batch.pricing.subtotal } {batch.pricing.currency}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {batch.pricing.sessions} sessions
+                          {batch.pricing.totalSessions} sessions
                         </div>
                       </div>
                     </div>
 
                     {/* Description */}
-                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                      {batch.description}
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed h-12 line-clamp-2 overflow-hidden">
+                      {batch.description?.length > 40 ? `${batch.description.substring(0, 80)}...` : batch.description}
                     </p>
 
                     {/* Schedule Info */}
@@ -517,7 +503,7 @@ export default function GroupBatches() {
                       <div className="flex items-center">
                         <span className="text-lg mr-2">👥</span>
                         <span className="text-sm text-gray-600">
-                          {batch.capacity.available} seats left
+                          {batch.capacity.maxStudents - batch.capacity.currentEnrollment } seats left  
                         </span>
                       </div>
                       <div 
@@ -563,6 +549,8 @@ export default function GroupBatches() {
           </div>
         </div>
       </main>
+
+      
     </>
   );
 }
