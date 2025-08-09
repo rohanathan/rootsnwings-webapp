@@ -15,13 +15,6 @@ class AccountStatus(str, Enum):
     SUSPENDED = "suspended"
     PENDING = "pending"
 
-class VerificationLevel(str, Enum):
-    UNVERIFIED = "unverified"
-    BASIC = "basic"
-    EMAIL_VERIFIED = "email_verified"
-    PHONE_VERIFIED = "phone_verified"
-    VERIFIED = "verified"
-
 class GeoLocation(BaseModel):
     lat: float
     lng: float
@@ -49,20 +42,19 @@ class Preferences(BaseModel):
     notifications: Optional[bool] = True
     privacy: Optional[PrivacySettings] = Field(default_factory=PrivacySettings)
 
+# CLEAN USER MODEL - No redundancies
 class UserBase(BaseModel):
     email: EmailStr
     displayName: str
     photoURL: Optional[str] = None
     phoneNumber: Optional[str] = None
-    roles: List[UserRole] = Field(default_factory=list)
-    hasMentorProfile: bool = False
-    hasStudentProfile: bool = False
-    hasParentProfile: bool = False
+    roles: List[UserRole] = Field(default_factory=list)  # ✅ Single source of truth for roles
     location: Optional[Location] = None
     preferences: Optional[Preferences] = Field(default_factory=Preferences)
-    accountStatus: AccountStatus = AccountStatus.ACTIVE
-    verificationLevel: VerificationLevel = VerificationLevel.UNVERIFIED
-    title: Optional[str] = None
+    status: AccountStatus = AccountStatus.ACTIVE  # ✅ Renamed from accountStatus for simplicity
+    profileComplete: bool = False  # ✅ Frontend-controlled completion flag
+    passwordHash: Optional[str] = None  # ✅ Required for authentication
+    # Optional personal info
     firstName: Optional[str] = None
     lastName: Optional[str] = None
     pronouns: Optional[str] = None
@@ -73,18 +65,16 @@ class UserCreate(UserBase):
     uid: Optional[str] = None  # Can be provided or generated
 
 class UserUpdate(BaseModel):
+    """Flexible update model - all fields optional for MongoDB-style updates"""
     displayName: Optional[str] = None
     photoURL: Optional[str] = None
     phoneNumber: Optional[str] = None
     roles: Optional[List[UserRole]] = None
-    hasMentorProfile: Optional[bool] = None
-    hasStudentProfile: Optional[bool] = None
-    hasParentProfile: Optional[bool] = None
     location: Optional[Location] = None
     preferences: Optional[Preferences] = None
-    accountStatus: Optional[AccountStatus] = None
-    verificationLevel: Optional[VerificationLevel] = None
-    title: Optional[str] = None
+    status: Optional[AccountStatus] = None
+    profileComplete: Optional[bool] = None
+    passwordHash: Optional[str] = None  # ✅ For password changes
     firstName: Optional[str] = None
     lastName: Optional[str] = None
     pronouns: Optional[str] = None
@@ -95,130 +85,97 @@ class User(UserBase):
     uid: str
     createdAt: datetime
     updatedAt: datetime
-    lastLoginAt: Optional[datetime] = None
-    lastActiveAt: Optional[datetime] = None
+    lastLogin: Optional[datetime] = None  # ✅ Simplified from lastLoginAt
 
-# Student Profile Models
-class LearningStyle(str, Enum):
-    VISUAL = "visual"
-    AUDITORY = "auditory"
-    KINESTHETIC = "kinesthetic"
-    MIXED = "mixed"
-    UNKNOWN = ""  # Handle empty strings in existing data
-
-class CommunicationPreference(str, Enum):
-    EMAIL = "email"
-    APP_NOTIFICATION = "app_notification"
-    SMS = "sms"
-    UNKNOWN = ""  # Handle empty strings in existing data
-
-# Booking-related models for student profile
-class NextSession(BaseModel):
-    bookingId: str = ""
-    classId: str = ""
-    classTitle: str = ""
-    mentorName: str = ""
-    sessionDate: str = ""
-    format: str = ""
-
-class ActiveBookingsSummary(BaseModel):
-    count: int = 0
-    nextSession: NextSession = Field(default_factory=NextSession)
-
-class UpcomingSession(BaseModel):
-    bookingId: str
-    classId: str
-    classTitle: str
-    mentorName: str
-    sessionDate: str
-    sessionTime: str
-    format: str
-    status: str
-
-class UpcomingSessions(BaseModel):
-    items: List[UpcomingSession] = Field(default_factory=list)
-
-class StudentProfile(BaseModel):
-    uid: str
-    bio: Optional[str] = None
-    learningGoals: Optional[str] = None
-    interests: Optional[List[str]] = Field(default_factory=list)
-    isYoungLearner: bool = False
-    learningStyle: Optional[LearningStyle] = None
-    preferredCommunication: Optional[CommunicationPreference] = None
-    activeBookingsSummary: Optional[ActiveBookingsSummary] = Field(default_factory=ActiveBookingsSummary)
-    upcomingSessions: Optional[UpcomingSessions] = Field(default_factory=UpcomingSessions)
-    createdAt: datetime
-    updatedAt: datetime
-
-class StudentProfileCreate(BaseModel):
-    bio: Optional[str] = None
-    learningGoals: Optional[str] = None
-    interests: Optional[List[str]] = Field(default_factory=list)
-    isYoungLearner: bool = False
-    learningStyle: Optional[LearningStyle] = None
-    preferredCommunication: Optional[CommunicationPreference] = None
-
-class StudentProfileUpdate(BaseModel):
-    bio: Optional[str] = None
-    learningGoals: Optional[str] = None
-    interests: Optional[List[str]] = None
-    isYoungLearner: Optional[bool] = None
-    learningStyle: Optional[LearningStyle] = None
-    preferredCommunication: Optional[CommunicationPreference] = None
-
-# Parent Profile Models
-class ContactMethod(str, Enum):
-    EMAIL = "email"
-    SMS = "sms"
-    PHONE = "phone"
-    APP_NOTIFICATION = "app_notification"
-
-class EmergencyContact(BaseModel):
-    name: str
-    phone: str
-
-class ParentProfile(BaseModel):
-    uid: str
-    phoneVerified: bool = False
-    emergencyContact: Optional[EmergencyContact] = None
-    preferredContactMethod: Optional[ContactMethod] = None
-    communicationConsent: bool = False
-    languagePreference: Optional[str] = None
-    timezone: Optional[str] = None
-    createdAt: datetime
-    updatedAt: datetime
-
-class ParentProfileCreate(BaseModel):
-    phoneVerified: bool = False
-    emergencyContact: Optional[EmergencyContact] = None
-    preferredContactMethod: Optional[ContactMethod] = None
-    communicationConsent: bool = False
-    languagePreference: Optional[str] = None
-    timezone: Optional[str] = None
-
-class ParentProfileUpdate(BaseModel):
-    phoneVerified: Optional[bool] = None
-    emergencyContact: Optional[EmergencyContact] = None
-    preferredContactMethod: Optional[ContactMethod] = None
-    communicationConsent: Optional[bool] = None
-    languagePreference: Optional[str] = None
-    timezone: Optional[str] = None
-
-# Response Models
 class UserResponse(BaseModel):
+    success: bool = True
     user: User
 
+class AdminUserListResponse(BaseModel):
+    success: bool = True
+    users: List[User]
+    pagination: dict
+
+# REMOVED REDUNDANT FIELDS:
+# ❌ userType (use roles instead)
+# ❌ hasStudentProfile, hasParentProfile, hasMentorProfile (derive from roles)
+# ❌ verificationLevel (use profileComplete or separate system)
+# ❌ accountStatus (renamed to status)
+# ❌ lastLoginAt, lastActiveAt (simplified to lastLogin)
+# ❌ title (not needed for MVP)
+
+# HELPER FUNCTIONS FOR ROLE CHECKING
+def has_role(user_data: dict, role: UserRole) -> bool:
+    """Check if user has specific role"""
+    return role.value in user_data.get('roles', [])
+
+def has_student_profile(user_data: dict) -> bool:
+    """Derive from roles instead of storing separately"""
+    return has_role(user_data, UserRole.STUDENT)
+
+def has_parent_profile(user_data: dict) -> bool:
+    """Derive from roles instead of storing separately"""
+    return has_role(user_data, UserRole.PARENT)
+
+def has_mentor_profile(user_data: dict) -> bool:
+    """Derive from roles instead of storing separately"""
+    return has_role(user_data, UserRole.MENTOR)
+
+def is_profile_complete(user_data: dict) -> bool:
+    """Check if user has completed profile setup"""
+    return user_data.get('profileComplete', False)
+
+# STUDENT PROFILE MODEL - Separate collection
+class StudentProfile(BaseModel):
+    userId: str
+    interests: List[str] = Field(default_factory=list)
+    learningGoals: str = ""
+    learningStyle: Optional[str] = None
+    preferredLanguages: List[str] = Field(default_factory=list)
+    ageGroup: str = "adult"  # adult, teen, child
+    step: int = 1
+    location: Optional[Location] = None
+    
+class StudentProfileCreate(BaseModel):
+    interests: List[str] = Field(default_factory=list)
+    learningGoals: str = ""
+    learningStyle: Optional[str] = None
+    preferredLanguages: List[str] = Field(default_factory=list)
+    ageGroup: str = "adult"
+
+class StudentProfileUpdate(BaseModel):
+    interests: Optional[List[str]] = None
+    learningGoals: Optional[str] = None
+    learningStyle: Optional[str] = None
+    preferredLanguages: Optional[List[str]] = None
+    ageGroup: Optional[str] = None
+    step: Optional[int] = None
+
 class StudentProfileResponse(BaseModel):
+    success: bool = True
     profile: StudentProfile
 
-class ParentProfileResponse(BaseModel):
-    profile: ParentProfile
+# PARENT PROFILE MODEL - Separate collection  
+class ParentProfile(BaseModel):
+    userId: str
+    youngLearners: List[dict] = Field(default_factory=list)
+    emergencyContactName: Optional[str] = None
+    emergencyContactPhone: Optional[str] = None
+    preferredContactMethod: Optional[str] = None
+    parentingStyle: Optional[str] = None
 
-# Admin-only Response Models (for user management)
-class AdminUserListResponse(BaseModel):
-    users: List[User]
-    total: int
-    page: int
-    pageSize: int
-    totalPages: int
+class ParentProfileCreate(BaseModel):
+    emergencyContactName: Optional[str] = None
+    emergencyContactPhone: Optional[str] = None
+    preferredContactMethod: Optional[str] = None
+
+class ParentProfileUpdate(BaseModel):
+    youngLearners: Optional[List[dict]] = None
+    emergencyContactName: Optional[str] = None
+    emergencyContactPhone: Optional[str] = None
+    preferredContactMethod: Optional[str] = None
+    parentingStyle: Optional[str] = None
+
+class ParentProfileResponse(BaseModel):
+    success: bool = True
+    profile: ParentProfile

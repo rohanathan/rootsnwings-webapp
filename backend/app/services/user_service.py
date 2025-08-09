@@ -42,7 +42,7 @@ def create_user(user_data: UserCreate) -> User:
         raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
 
 def get_user_by_id(uid: str) -> Optional[User]:
-    """Get user by UID"""
+    """Get user by UID - strict User model"""
     try:
         doc = db.collection("users").document(uid).get()
         if not doc.exists:
@@ -50,6 +50,25 @@ def get_user_by_id(uid: str) -> Optional[User]:
         
         data = doc.to_dict()
         return User(**data)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get user: {str(e)}")
+
+def get_user_flexible(uid: str) -> Optional[dict]:
+    """Get user by UID - flexible dict format with clean structure"""
+    try:
+        doc = db.collection("users").document(uid).get()
+        if not doc.exists:
+            return None
+        
+        # Get raw data and clean it up
+        raw_data = doc.to_dict()
+        
+        # Apply migration to clean up the response
+        from app.services.user_migration import clean_user_response
+        cleaned_data = clean_user_response(raw_data)
+        
+        return cleaned_data
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get user: {str(e)}")
@@ -70,9 +89,15 @@ def update_user_flexible(uid: str, update_data: dict) -> dict:
         # Update with ANY fields
         doc_ref.update(flexible_update)
         
-        # Return updated user as plain dict
+        # Return updated user as clean dict
         updated_doc = doc_ref.get()
-        return updated_doc.to_dict()
+        raw_data = updated_doc.to_dict()
+        
+        # Apply migration to clean up the response
+        from app.services.user_migration import clean_user_response
+        cleaned_data = clean_user_response(raw_data)
+        
+        return cleaned_data
         
     except Exception as e:
         if isinstance(e, HTTPException):
@@ -291,9 +316,10 @@ def delete_user(uid: str) -> bool:
         if not user_ref.get().exists:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Delete associated profiles
-        db.collection("students").document(uid).delete()
-        db.collection("parents").document(uid).delete()
+        # Delete associated profiles from correct collections
+        db.collection("student_profiles").document(uid).delete()
+        db.collection("parent_profiles").document(uid).delete() 
+        db.collection("mentors").document(uid).delete()
         
         # Delete user
         user_ref.delete()

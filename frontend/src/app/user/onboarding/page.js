@@ -74,17 +74,40 @@ const UserOnboardingFlow = () => {
   // State for managing custom interest input
   const [customInterest, setCustomInterest] = useState("");
 
-  // Update the document title based on the current step
+  // Check if user has already completed onboarding
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const username = user.user.displayName;
-    const email = user.user.email;
+    const checkProfileCompletion = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (!user) return;
 
-    setFormData((prev) => ({
-      ...prev,
-      username: username,
-      email: email,
-    }));
+        const userId = user.user.uid;
+        const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/users/me?user_id=${userId}`);
+        
+        if (response.data.user.profileComplete) {
+          // User already completed onboarding - redirect to dashboard
+          console.log("User already completed onboarding, redirecting to dashboard");
+          window.location.href = '/user/dashboard';
+          return;
+        }
+
+        // Set form data if onboarding not complete
+        const username = user.user.displayName;
+        const email = user.user.email;
+
+        setFormData((prev) => ({
+          ...prev,
+          username: username,
+          email: email,
+        }));
+
+      } catch (error) {
+        console.error('Profile check failed:', error);
+        // Continue with onboarding if check fails
+      }
+    };
+
+    checkProfileCompletion();
 
     // Clear error and success when step changes
     setError("");
@@ -342,57 +365,55 @@ const UserOnboardingFlow = () => {
   };
 
   const handleSubmitPreferences = async (e) => {
-
-
     e.preventDefault();
-    window.location.href = '/user/dashboard';
-    // alert("Final form submission:", formData);
-    // e.preventDefault();
-    // console.log("Final form submission:", formData);
+    setIsSubmitting(true);
+    setError("");
 
-    // const user = JSON.parse(localStorage.getItem("user"));
-    // const userId = user.user.uid;
-    // // Prepare the data payload
-    // console.log(userId, "userId userId");
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const userId = user.user.uid;
 
-    // const studentData = {
-    //   userId: userId,
-    //   interests: formData.studentProfile.selectedInterests,
-    //   learningGoals: formData.studentProfile.learningGoals,
-    //   preferredLanguages: [],
+      // Prepare onboarding data
+      const onboardingData = {
+        userId: userId,
+        phone: formData.phoneNumber,
+        city: formData.city,
+        region: formData.region, 
+        country: formData.country,
+        postcode: formData.postcode,
+        roles: formData.selectedRoles,
+        // Student profile data (if student role selected)
+        ...(formData.selectedRoles.includes("student") && {
+          learningGoals: formData.studentProfile.learningGoals,
+          interests: formData.studentProfile.selectedInterests,
+          learningStyle: formData.studentProfile.learningStyle
+        }),
+        // Parent profile data (if parent role selected)  
+        ...(formData.selectedRoles.includes("parent") && {
+          emergencyContactName: formData.parentProfile.emergencyContactName,
+          emergencyContactPhone: formData.parentProfile.emergencyContactPhone,
+          preferredContactMethod: formData.parentProfile.preferredContactMethod
+        })
+      };
 
-    //   ageGroup: "adult",
-    //   step: 1,
-    //   location: {
-    //     city: "Birmingham",
-    //     region: "England",
-    //     country: "UK",
-    //     postcode: "B1 1AA",
-    //     geo: {
-    //       lat: 52.4862,
-    //       lng: -1.8904,
-    //     },
-    //   },
-    //   learningPreferences: {
-    //     learningStyle: formData.studentProfile.learningStyle,
-    //   },
-    //   learningGoals: "want to become",
-    //   preferredLanguages: ["english", "french"],
-    // };
-
-    // try {
-    //   const response = await axios.post(
-    //     "https://rootsnwings-api-944856745086.europe-west2.run.app/onboarding/student/save-progress",
-    //     studentData
-    //   );
-    //   if (response.status === 200) {
-    //     // Redirect to dashboard or next step
-    //     // window.location.href = '/dashboard';
-    //   }
-    // } catch (error) {
-    //   console.error("Error saving student progress:", error);
-    //   alert("There was an error saving your preferences. Please try again.");
-    // }
+      // Call backend onboarding API
+      const response = await axios.post('https://rootsnwings-api-944856745086.europe-west2.run.app/user-onboarding/', onboardingData);
+      
+      if (response.data.message === "Onboarding completed successfully") {
+        // Store completion status and roles in localStorage
+        localStorage.setItem("onboardingCompleted", "true");
+        localStorage.setItem("userRoles", JSON.stringify(formData.selectedRoles));
+        
+        // Redirect to dashboard
+        window.location.href = '/user/dashboard';
+      }
+      
+    } catch (error) {
+      console.error('Onboarding failed:', error);
+      setError(error.response?.data?.detail || "Onboarding failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Calculate progress bar width
@@ -1246,10 +1267,31 @@ const UserOnboardingFlow = () => {
                       <button
                         onClick={handleSubmitPreferences}
                         type="submit"
-                        className="px-6 py-3 bg-primary hover:bg-primary-dark text-white font-semibold rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center mx-auto"
+                        disabled={isSubmitting}
+                        className={`px-6 py-3 font-semibold rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center mx-auto ${
+                          isSubmitting 
+                            ? 'bg-gray-400 cursor-not-allowed text-white' 
+                            : 'bg-primary hover:bg-primary-dark text-white'
+                        }`}
                       >
-                        My Homepage <i className="fas fa-check ml-2"></i>
+                        {isSubmitting ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Completing...
+                          </>
+                        ) : (
+                          <>
+                            My Homepage <i className="fas fa-check ml-2"></i>
+                          </>
+                        )}
                       </button>
+
+                      {/* Error Display */}
+                      {error && (
+                        <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg text-center">
+                          {error}
+                        </div>
+                      )}
                     </ul>
                   </div>
 

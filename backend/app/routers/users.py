@@ -1,138 +1,260 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
-from typing import Optional
+from typing import Optional, Dict, Any
 import os
 import uuid
 from pathlib import Path
-from app.models.user_models import (
-    User, UserCreate, UserUpdate, UserResponse, AdminUserListResponse,
-    StudentProfile, StudentProfileCreate, StudentProfileUpdate, StudentProfileResponse,
-    ParentProfile, ParentProfileCreate, ParentProfileUpdate, ParentProfileResponse,
-    PrivacySettings
-)
+from datetime import datetime
 from app.services.user_service import (
-    create_user, get_user_by_id, update_user_flexible, update_last_login, update_last_active,
-    create_student_profile, get_student_profile, update_student_profile_flexible,
-    create_parent_profile, get_parent_profile, update_parent_profile_flexible,
+    create_user, get_user_by_id, get_user_flexible, update_user_flexible, 
     get_all_users, delete_user
 )
 from app.services.auth_service import get_current_user, get_current_user_optional, require_admin
+from app.services.firestore import db
 
 router = APIRouter(
     prefix="/users",
-    tags=["Users"]
+    tags=["Users Clean API"]
 )
 
-# Authentication is now handled by Firebase Auth middleware
-# Legacy functions for backward compatibility during development
-
-def get_current_user_id_legacy() -> str:
+# Current user detection - flexible for testing and production
+def get_current_user_id(request_headers=None, user_id_param: Optional[str] = None) -> str:
     """
-    Legacy function for testing without authentication.
-    DO NOT USE IN PRODUCTION.
+    Get current user ID from various sources:
+    1. user_id parameter (for testing)
+    2. Authorization header (for production)
+    3. Default to user001 (for backward compatibility)
     """
-    # For testing only - return a known user ID
+    # 1. If user_id parameter provided, use it
+    if user_id_param:
+        return user_id_param
+    
+    # 2. TODO: Add JWT token parsing from Authorization header
+    # if request_headers and 'authorization' in request_headers:
+    #     token = request_headers['authorization'].replace('Bearer ', '')
+    #     return extract_user_id_from_jwt(token)
+    
+    # 3. Default for backward compatibility
     return "user001"
 
-def is_admin_user_legacy() -> bool:
+def is_admin_user(user_id: str = None) -> bool:
     """
-    Legacy function for testing without authentication.
-    DO NOT USE IN PRODUCTION.
+    Check if user has admin role.
+    For now, return True for testing. In production, check user roles.
     """
-    # For testing only - return True to allow testing
+    # TODO: Check actual user roles from database
+    # user = get_user_flexible(user_id)
+    # return "admin" in user.get("roles", [])
+    
+    # For now, allow admin access for testing
     return True
 
-@router.post("/", response_model=UserResponse)
-def create_new_user(user_data: UserCreate):
-    """
-    Create a new user account.
-    This endpoint is typically used during registration process.
-    """
-    user = create_user(user_data)
-    return {"user": user}
+# ==========================================
+# CORE USER ENDPOINTS - MongoDB Style
+# ==========================================
 
-@router.get("/me/authenticated", response_model=UserResponse)
-def get_current_user_profile_authenticated(current_user_uid: str = Depends(get_current_user)):
+@router.post("/")
+def create_new_user(user_data: Dict[str, Any]):
     """
-    Get the current user's profile with Firebase authentication.
-    This endpoint requires a valid Firebase ID token.
+    Create a new user with FULL flexibility - no Pydantic validation.
+    Frontend sends exactly what it wants:
+    {
+        "uid": "firebase_uid",
+        "email": "user@example.com", 
+        "displayName": "John D",  // firstName + lastName[0]
+        "roles": ["student"],
+        "firstName": "John",
+        "lastName": "Doe",
+        "preferences": {...},
+        "customField": "any value"
+    }
     """
-    user = get_user_by_id(current_user_uid)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"user": user}
+    try:
+        # Generate UID if not provided
+        import uuid
+        uid = user_data.get("uid") or f"user_{uuid.uuid4().hex[:12]}"
+        
+        # Check if user already exists
+        existing_user = db.collection("users").document(uid).get()
+        if existing_user.exists:
+            raise HTTPException(status_code=400, detail="User already exists")
+        
+        # PURE FLEXIBLE CREATION - No Pydantic validation
+        now = datetime.now()
+        user_doc = user_data.copy()
+        user_doc.update({
+            "uid": uid,
+            "createdAt": now.isoformat(),
+            "updatedAt": now.isoformat(),
+            "lastLogin": None
+        })
+        
+        # Ensure required defaults if not provided
+        user_doc.setdefault("status", "active")
+        user_doc.setdefault("profileComplete", False)
+        user_doc.setdefault("roles", [])
+        user_doc.setdefault("preferences", {
+            "language": "en",
+            "currency": "GBP", 
+            "privacy": {
+                "showEmail": False,
+                "showPhone": False,
+                "showLocation": True,
+                "showProfileInSearch": True,
+                "allowDirectMessages": True,
+                "showOnlineStatus": False,
+                "shareDataForAnalytics": True
+            }
+        })
+        
+        # Save to Firestore directly - no validation
+        db.collection("users").document(uid).set(user_doc)
+        
+        # Return clean response using migration
+        from app.services.user_migration import clean_user_response
+        cleaned_user = clean_user_response(user_doc)
+        
+        return {"success": True, "user": cleaned_user}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to create user: {str(e)}")
 
-@router.get("/me", response_model=UserResponse)
-def get_current_user_profile():
+@router.get("/me")
+def get_my_profile(user_id: Optional[str] = None):
     """
-    Get the current user's profile (Legacy - for testing).
-    NOTE: This uses legacy authentication for development/testing.
+    Get complete user profile with all data.
+    Returns everything: core fields + flexible fields + nested profiles.
+    
+    Response structure:
+    {
+        "success": true,
+        "user": {
+            "uid": "user123",
+            "email": "user@example.com",
+            "displayName": "John Doe",
+            "roles": ["student", "parent"],
+            "preferences": {...},
+            "studentProfile": {...},
+            "parentProfile": {...},
+            "customFields": {...}
+        }
+    }
     """
-    user_id = get_current_user_id_legacy()
-    user = get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"user": user}
+    try:
+        current_user_id = get_current_user_id(user_id_param=user_id)
+        user = get_user_flexible(current_user_id)
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return {"success": True, "user": user}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get profile: {str(e)}")
 
 @router.put("/me")
-def update_current_user(update_data: dict):
+def update_my_profile(update_data: Dict[str, Any], user_id: Optional[str] = None):
     """
-    Pure MongoDB-style flexible user updates.
+    MongoDB-style flexible user updates.
+    Frontend has complete control over what to update.
     
-    Frontend can send ANY field it wants:
-    - { "displayName": "New Name" }
-    - { "email": "new@email.com", "customField": "value" }
-    - { "preferences.theme": "dark", "anyField": "anyValue" }
-    """
-    user_id = get_current_user_id_legacy()
-    user = update_user_flexible(user_id, update_data)
-    return {"user": user}
-
-@router.post("/me/login")
-def record_user_login():
-    """
-    Record user login timestamp.
-    Called when user successfully logs in.
-    """
-    user_id = get_current_user_id_legacy()
-    update_last_login(user_id)
-    return {"message": "Login recorded"}
-
-@router.post("/me/activity")
-def record_user_activity():
-    """
-    Update user's last active timestamp.
-    Can be called periodically to track user activity.
-    """
-    user_id = get_current_user_id_legacy()
-    update_last_active(user_id)
-    return {"message": "Activity recorded"}
-
-@router.post("/me/profile-image")
-def upload_profile_image(file: UploadFile = File(...)):
-    """
-    Upload profile image for the current user.
-    Accepts: JPG, PNG, GIF files up to 5MB
-    """
-    user_id = get_current_user_id_legacy()
+    Examples:
+    - Basic: {"displayName": "New Name"}
+    - Complex: {"roles": ["student"], "preferences.theme": "dark"}
+    - Nested: {"studentProfile.interests": ["coding", "art"]}
+    - Any field: {"customField": "any value", "deeply.nested.field": "data"}
     
-    # Validate file type
-    allowed_types = ["image/jpeg", "image/png", "image/gif"]
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=400, 
-            detail="Invalid file type. Only JPG, PNG, and GIF are allowed"
-        )
-    
-    # Validate file size (5MB max)
-    max_size = 5 * 1024 * 1024  # 5MB in bytes
-    if file.size and file.size > max_size:
-        raise HTTPException(
-            status_code=400,
-            detail="File too large. Maximum size is 5MB"
-        )
-    
+    No validation - frontend decides what's valid.
+    """
     try:
-        # Create uploads directory if it doesn't exist
+        current_user_id = get_current_user_id(user_id_param=user_id)
+        
+        # Direct flexible update - no validation
+        user = update_user_flexible(current_user_id, update_data)
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return {"success": True, "user": user, "updated_fields": list(update_data.keys())}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
+
+@router.delete("/me")
+def delete_my_account(user_id: Optional[str] = None):
+    """
+    Delete my own account and all associated data.
+    """
+    try:
+        current_user_id = get_current_user_id(user_id_param=user_id)
+        success = delete_user(current_user_id)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to delete account")
+            
+        return {"success": True, "message": "Account deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete account: {str(e)}")
+
+# ==========================================
+# ADMIN ENDPOINTS (Internal Management Only)
+# ==========================================
+
+@router.get("/{user_id}")
+def get_user_by_id_admin(user_id: str):
+    """
+    Get any user by ID (Admin/Internal only).
+    Used for admin dashboard and internal user management.
+    """
+    try:
+        if not is_admin_user():
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        user = get_user_flexible(user_id)
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return {"success": True, "user": user}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get user: {str(e)}")
+
+
+# ==========================================
+# UTILITY ENDPOINTS
+# ==========================================
+
+@router.post("/me/upload-image")
+def upload_profile_image(file: UploadFile = File(...), user_id: Optional[str] = None):
+    """
+    Upload profile image.
+    Updates user's photoURL field automatically.
+    """
+    try:
+        current_user_id = get_current_user_id(user_id_param=user_id)
+        
+        # Validate file type
+        allowed_types = ["image/jpeg", "image/png", "image/gif"]
+        if file.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail="Invalid file type. Only JPG, PNG, and GIF allowed")
+        
+        # Validate file size (5MB max)
+        max_size = 5 * 1024 * 1024
+        if file.size and file.size > max_size:
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB")
+        
+        # Create uploads directory
         upload_dir = Path("uploads/profile-images")
         upload_dir.mkdir(parents=True, exist_ok=True)
         
@@ -146,236 +268,180 @@ def upload_profile_image(file: UploadFile = File(...)):
             content = file.file.read()
             buffer.write(content)
         
-        # Update user profile with new image URL
-        # In production, this would be a cloud storage URL
+        # Update user's photoURL
         image_url = f"/uploads/profile-images/{unique_filename}"
-        
-        user_update = UserUpdate(photoURL=image_url)
-        updated_user = update_user(user_id, user_update)
+        user = update_user_flexible(user_id, {"photoURL": image_url})
         
         return {
+            "success": True,
             "message": "Profile image uploaded successfully",
             "imageUrl": image_url,
-            "user": updated_user
+            "user": user
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to upload image: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to upload image: {str(e)}")
 
-@router.get("/me/privacy")
-def get_privacy_settings():
-    """
-    Get current user's privacy settings.
-    """
-    user_id = get_current_user_id_legacy()
-    user = get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Return privacy settings or defaults
-    if user.preferences and user.preferences.privacy:
-        return {"privacy": user.preferences.privacy}
-    else:
-        return {"privacy": PrivacySettings()}
+# ==========================================
+# ROLE-SPECIFIC PROFILE ENDPOINTS
+# ==========================================
 
-@router.put("/me/privacy")
-def update_privacy_settings(privacy_settings: PrivacySettings):
+@router.get("/me/profiles/{profile_type}")
+def get_my_profile_by_type(profile_type: str, user_id: Optional[str] = None):
     """
-    Update current user's privacy settings.
+    Get current user's profile by type (student, parent, mentor).
+    Unified endpoint for all role-specific profiles.
     """
-    user_id = get_current_user_id_legacy()
-    user = get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Update preferences with new privacy settings
-    from app.models.user_models import Preferences
-    current_prefs = user.preferences or Preferences()
-    current_prefs.privacy = privacy_settings
-    
-    user_update = UserUpdate(preferences=current_prefs)
-    updated_user = update_user(user_id, user_update)
-    
-    return {
-        "message": "Privacy settings updated successfully",
-        "privacy": privacy_settings,
-        "user": updated_user
-    }
+    try:
+        current_user_id = get_current_user_id(user_id_param=user_id)
+        
+        # Validate profile type
+        valid_types = ["student", "parent", "mentor"]
+        if profile_type not in valid_types:
+            raise HTTPException(status_code=400, detail=f"Invalid profile type. Must be one of: {valid_types}")
+        
+        # Check if user exists first
+        user = get_user_flexible(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if user has required role
+        if profile_type not in user.get("roles", []):
+            raise HTTPException(status_code=403, detail=f"User does not have {profile_type} role")
+        
+        # Get profile from appropriate collection
+        collection_mapping = {
+            "student": "student_profiles",
+            "parent": "parent_profiles", 
+            "mentor": "mentors"
+        }
+        
+        collection_name = collection_mapping[profile_type]
+        doc = db.collection(collection_name).document(current_user_id).get()
+        
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail=f"{profile_type.title()} profile not found")
+        
+        profile_data = doc.to_dict()
+        return {"success": True, "profile": profile_data}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get {profile_type} profile: {str(e)}")
 
-# Student Profile Endpoints
-@router.post("/me/student-profile", response_model=StudentProfileResponse)
-def create_my_student_profile(profile_data: StudentProfileCreate):
+@router.put("/me/profiles/{profile_type}")
+def update_my_profile_by_type(profile_type: str, update_data: Dict[str, Any], user_id: Optional[str] = None):
     """
-    Create student profile for the current user.
+    Update current user's profile by type with flexible data.
+    Unified endpoint for all role-specific profile updates.
     """
-    user_id = get_current_user_id_legacy()
-    profile = create_student_profile(user_id, profile_data)
-    return {"profile": profile}
-
-@router.get("/me/student-profile", response_model=StudentProfileResponse)
-def get_my_student_profile():
-    """
-    Get the current user's student profile.
-    """
-    user_id = get_current_user_id_legacy()
-    profile = get_student_profile(user_id)
-    if not profile:
-        raise HTTPException(status_code=404, detail="Student profile not found")
-    return {"profile": profile}
-
-@router.put("/me/student-profile")
-def update_my_student_profile(update_data: dict):
-    """
-    Pure MongoDB-style flexible student profile updates.
-    
-    Frontend can send ANY field:
-    - { "interests": ["coding", "art"] }
-    - { "learningGoals": "Master Python", "customField": "value" }
-    """
-    user_id = get_current_user_id_legacy()
-    profile = update_student_profile_flexible(user_id, update_data)
-    return {"profile": profile}
-
-# Parent Profile Endpoints
-@router.post("/me/parent-profile", response_model=ParentProfileResponse)
-def create_my_parent_profile(profile_data: ParentProfileCreate):
-    """
-    Create parent profile for the current user.
-    """
-    user_id = get_current_user_id_legacy()
-    profile = create_parent_profile(user_id, profile_data)
-    return {"profile": profile}
-
-@router.get("/me/parent-profile", response_model=ParentProfileResponse)
-def get_my_parent_profile():
-    """
-    Get the current user's parent profile.
-    """
-    user_id = get_current_user_id_legacy()
-    profile = get_parent_profile(user_id)
-    if not profile:
-        raise HTTPException(status_code=404, detail="Parent profile not found")
-    return {"profile": profile}
-
-@router.put("/me/parent-profile")
-def update_my_parent_profile(update_data: dict):
-    """
-    Pure MongoDB-style flexible parent profile updates.
-    
-    Frontend can send ANY field:
-    - { "youngLearners": [...] }
-    - { "parentingStyle": "supportive", "customField": "value" }
-    """
-    user_id = get_current_user_id_legacy()
-    profile = update_parent_profile_flexible(user_id, update_data)
-    return {"profile": profile}
-
-# Admin-only Endpoints
-@router.get("/admin/all", response_model=AdminUserListResponse)
-def get_all_users_admin_authenticated(
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    admin_uid: str = Depends(require_admin)
-):
-    """
-    Get all users with pagination - requires Firebase auth + admin role.
-    """
-    users, total = get_all_users(page, page_size)
-    total_pages = (total + page_size - 1) // page_size
-    
-    return {
-        "users": users,
-        "total": total,
-        "page": page,
-        "pageSize": page_size,
-        "totalPages": total_pages
-    }
-
-@router.get("/", response_model=AdminUserListResponse)
-def get_all_users_admin(
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page")
-):
-    """
-    Get all users with pagination (Legacy - for testing).
-    """
-    if not is_admin_user_legacy():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    users, total = get_all_users(page, page_size)
-    total_pages = (total + page_size - 1) // page_size
-    
-    return {
-        "users": users,
-        "total": total,
-        "page": page,
-        "pageSize": page_size,
-        "totalPages": total_pages
-    }
-
-@router.get("/{user_id}/profile", response_model=UserResponse)
-def get_user_profile(user_id: str):
-    """
-    Get public user profile by ID.
-    Returns limited public information about a user.
-    """
-    user = get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Return limited public profile (privacy-focused)
-    # Create a copy of the user data and sanitize private fields
-    user_dict = user.dict()
-    user_dict.update({
-        "email": "hidden@privacy.com",  # Hide email for privacy but keep valid format
-        "phoneNumber": "",  # Hide phone for privacy
-        "preferences": None,  # Hide preferences for privacy
-        "gender": "",  # Hide gender for privacy
-        "dob": "",  # Hide DOB for privacy
-        "lastLoginAt": None,  # Hide login activity for privacy
-        "lastActiveAt": None  # Hide activity for privacy
-    })
-    
-    public_user = User(**user_dict)
-    return {"user": public_user}
-
-@router.get("/{user_id}", response_model=UserResponse)
-def get_user_by_id_admin(user_id: str):
-    """
-    Get specific user by ID (Admin only).
-    """
-    if not is_admin_user():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    user = get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"user": user}
-
-@router.put("/{user_id}", response_model=UserResponse)
-def update_user_admin(user_id: str, user_update: UserUpdate):
-    """
-    Update specific user (Admin only).
-    """
-    if not is_admin_user():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    user = update_user(user_id, user_update)
-    return {"user": user}
-
-@router.delete("/{user_id}")
-def delete_user_admin(user_id: str):
-    """
-    Delete user and all associated profiles (Admin only).
-    """
-    if not is_admin_user():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    success = delete_user(user_id)
-    if success:
-        return {"message": "User deleted successfully"}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to delete user")
+    try:
+        current_user_id = get_current_user_id(user_id_param=user_id)
+        
+        # Validate profile type
+        valid_types = ["student", "parent", "mentor"]
+        if profile_type not in valid_types:
+            raise HTTPException(status_code=400, detail=f"Invalid profile type. Must be one of: {valid_types}")
+        
+        # Check if user exists first
+        user = get_user_flexible(current_user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if user has required role
+        if profile_type not in user.get("roles", []):
+            raise HTTPException(status_code=403, detail=f"User does not have {profile_type} role")
+        
+        # Get profile from appropriate collection
+        collection_mapping = {
+            "student": "student_profiles",
+            "parent": "parent_profiles",
+            "mentor": "mentors"
+        }
+        
+        collection_name = collection_mapping[profile_type]
+        doc_ref = db.collection(collection_name).document(current_user_id)
+        
+        # Check if profile exists
+        if not doc_ref.get().exists:
+            # CREATE profile if user has role but no profile
+            print(f"Creating new {profile_type} profile for user {current_user_id}")
+            
+            # Create base profile structure
+            base_profile = {
+                "uid": current_user_id,
+                "createdAt": datetime.now().isoformat(),
+                "updatedAt": datetime.now().isoformat()
+            }
+            
+            # Add profile-specific defaults
+            if profile_type == "student":
+                base_profile.update({
+                    "learningGoals": "",
+                    "interests": [],
+                    "learningStyle": None,
+                    "isYoungLearner": False,
+                    "activeBookingsSummary": {
+                        "count": 0,
+                        "nextSession": {
+                            "bookingId": None,
+                            "classId": None,
+                            "classTitle": None,
+                            "mentorName": None,
+                            "sessionDate": None,
+                            "format": None
+                        }
+                    },
+                    "upcomingSessions": {"items": []}
+                })
+            elif profile_type == "parent":
+                base_profile.update({
+                    "emergencyContact": {"name": "", "phone": ""},
+                    "preferredContactMethod": "email"
+                })
+            elif profile_type == "mentor":
+                base_profile.update({
+                    "displayName": user.get("displayName", ""),
+                    "headline": "",
+                    "bio": "",
+                    "subjects": [],
+                    "teachingLevels": [],
+                    "ageGroups": [],
+                    "teachingModes": [],
+                    "languages": ["english"],
+                    "pricing": {"oneOnOneRate": 0, "groupRate": 0, "currency": "GBP", "firstSessionFree": False},
+                    "stats": {"avgRating": 0, "totalReviews": 0, "totalStudents": 0, "totalSessions": 0},
+                    "status": "draft",
+                    "isVerified": False,
+                    "backgroundChecked": False
+                })
+            
+            # Merge with user data
+            profile_data = {**base_profile, **update_data}
+            profile_data["updatedAt"] = datetime.now().isoformat()
+            
+            # Create the profile
+            doc_ref.set(profile_data)
+            created = True
+        else:
+            # UPDATE existing profile
+            update_data["updatedAt"] = datetime.now().isoformat()
+            doc_ref.update(update_data)
+            created = False
+        
+        # Return updated profile
+        updated_doc = doc_ref.get()
+        return {
+            "success": True, 
+            "profile": updated_doc.to_dict(), 
+            "updated_fields": list(update_data.keys()),
+            "created": created
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update {profile_type} profile: {str(e)}")

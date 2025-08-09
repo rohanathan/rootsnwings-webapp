@@ -82,9 +82,10 @@ class MentorOnboarding(BaseModel):
 def complete_onboarding(data: CompleteOnboarding):
     """Complete entire user onboarding in one request"""
     try:
-        # Validate required fields based on roles
-        if "learner" in data.roles and (not data.learningGoals or not data.interests):
-            raise HTTPException(status_code=400, detail="Learning goals and interests are required for learners")
+        # Validate required fields based on roles (support both "student" and "learner")
+        has_student_role = "student" in data.roles or "learner" in data.roles
+        if has_student_role and (not data.learningGoals or not data.interests):
+            raise HTTPException(status_code=400, detail="Learning goals and interests are required for students")
         
         if "parent" in data.roles and (not data.emergencyContactName or not data.emergencyContactPhone or not data.preferredContactMethod):
             raise HTTPException(status_code=400, detail="Emergency contact details are required for parents")
@@ -107,8 +108,8 @@ def complete_onboarding(data: CompleteOnboarding):
             "updatedAt": datetime.utcnow().isoformat()
         })
         
-        # Create student profile if learner role selected
-        if "learner" in data.roles:
+        # Create student profile if student/learner role selected
+        if has_student_role:
             student_profile = {
                 "uid": data.userId,
                 "learningGoals": data.learningGoals,
@@ -152,7 +153,7 @@ def complete_onboarding(data: CompleteOnboarding):
             "message": "Onboarding completed successfully",
             "roles": data.roles,
             "profilesCreated": {
-                "student": "learner" in data.roles,
+                "student": has_student_role,
                 "parent": "parent" in data.roles
             }
         }
