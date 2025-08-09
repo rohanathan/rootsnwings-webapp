@@ -607,11 +607,15 @@ const getAgeGroupBadge = (ageGroup) => {
             </div>
             <h3 className="text-2xl font-bold text-primary-dark mb-4">Booking Confirmed!</h3>
             <p className="text-gray-600 mb-6">
-              Great! You're all set for the 8-Week Weekend Batch with Priya Sharma. Check your email for confirmation details.
+              Great! You're all set for the 8-Week Weekend Batch with mentor. Check your email for confirmation details.
             </p>
             <div className="space-y-3">
               <button onClick={handleAddToCalendar} className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors">📅 Add to Calendar</button>
-              <button onClick={() => setShowSuccessModal(false)} className="w-full border-2 border-gray-300 text-gray-700 py-3 rounded-full font-semibold transition-colors">View My Bookings</button>
+              <button onClick={() => 
+         {     setShowSuccessModal(false)
+              window.location.href = '/user/bookings'}
+
+              } className="w-full border-2 border-gray-300 text-gray-700 py-3 rounded-full font-semibold transition-colors">View My Bookings</button>
             </div>
           </div>
         </div>

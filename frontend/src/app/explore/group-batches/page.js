@@ -306,7 +306,6 @@ export default function GroupBatches() {
             <a href="#" className="text-2xl font-bold primary-dark">Roots & Wings</a>
             <div className="flex items-center space-x-6">
               <a href="#" className="text-gray-600 hover:text-primary transition-colors">← Back to Profile</a>
-              <a href="#" className="bg-primary hover:bg-blue-500 text-white px-4 py-2 rounded-full font-medium transition-colors">Sign Up</a>
             </div>
           </div>
         </div>

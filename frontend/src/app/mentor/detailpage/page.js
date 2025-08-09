@@ -221,7 +221,7 @@ const MentorDetail = () => {
                             <a href="#" className="text-2xl font-bold text-primary-dark">Roots & Wings</a>
                             <div className="flex items-center space-x-6">
                                 <a href="#" className="text-gray-600 hover:text-primary transition-colors">← Back to Mentors</a>
-                                <a href="#" className="bg-primary hover:bg-blue-500 text-white px-4 py-2 rounded-full font-medium transition-colors">Sign Up</a>
+                              
                             </div>
                         </div>
                     </div>
@@ -450,7 +450,7 @@ const MentorDetail = () => {
                                                     onClick={() => {
                                                         // Store mentor data for group classes
                                                         localStorage.setItem('selectedMentor', JSON.stringify(mentorData));
-                                                        window.location.href = `/explore/group-batches?mentorId=${mentorData.uid}&type=batch`;
+                                                        window.location.href = `/explore/group-batches?mentorId=${mentorData.uid}&type=group`;
                                                     }}
                                                     className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors"
                                                 >

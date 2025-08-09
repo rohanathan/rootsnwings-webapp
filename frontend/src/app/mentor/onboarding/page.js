@@ -301,7 +301,7 @@ console.log(response,'response response response');
       case 2:
         return formData.subjects.length > 0 && formData.levels.length > 0 && formData.ageGroups.length > 0;
       case 3:
-        return formData.title.length >= 50 && formData.aboutYou.length >= 150;
+        return formData.title.length >= 20 && formData.aboutYou.length >= 50;
       case 4:
         return formData.city && formData.country && formData.teachingModes.length > 0;
       case 5:
@@ -527,7 +527,7 @@ console.log(response,'response response response');
                   onChange={handleInputChange}
                 ></textarea>
                 <div className="mt-2 text-sm text-gray-500">
-                  Minimum 50 characters ({formData.title.length}/50)
+                  Minimum 20 characters ({formData.title.length}/20)
                 </div>
               </div>
               
@@ -548,7 +548,7 @@ console.log(response,'response response response');
                   onChange={handleInputChange}
                 ></textarea>
                 <div className="mt-2 text-sm text-gray-500">
-                  Minimum 150 characters ({formData.aboutYou.length}/150)
+                  Minimum 50 characters ({formData.aboutYou.length}/50)
                 </div>
               </div>
             </div>

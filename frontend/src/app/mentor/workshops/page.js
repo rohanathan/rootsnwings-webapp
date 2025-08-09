@@ -1,4 +1,6 @@
 'use client'
+import { navItems } from '@/app/utils';
+import MentorSideBase from '@/components/MentorSideBase';
 import { useState, useEffect, useRef } from 'react';
 
 // Main App component
@@ -267,7 +269,7 @@ export default function App() {
         }
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
       `}</style>
-      <script src="https://cdn.tailwindcss.com"></script>
+
       <script dangerouslySetInnerHTML={{
         __html: `
           tailwind.config = {
@@ -331,61 +333,13 @@ export default function App() {
 
       <div className="flex">
         {/* Sidebar */}
-        <nav
-          id="sidebar"
-          className={`bg-white w-64 min-h-screen shadow-sm border-r border-gray-200 fixed md:static z-30 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
-        >
-          <div className="p-6">
-            <div className="space-y-2">
-              <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                <i className="fas fa-home text-lg"></i>
-                <span className="font-medium">Dashboard</span>
-              </a>
-              <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                <i className="fas fa-chalkboard-teacher text-lg"></i>
-                <span>My Classes</span>
-              </a>
-              <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                <i className="fas fa-plus-circle text-lg"></i>
-                <span>Host a Class</span>
-              </a>
-              <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 bg-primary text-white">
-                <i className="fas fa-users text-lg"></i>
-                <span>Workshops</span>
-              </a>
-              <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                <i className="fas fa-calendar-alt text-lg"></i>
-                <span>Schedule</span>
-              </a>
-              <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                <i className="fas fa-user-friends text-lg"></i>
-                <span>Students</span>
-              </a>
-              <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                <i className="fas fa-pound-sign text-lg"></i>
-                <span>Earnings</span>
-              </a>
-              <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                <i className="fas fa-comments text-lg"></i>
-                <span>Messages</span>
-                <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1">3</span>
-              </a>
-            </div>
-            <div className="mt-8">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Quick Actions</h3>
-              <div className="space-y-2">
-                <button className="w-full bg-primary text-white px-4 py-3 rounded-lg hover:bg-primary-dark transition-colors font-medium">
-                  <i className="fas fa-plus mr-2"></i>
-                  Create Workshop
-                </button>
-                <button className="w-full border border-primary text-primary px-4 py-3 rounded-lg hover:bg-primary-light transition-colors font-medium">
-                  <i className="fas fa-video mr-2"></i>
-                  Start Session Now
-                </button>
-              </div>
-            </div>
-          </div>
-        </nav>
+
+        <MentorSideBase
+            isSidebarOpen={isSidebarOpen}
+            navItems={navItems}
+            activeTab={4}
+          />
+
 
         {/* Main Content */}
         <main className="flex-1 md:ml-0 p-6">

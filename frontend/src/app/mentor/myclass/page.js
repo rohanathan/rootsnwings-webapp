@@ -5,12 +5,14 @@ import Head from 'next/head';
 import MentorSideBase from '@/components/MentorSideBase';
 import { navItems } from '@/app/utils';
 import axios from 'axios';
+import MentorHeaderAccount from '@/components/MentorHeaderAccount';
 
 export default function MyClass() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
-
+  const [user, setUser] = useState({});
+  const [mentorDetails, setMentorDetails] = useState({});
 
   const [classStats1, setClassStats] = useState([]);
   const [classData1, setClassData] = useState({
@@ -24,6 +26,16 @@ export default function MyClass() {
   });
 
   useEffect(() => {
+
+
+
+    const user = JSON.parse(localStorage.getItem("user"));
+    setUser(user.user);
+
+    const mentor = JSON.parse(localStorage.getItem("mentor"));
+    setMentorDetails(mentor);
+
+
     const fetchClasses = async () => {
       try {
 
@@ -252,39 +264,10 @@ export default function MyClass() {
             </div>
 
             {/* Right: Profile Dropdown */}
-            <div className="relative">
-              <button id="profile-dropdown-btn" onClick={handleProfileDropdownClick} className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors">
-                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold">PR</span>
-                </div>
-                <div className="hidden md:block text-left">
-                  <div className="text-sm font-semibold text-gray-900">Priya Sharma</div>
-                  <div className="text-xs text-gray-500">Kathak Mentor</div>
-                </div>
-                <i className="fas fa-chevron-down text-gray-400 text-sm"></i>
-              </button>
+            <MentorHeaderAccount isProfileDropdownOpen={isProfileDropdownOpen} handleProfileDropdownClick={handleProfileDropdownClick} user={user} mentorDetails={mentorDetails} />
 
-              {/* Dropdown Menu */}
-              <div id="profile-dropdown" className={`absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 ${isProfileDropdownOpen ? '' : 'hidden'}`}>
-                <a href="#" className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50">
-                  <i className="fas fa-user text-gray-400"></i>
-                  <span>View Profile</span>
-                </a>
-                <a href="#" className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50">
-                  <i className="fas fa-cog text-gray-400"></i>
-                  <span>Settings</span>
-                </a>
-                <a href="#" className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50">
-                  <i className="fas fa-question-circle text-gray-400"></i>
-                  <span>Help & Support</span>
-                </a>
-                <hr className="my-2" />
-                <a href="#" className="flex items-center space-x-3 px-4 py-2 text-red-600 hover:bg-red-50">
-                  <i className="fas fa-sign-out-alt text-red-400"></i>
-                  <span>Log Out</span>
-                </a>
-              </div>
-            </div>
+
+            
           </div>
         </header>
 

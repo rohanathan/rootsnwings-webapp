@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDate } from "@/app/utils";
+import ChatbotOverlay from "@/components/ChatBox";
 import Navbar from "@/components/NavBar";
 import axios from "axios";
 import React, { useState, useEffect } from "react";
@@ -38,10 +39,10 @@ const Homepage = () => {
     };
 
     const fetchTestimonials = async () => {
-      const response = await axios.get(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/testimonials?limit=3"
-      );
-      setTestimonials(response.data.testimonials);
+      // const response = await axios.get(
+      //   "https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/testimonials?limit=3"
+      // );
+      // setTestimonials(response.data.testimonials);
     };
 
     const fetchCategories = async () => {
@@ -146,7 +147,7 @@ const Homepage = () => {
         }}
       />
 
-      <body className="font-sans text-gray-800 bg-white">
+      <div className="font-sans text-gray-800 bg-white">
 
         <Navbar /> 
 
@@ -755,7 +756,8 @@ const Homepage = () => {
             </div>
           </div>
         </footer>
-      </body>
+      </div>
+      <ChatbotOverlay />
     </>
   );
 };

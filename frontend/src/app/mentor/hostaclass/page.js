@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import Head from "next/head";
 import MentorSideBase from "@/components/MentorSideBase";
 import { navItems } from "@/app/utils";
-import AccountDropDown from "@/components/AccountDropDown";
+import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 
 // Re-creating the Tailwind config for use in the component
 const tailwindConfig = {
@@ -283,12 +283,15 @@ const HostClassPage = () => {
           day: dayName,
           startTime: formData.schedule.startTime,
           endTime: endTime,
+          date: currentDate.toISOString().split('T')[0],
         });
         sessionCount++;
       }
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
+    console.log(weeklySchedule,'weeklySchedule weeklySchedule');
+    
     // Update the form data with calculated values
     setFormData((prev) => ({
       ...prev,
@@ -500,15 +503,11 @@ const HostClassPage = () => {
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
 
+
   return (
     <>
       <Head>
         <title>Host a Class - Roots & Wings</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-          rel="stylesheet"
-        />
         <style>{`
           html, body { background-color: ${tailwindConfig.theme.extend.colors["background"]}; }
           .font-sans { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; }
@@ -542,15 +541,7 @@ const HostClassPage = () => {
             </div>
 
             {/* Right: Profile Dropdown */}
-
-            <AccountDropDown
-              isProfileDropdownOpen={isProfileDropdownOpen}
-              profileDropdownBtnRef={profileDropdownBtnRef}
-              toggleProfileDropdown={toggleProfileDropdown}
-              profileDropdownRef={profileDropdownRef}
-              user={user}
-              mentorDetails={mentorDetails}
-            />
+            <MentorHeaderAccount isProfileDropdownOpen={isProfileDropdownOpen} handleProfileDropdownClick={toggleProfileDropdown} user={user} mentorDetails={mentorDetails} />
           </div>
         </header>
 

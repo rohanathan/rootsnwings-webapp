@@ -335,15 +335,15 @@ const Workshop = () => {
                     <div className="p-6">
                         {/* Main Navigation */}
                         <div className="space-y-2 mb-8">
-                            <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
+                            <a href="/user/dashboard" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
                                 <i className="fas fa-home text-lg"></i>
                                 <span className="font-medium">Dashboard</span>
                             </a>
-                            <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
+                            <a href="/mentor/directory" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
                                 <i className="fas fa-search text-lg"></i>
                                 <span>Explore Mentors</span>
                             </a>
-                            <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
+                            <a href="/user/bookings" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
                                 <i className="fas fa-calendar-alt text-lg"></i>
                                 <span>My Bookings</span>
                             </a>
@@ -351,7 +351,7 @@ const Workshop = () => {
                                 <i className="fas fa-heart text-lg"></i>
                                 <span>Saved Mentors</span>
                             </a>
-                            <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 bg-primary text-white">
+                            <a href="/user/workshop" className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 bg-primary text-white">
                                 <i className="fas fa-users text-lg"></i>
                                 <span className="font-medium">Workshops</span>
                             </a>

@@ -150,13 +150,13 @@ const Messages = () => {
     }, []);
 
     const navItems = [
-        { name: 'Dashboard', icon: <HomeIcon />, href: '#' },
-        { name: 'My Classes', icon: <ChalkboardTeacherIcon />, href: '#' },
-        { name: 'Host a Class', icon: <PlusCircleIcon />, href: '#' },
-        { name: 'Workshops', icon: <UsersIcon />, href: '#' },
-        { name: 'Schedule', icon: <CalendarIcon />, href: '#' },
-        { name: 'Students', icon: <UserGraduateIcon />, href: '#' },
-        { name: 'Earnings', icon: <PoundSignIcon />, href: '#' },
+        { name: 'Dashboard', icon: <HomeIcon />, href: '/mentor/dashboard' },
+        { name: 'My Classes', icon: <ChalkboardTeacherIcon />, href: '/mentor/myclass' },
+        { name: 'Host a Class', icon: <PlusCircleIcon />, href: '/mentor/hostaclass' },
+        { name: 'Workshops', icon: <UsersIcon />, href: '/mentor/workshops' },
+        { name: 'Schedule', icon: <CalendarIcon />, href: '/mentor/schedule' },
+        { name: 'Students', icon: <UserGraduateIcon />, href: '/mentor/students' },
+        { name: 'Earnings', icon: <PoundSignIcon />, href: '/mentor/earnings' },
     ];
 
     const currentNav = { name: 'Messages', icon: <CommentsIcon />, href: '#' };

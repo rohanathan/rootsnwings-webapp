@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import MentorHeaderAccount from '@/components/MentorHeaderAccount';
+import MentorSideBase from '@/components/MentorSideBase';
+import { navItems } from '@/app/utils';
 
 export default function Schedule() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -14,6 +17,8 @@ export default function Schedule() {
   const [loading, setLoading] = useState(false);
   const [mentorId, setMentorId] = useState('user_8956af6c6b35'); // TODO: Get from auth
   const [message, setMessage] = useState('');
+  const [user, setUser] = useState({});
+  const [mentorDetails, setMentorDetails] = useState({});
 
   const handleMobileMenuClick = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -148,6 +153,13 @@ export default function Schedule() {
   };
 
   useEffect(() => {
+
+    const user = JSON.parse(localStorage.getItem("user"));
+    setUser(user.user);
+
+    const mentor = JSON.parse(localStorage.getItem("mentor"));
+    setMentorDetails(mentor);
+
     // Load availability on component mount
     loadAvailability();
 
@@ -185,7 +197,6 @@ export default function Schedule() {
     <>
       <Head>
         <title>Schedule - Roots & Wings</title>
-        <script src="https://cdn.tailwindcss.com"></script>
         <script dangerouslySetInnerHTML={{
           __html: `
             tailwind.config = {
@@ -202,7 +213,6 @@ export default function Schedule() {
             }
           `
         }}></script>
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
       </Head>
 
       <body className="bg-background font-sans">
@@ -218,100 +228,17 @@ export default function Schedule() {
               <span className="hidden md:block text-sm text-gray-500">Mentor Portal</span>
             </div>
             
-            {/* Right: Profile Dropdown */}
-            <div className="relative">
-              <button id="profile-dropdown-btn" onClick={handleProfileDropdownClick} className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors">
-                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold">PR</span>
-                </div>
-                <div className="hidden md:block text-left">
-                  <div className="text-sm font-semibold text-gray-900">Priya Sharma</div>
-                  <div className="text-xs text-gray-500">Kathak Mentor</div>
-                </div>
-                <i className="fas fa-chevron-down text-gray-400 text-sm"></i>
-              </button>
-              
-              {/* Dropdown Menu */}
-              <div id="profile-dropdown" className={`absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 ${isProfileDropdownOpen ? '' : 'hidden'}`}>
-                <a href="#" className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50">
-                  <i className="fas fa-user text-gray-400"></i>
-                  <span>View Profile</span>
-                </a>
-                <a href="#" className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50">
-                  <i className="fas fa-cog text-gray-400"></i>
-                  <span>Settings</span>
-                </a>
-                <a href="#" className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50">
-                  <i className="fas fa-question-circle text-gray-400"></i>
-                  <span>Help & Support</span>
-                </a>
-                <hr className="my-2" />
-                <a href="#" className="flex items-center space-x-3 px-4 py-2 text-red-600 hover:bg-red-50">
-                  <i className="fas fa-sign-out-alt text-red-400"></i>
-                  <span>Log Out</span>
-                </a>
-              </div>
-            </div>
+            <MentorHeaderAccount isProfileDropdownOpen={isProfileDropdownOpen} handleProfileDropdownClick={handleProfileDropdownClick} user={user} mentorDetails={mentorDetails} />
           </div>
         </header>
 
         <div className="flex">
-          {/* Sidebar */}
-          <nav className={`bg-white w-64 min-h-screen shadow-sm border-r border-gray-200 fixed md:static z-30 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`} id="sidebar">
-            <div className="p-6">
-              {/* Navigation Items */}
-              <div className="space-y-2">
-                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                  <i className="fas fa-home text-lg"></i>
-                  <span className="font-medium">Dashboard</span>
-                </a>
-                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                  <i className="fas fa-chalkboard-teacher text-lg"></i>
-                  <span>My Classes</span>
-                </a>
-                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                  <i className="fas fa-plus-circle text-lg"></i>
-                  <span>Host a Class</span>
-                </a>
-                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                  <i className="fas fa-users text-lg"></i>
-                  <span>Workshops</span>
-                </a>
-                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 bg-primary text-white">
-                  <i className="fas fa-calendar-alt text-lg"></i>
-                  <span>Schedule</span>
-                </a>
-                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                  <i className="fas fa-graduation-cap text-lg"></i>
-                  <span>Students</span>
-                </a>
-                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                  <i className="fas fa-pound-sign text-lg"></i>
-                  <span>Earnings</span>
-                </a>
-                <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1">
-                  <i className="fas fa-comments text-lg"></i>
-                  <span>Messages</span>
-                  <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1">3</span>
-                </a>
-              </div>
 
-              {/* Quick Actions */}
-              <div className="mt-8">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Quick Actions</h3>
-                <div className="space-y-2">
-                  <button className="w-full bg-primary text-white px-4 py-3 rounded-lg hover:bg-primary-dark transition-colors font-medium">
-                    <i className="fas fa-clock mr-2"></i>
-                    Set Availability
-                  </button>
-                  <button className="w-full border border-primary text-primary px-4 py-3 rounded-lg hover:bg-primary-light transition-colors font-medium">
-                    <i className="fas fa-video mr-2"></i>
-                    Start Session Now
-                  </button>
-                </div>
-              </div>
-            </div>
-          </nav>
+          <MentorSideBase
+            isSidebarOpen={isSidebarOpen}
+            navItems={navItems}
+            activeTab={5}
+          />
 
           {/* Main Content */}
           <main className="flex-1 md:ml-0 p-6">

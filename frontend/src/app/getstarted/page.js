@@ -4,6 +4,9 @@ import Head from 'next/head';
 import axios from 'axios';
 
 const AuthPages = () => {
+
+
+
   // State to manage which tab is active: 'signin' or 'signup'
   const [activeTab, setActiveTab] = useState('signup');
   
@@ -33,6 +36,14 @@ const AuthPages = () => {
   // Updates the document title based on the active tab
   useEffect(() => {
     document.title = activeTab === 'signup' ? 'Sign Up - Roots & Wings' : 'Sign In - Roots & Wings';
+
+    const user = JSON.parse(localStorage.getItem('user'));
+    if(user?.user?.userType === 'student'){
+      window.location.href = '/user/dashboard';
+    }else if(user?.user?.userType === 'mentor'){
+      window.location.href = '/mentor/dashboard';
+    }
+
   }, [activeTab]);
 
   // A helper function to validate email format
@@ -78,6 +89,8 @@ const AuthPages = () => {
     .then(response => {
       console.log('Registration successful:', response.data);
       alert('Account created successfully!');
+      localStorage.setItem('user', JSON.stringify(response.data));
+      window.location.href = '/user/dashboard';
     })
     .catch(error => {
       console.error('Registration failed:', error);

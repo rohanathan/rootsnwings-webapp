@@ -1,8 +1,8 @@
 "use client";
-import AccountDropDown from "@/components/AccountDropDown";
 import UserSidebar from "@/components/UserSidebar";
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 
 const Dashboard = () => {
   // State to manage the mobile sidebar's visibility
@@ -229,7 +229,7 @@ const Dashboard = () => {
           )}
 
           <div className="relative">
-            <AccountDropDown
+            <MentorHeaderAccount
               isProfileDropdownOpen={isProfileDropdownOpen}
               profileDropdownBtnRef={profileDropdownBtnRef}
               toggleProfileDropdown={toggleProfileDropdown}
@@ -367,7 +367,7 @@ const Dashboard = () => {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <button 
-                      onClick={() => window.location.href = '/explore'}
+                      onClick={() => window.location.href = '/mentor/directory'}
                       className="bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-dark transition-colors font-semibold"
                     >
                       <i className="fas fa-search mr-2"></i>Browse Mentors

@@ -2,9 +2,9 @@
 import { useState, useEffect, useRef } from "react";
 import Head from "next/head";
 import MentorSideBase from "@/components/MentorSideBase";
-import { navItems } from "@/app/utils/index";
-import AccountDropDown from "@/components/AccountDropDown";
+import { calculateTotalHoursTaught, getUpcomingSessionsCount, navItems } from "@/app/utils/index";
 import axios from "axios";
+import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 // Re-creating the Tailwind config for use in the component
 const tailwindConfig = {
   theme: {
@@ -19,44 +19,6 @@ const tailwindConfig = {
   },
 };
 
-const quickStats = [
-  {
-    icon: "fas fa-clock",
-    title: "Total Hours Taught",
-    value: "127",
-    change: "+12%",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-600",
-    changeColor: "text-green-500",
-  },
-  {
-    icon: "fas fa-user-graduate",
-    title: "Students Enrolled",
-    value: "24",
-    change: "+3",
-    iconBg: "bg-green-100",
-    iconColor: "text-green-600",
-    changeColor: "text-green-500",
-  },
-  {
-    icon: "fas fa-calendar-check",
-    title: "Upcoming Sessions",
-    value: "8",
-    change: "This week",
-    iconBg: "bg-purple-100",
-    iconColor: "text-purple-600",
-    changeColor: "text-purple-500",
-  },
-  {
-    icon: "fas fa-pound-sign",
-    title: "Earnings This Month",
-    value: "£1,840",
-    change: "+£240",
-    iconBg: "bg-yellow-100",
-    iconColor: "text-yellow-600",
-    changeColor: "text-green-500",
-  },
-];
 
 const upcomingSessions = [
   {
@@ -144,9 +106,85 @@ const Dashboard = () => {
   const [user, setUser] = useState({});
 
   const [mentorDetails, setMentorDetails] = useState({});
-console.log(mentorDetails,'mentorDetails mentorDetails mentorDetails');
+  const [mentorClasses, setMentorClasses] = useState([]);
+
+  const [upcomingSessionsCount, setUpcomingSessionsCount] = useState(0);
+  const [totalHoursTaught, setTotalHoursTaught] = useState(0);
+
+
+  const [totalBookings, setTotalBookings] = useState([]);
+
+  const quickStats = [
+    {
+      icon: "fas fa-clock",
+      title: "Total Hours Taught",
+      value: `${totalHoursTaught}`,
+      change: "+12%",
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
+      changeColor: "text-green-500",
+    },
+    {
+      icon: "fas fa-user-graduate",
+      title: "Students Enrolled",
+      value: `${totalBookings.length}`,
+      change: "+3",
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600",
+      changeColor: "text-green-500",
+    },
+    {
+      icon: "fas fa-calendar-check",
+      title: "Upcoming Sessions",
+      value: `${upcomingSessionsCount}`,
+      change: "This week",
+      iconBg: "bg-purple-100",
+      iconColor: "text-purple-600",
+      changeColor: "text-purple-500",
+    },
+    {
+      icon: "fas fa-pound-sign",
+      title: "Earnings This Month",
+      value: "£1,840",
+      change: "+£240",
+      iconBg: "bg-yellow-100",
+      iconColor: "text-yellow-600",
+      changeColor: "text-green-500",
+    },
+  ];
+  
 
   useEffect(() => {
+    const fetchMentorClasses = async (uid) => {
+      let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${uid}`;
+      const response = await axios.get(apiUrl);
+      setMentorClasses(response.data.classes || []);
+
+      let totalHoursTaught = 0;
+      response.data.classes.forEach(async (classObj) => {
+        const bookings = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?classId=${classObj.classId}`);
+        setTotalBookings([...totalBookings, ...bookings.data.bookings]);
+      });
+
+
+      response.data.classes.forEach(async (classObj) => {
+        totalHoursTaught += calculateTotalHoursTaught(classObj.schedule);
+      });
+
+      console.log(totalHoursTaught,'totalHoursTaught totalHoursTaught');
+
+      setTotalHoursTaught(totalHoursTaught);
+
+      let upcomingSessionsCount = 0;
+      response.data.classes.forEach((classObj) => {
+        upcomingSessionsCount += getUpcomingSessionsCount(classObj.schedule);
+      });
+      
+      setUpcomingSessionsCount(upcomingSessionsCount);
+    };
+
+
+
     // Fetch mentor details from API
     const fetchMentorDetails = async (user) => {
       try {
@@ -154,16 +192,17 @@ console.log(mentorDetails,'mentorDetails mentorDetails mentorDetails');
           const response = await axios.get(
             `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${user.user.uid}`
           );
-          console.log(response,'response response response');
-          
+
           const mentorData = response.data?.mentor;
           setMentorDetails(mentorData);
-          localStorage.setItem('mentor', JSON.stringify(mentorData));
+          localStorage.setItem("mentor", JSON.stringify(mentorData));
+          fetchMentorClasses(mentorData.uid);
         }
       } catch (error) {
         console.error("Error fetching mentor details:", error);
       }
     };
+
 
     // Fix: Add null check to prevent crash when localStorage is empty
     // Error was: "Cannot read properties of null (reading 'user')"
@@ -186,6 +225,10 @@ console.log(mentorDetails,'mentorDetails mentorDetails mentorDetails');
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+
+  console.log(totalBookings,'totalBookings totalBookings');
+
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -213,6 +256,10 @@ console.log(mentorDetails,'mentorDetails mentorDetails mentorDetails');
   const handleStatCardClick = (title) => {
     console.log(`Stat card clicked: ${title}`);
     // Add navigation logic here
+  };
+
+  const handleProfileDropdownClick = () => {
+    setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
 
   return (
@@ -257,12 +304,9 @@ console.log(mentorDetails,'mentorDetails mentorDetails mentorDetails');
             </div>
 
             {/* Right: Profile Dropdown */}
-
-            <AccountDropDown
+            <MentorHeaderAccount
               isProfileDropdownOpen={isProfileDropdownOpen}
-              profileDropdownBtnRef={profileDropdownBtnRef}
-              toggleProfileDropdown={toggleProfileDropdown}
-              profileDropdownRef={profileDropdownRef}
+              handleProfileDropdownClick={handleProfileDropdownClick}
               user={user}
               mentorDetails={mentorDetails}
             />
@@ -436,7 +480,7 @@ console.log(mentorDetails,'mentorDetails mentorDetails mentorDetails');
                         <div className="grid md:grid-cols-3 gap-4 text-sm">
                           <div>
                             <p className="text-gray-500">Students Enrolled</p>
-                            <p className="font-semibold">{aclass.students}</p>
+                            <p className="font-semibold">{totalBookings.length}</p>
                           </div>
                           <div>
                             <p className="text-gray-500">Schedule</p>
