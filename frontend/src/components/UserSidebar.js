@@ -10,36 +10,46 @@ export default function UserSidebar({ isSidebarOpen, activeTab }) {
         {/* Main Navigation */}
         <div className="space-y-2 mb-8">
           <a
-            href="#"
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 bg-primary text-white"
+            href="/user/dashboard"
+            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
+              activeTab === 1 ? "bg-primary text-white" : "text-gray-700"
+            }`}
           >
             <i className="fas fa-home text-lg"></i>
             <span className="font-medium">Dashboard</span>
           </a>
           <a
             href="/mentor/directory"
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1"
+            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
+              activeTab === 2 ? "bg-primary text-white" : "text-gray-700"
+            }`}
           >
             <i className="fas fa-search text-lg"></i>
             <span>Explore Mentors</span>
           </a>
           <a
-            href="#"
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1"
+            href="/user/bookings"
+            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
+              activeTab === 3 ? "bg-primary text-white" : "text-gray-700"
+            }`}
           >
             <i className="fas fa-calendar-alt text-lg"></i>
             <span>My Bookings</span>
           </a>
           <a
             href="#"
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1"
+            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
+              activeTab === 4 ? "bg-primary text-white" : "text-gray-700"
+            }`}
           >
             <i className="fas fa-heart text-lg"></i>
             <span>Saved Mentors</span>
           </a>
           <a
-            href="#"
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1"
+            href="/user/workshop"
+            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
+              activeTab === 5 ? "bg-primary text-white" : "text-gray-700"
+            }`}
           >
             <i className="fas fa-users text-lg"></i>
             <span>Workshops</span>
@@ -47,8 +57,9 @@ export default function UserSidebar({ isSidebarOpen, activeTab }) {
         </div>
 
         {/* Young Learners Section */}
-        <div className="border-t border-gray-200 pt-6">
-          <div className="flex items-center justify-between mb-4">
+        {/* <div className="border-t border-gray-200 pt-6"> */}
+
+          {/* <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
               Young Learners
             </h3>
@@ -58,9 +69,9 @@ export default function UserSidebar({ isSidebarOpen, activeTab }) {
             >
               <i className="fas fa-plus"></i>
             </button>
-          </div>
+          </div> */}
 
-          <div className="space-y-2" id="young-learners-nav">
+          {/* <div className="space-y-2" id="young-learners-nav">
             <a
               href="#"
               className="young-learner-nav flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-purple-50 hover:translate-x-1"
@@ -86,8 +97,10 @@ export default function UserSidebar({ isSidebarOpen, activeTab }) {
                 <div className="text-xs text-gray-500">Coding, Maths</div>
               </div>
             </a>
-          </div>
-        </div>
+          </div> */}
+
+
+        {/* </div> */}
 
         {/* Family Management */}
         <div className="border-t border-gray-200 pt-6 mt-6">
@@ -97,28 +110,36 @@ export default function UserSidebar({ isSidebarOpen, activeTab }) {
           <div className="space-y-2">
             <a
               href="#"
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1"
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
+                activeTab === 6 ? "bg-primary text-white" : "text-gray-700"
+              }`}
             >
               <i className="fas fa-chart-line text-lg"></i>
               <span>Progress Reports</span>
             </a>
             <a
               href="#"
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1"
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
+                activeTab === 7 ? "bg-primary text-white" : "text-gray-700"
+              }`}
             >
               <i className="fas fa-credit-card text-lg"></i>
               <span>Billing & Payments</span>
             </a>
             <a
               href="#"
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1"
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
+                activeTab === 8 ? "bg-primary text-white" : "text-gray-700"
+              }`}
             >
               <i className="fas fa-bell text-lg"></i>
               <span>Notifications</span>
             </a>
             <a
               href="#"
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1"
+              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
+                activeTab === 9 ? "bg-primary text-white" : "text-gray-700"
+              }`}
             >
               <i className="fas fa-comments text-lg"></i>
               <span>Messages</span>

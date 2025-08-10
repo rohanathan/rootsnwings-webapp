@@ -109,9 +109,10 @@ const MentorDetail = () => {
     const [mentorData, setMentorData] = useState(mentorMock);
     const [reviews, setReviews] = useState([]);
     const [reviewsLoading, setReviewsLoading] = useState(false);
+    const [mentorClasses, setMentorClasses] = useState([]);
 
-
-
+    console.log(mentorClasses,'mentorClasses mentorClasses');
+    
     useEffect(() => {
         const storedMentor = localStorage?.getItem("mentor");
         
@@ -123,6 +124,30 @@ const MentorDetail = () => {
         const initialMentorData = JSON.parse(storedMentor);
         setMentorData(initialMentorData);
         console.log(initialMentorData, 'initialMentorData initialMentorData');
+
+
+
+        // Get mentor's classes
+        const fetchMentorClasses = async (mentorId) => {
+            try {
+                const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${mentorId}`);
+                if (response.data?.classes) {
+                    // Store classes in localStorage for use in other pages
+                    localStorage.setItem('availableMentorClass', JSON.stringify(response.data.classes));
+                    setMentorClasses(prevData => ({
+                        ...prevData,
+                        classes: response.data.classes
+                    }));
+                }
+            } catch (error) {
+                console.error('Error fetching mentor classes:', error);
+            }
+        };
+
+        // Call fetchMentorClasses if we have a mentor ID
+        if (initialMentorData?.uid) {
+            fetchMentorClasses(initialMentorData.uid);
+        }
     }, []);
 
     // Load reviews and fresh mentor data when mentor UID is available
@@ -447,12 +472,19 @@ const MentorDetail = () => {
                                                 <div className="text-2xl font-bold text-primary-dark mb-2">{mentorData.pricing.currency}{mentorData.pricing.groupRate}/session</div>
                                                 <div className="text-sm text-gray-600 mb-4">Multi-week structured learning programs</div>
                                                 <button 
+                                                
+                                                    disabled={mentorClasses.classes.length === 0}
                                                     onClick={() => {
                                                         // Store mentor data for group classes
                                                         localStorage.setItem('selectedMentor', JSON.stringify(mentorData));
                                                         window.location.href = `/explore/group-batches?mentorId=${mentorData.uid}&type=group`;
                                                     }}
-                                                    className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors"
+                                                    className={`w-full py-3 rounded-full font-semibold transition-colors ${
+                                                        mentorClasses.classes.length === 0 
+                                                        ? 'bg-gray-400 cursor-not-allowed' 
+                                                        : 'bg-primary hover:bg-blue-500 text-white'
+                                                    }`}
+                                                    title={mentorClasses.classes.length === 0 ? "No group classes available at the moment" : ""}
                                                 >
                                                     Explore Sessions
                                                 </button>

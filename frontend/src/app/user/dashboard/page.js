@@ -526,12 +526,12 @@ const Dashboard = () => {
                     Quick Actions
                   </h3>
                   <div className="space-y-4">
-                    {userRoles.includes('parent') && (
+                    {/* {userRoles.includes('parent') && (
                       <button className="w-full flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-primary hover:bg-primary-light transition-colors">
                         <i className="fas fa-plus text-primary"></i>
                         <span className="font-medium">Add Young Learner</span>
                       </button>
-                    )}
+                    )} */}
 
                     <button className="w-full flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-primary hover:bg-primary-light transition-colors">
                       <i className="fas fa-search text-primary"></i>
@@ -553,7 +553,7 @@ const Dashboard = () => {
             </div>
 
             {/* Young Learners Section (Only show for users with parent role) */}
-            {userRoles.includes('parent') && (
+            {/* {userRoles.includes('parent') && (
               <section className="mb-8">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-gray-900">
@@ -616,7 +616,7 @@ const Dashboard = () => {
                   </div>
                 )}
               </section>
-            )}
+            )} */}
 
             {/* Quick Actions for Getting Started */}
             {bookings.length === 0 && (
@@ -645,6 +645,7 @@ const Dashboard = () => {
                 </div>
               </section>
             )}
+
           </div>
           </div>
           )}

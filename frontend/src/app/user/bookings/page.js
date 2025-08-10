@@ -3,9 +3,13 @@ import UserSidebar from "@/components/UserSidebar";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
-import { classifySessions } from "@/app/utils";
+import { classifySessions, getSessionsSummary } from "@/app/utils";
+import { useRouter } from 'next/navigation';
+
 
 const MyBookings = () => {
+  const router = useRouter();
+  
   // State to manage the mobile sidebar's visibility
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   // State to manage the profile dropdown's visibility
@@ -32,6 +36,13 @@ const MyBookings = () => {
     const fetchBookings = async () => {
       try {
         const userData = JSON.parse(localStorage.getItem("user"));
+
+
+        if (!userData || !userData.user || userData.user.userType !== 'student') {
+            router.push('/mentor/dashboard');
+            return; // Stop further execution of this effect
+          }
+          
         if (!userData?.user?.uid) {
           throw new Error("User not found. Please log in again.");
         }
@@ -178,13 +189,13 @@ const MyBookings = () => {
       <div className="flex">
         <UserSidebar isSidebarOpen={isSidebarOpen} activeTab={3} />
 
-        <div
+        {/* <div
           id="sidebar-overlay"
           onClick={toggleSidebar}
           className={`${
             isSidebarOpen ? "" : "hidden"
           } md:hidden fixed inset-0 bg-black bg-opacity-50 z-20`}
-        ></div>
+        ></div> */}
 
         {/* Main Content */}
         <main className="flex-1 md:ml-0">
@@ -224,7 +235,7 @@ const MyBookings = () => {
                     <i className="fas fa-clock text-green-600 text-xl"></i>
                   </div>
                   <h3 className="text-2xl font-bold text-gray-800">
-                    {classifySessions(upClasses).upcomingSessionCount}
+                    {getSessionsSummary(upClasses).upcomingSessionCount}
                   </h3>
                   <p className="text-gray-600 text-sm">Upcoming Sessions</p>
                 </div>
@@ -234,7 +245,7 @@ const MyBookings = () => {
                     <i className="fas fa-calendar-check text-blue-600 text-xl"></i>
                   </div>
                   <h3 className="text-2xl font-bold text-gray-800">
-                    {classifySessions(upClasses).completedSessionCount}
+                    {getSessionsSummary(upClasses).completedSessionCount}
                   </h3>
                   <p className="text-gray-600 text-sm">Completed Sessions</p>
                 </div>
@@ -265,154 +276,70 @@ const MyBookings = () => {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900">
-                      Today's Sessions
+                      Upcoming's Sessions
                     </h2>
-                    <p className="text-gray-600">Tuesday, July 22, 2025</p>
+                    <p className="text-gray-600">
+                        {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
                   </div>
                   <span className="bg-red-100 text-red-800 text-sm px-3 py-1 rounded-full font-medium">
-                    3 sessions
+                    {getSessionsSummary(upClasses).upcomingSessionCount} sessions
                   </span>
                 </div>
 
                 <div className="space-y-4">
                   {/* Sarah's Session */}
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-primary transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-4">
-                        <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-semibold">SJ</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-semibold text-gray-900">
-                              Classical Music Session
-                            </h4>
-                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                              You
-                            </span>
-                          </div>
-                          <p className="text-gray-600 text-sm mb-2">
-                            with Priya Sharma • 1-on-1 Session
-                          </p>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span>
-                              <i className="fas fa-clock mr-1"></i>2:00 PM -
-                              3:00 PM
-                            </span>
-                            <span>
-                              <i className="fas fa-video mr-1"></i>Online
-                            </span>
-                            <span>
-                              <i className="fas fa-circle text-green-500 mr-1"></i>
-                              Ready to join
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors">
-                          <i className="fas fa-video mr-2"></i>Join Now
-                        </button>
-                        <button className="text-gray-400 hover:text-gray-600 p-2">
-                          <i className="fas fa-ellipsis-v"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Emma's Session */}
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-purple-primary transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-4">
-                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-purple-600 font-semibold">
-                            E
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-semibold text-gray-900">
-                              Art Fundamentals
-                            </h4>
-                            <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
-                              Emma
+                  
+                  {upClasses.map((classItem, index) => (
+                    <div key={classItem.classId} className="bg-white rounded-xl p-6 border border-gray-200 hover:border-primary transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-white font-semibold">
+                              {classItem.mentorName?.split(' ').map(n => n[0]).join('')}
                             </span>
                           </div>
-                          <p className="text-gray-600 text-sm mb-2">
-                            with Marcus Chen • Weekend Group Batch
-                          </p>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span>
-                              <i className="fas fa-clock mr-1"></i>4:00 PM -
-                              5:00 PM
-                            </span>
-                            <span>
-                              <i className="fas fa-video mr-1"></i>Online
-                            </span>
-                            <span>
-                              <i className="fas fa-circle text-yellow-500 mr-1"></i>
-                              Starts in 2h
-                            </span>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h4 className="font-semibold text-gray-900">
+                                {classItem.title}
+                              </h4>
+                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                {classItem.type}
+                              </span>
+                            </div>
+                            <p className="text-gray-600 text-sm mb-2">
+                              with {classItem.mentorName} • {classItem.type === 'group' ? 'Group Batch' : '1-on-1 Session'}
+                            </p>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <span>
+                                <i className="fas fa-clock mr-1"></i>
+                                {classItem.schedule.weeklySchedule[0].startTime} - {classItem.schedule.weeklySchedule[0].endTime}
+                              </span>
+                              <span>
+                                <i className="fas fa-video mr-1"></i>
+                                {classItem.format}
+                              </span>
+                              <span>
+                                <i className="fas fa-circle text-green-500 mr-1"></i>
+                                {new Date(classItem.schedule.weeklySchedule[0].date).toLocaleDateString()}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button className="bg-purple-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-600 transition-colors">
-                          <i className="fas fa-eye mr-2"></i>Monitor
-                        </button>
-                        <button className="text-gray-400 hover:text-gray-600 p-2">
-                          <i className="fas fa-ellipsis-v"></i>
-                        </button>
+                        <div className="flex items-center space-x-2">
+                          <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors">
+                            <i className="fas fa-video mr-2"></i>Join Now
+                          </button>
+                          <button className="text-gray-400 hover:text-gray-600 p-2">
+                            <i className="fas fa-ellipsis-v"></i>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
 
-                  {/* Jake's Session */}
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-green-primary transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-4">
-                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-green-600 font-semibold">
-                            J
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-semibold text-gray-900">
-                              Python Basics
-                            </h4>
-                            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                              Jake
-                            </span>
-                          </div>
-                          <p className="text-gray-600 text-sm mb-2">
-                            with Alex Kumar • Weekday Intensive
-                          </p>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span>
-                              <i className="fas fa-clock mr-1"></i>6:00 PM -
-                              7:00 PM
-                            </span>
-                            <span>
-                              <i className="fas fa-video mr-1"></i>Online
-                            </span>
-                            <span>
-                              <i className="fas fa-circle text-gray-400 mr-1"></i>
-                              Starts in 4h
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button className="bg-green-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 transition-colors">
-                          <i className="fas fa-eye mr-2"></i>Monitor
-                        </button>
-                        <button className="text-gray-400 hover:text-gray-600 p-2">
-                          <i className="fas fa-ellipsis-v"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </section>

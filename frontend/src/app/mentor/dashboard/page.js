@@ -5,6 +5,8 @@ import MentorSideBase from "@/components/MentorSideBase";
 import { calculateTotalHoursTaught, getUpcomingSessionsCount, navItems } from "@/app/utils/index";
 import axios from "axios";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
+import { useRouter } from 'next/navigation';
+
 // Re-creating the Tailwind config for use in the component
 const tailwindConfig = {
   theme: {
@@ -20,83 +22,11 @@ const tailwindConfig = {
 };
 
 
-const upcomingSessions = [
-  {
-    name: "Ananya Mehta",
-    subject: "Kathak Basics • 1-on-1",
-    time: "Today • 3:00 PM - 4:00 PM",
-    initials: "AM",
-    color: "bg-primary",
-    action: "Join",
-  },
-  {
-    name: "Raj Kumar",
-    subject: "Classical Dance Workshop",
-    time: "Tomorrow • 10:00 AM - 12:00 PM",
-    initials: "RK",
-    color: "bg-green-500",
-    action: "Reschedule",
-  },
-  {
-    name: "Shreya Patel",
-    subject: "Advanced Techniques • 1-on-1",
-    time: "Wednesday • 6:00 PM - 7:00 PM",
-    initials: "SP",
-    color: "bg-purple-500",
-    action: "Prepare",
-  },
-];
+// Static session data removed - using dynamic mentor classes
 
-const activeClasses = [
-  {
-    title: "Weekend Kathak Batch (8 weeks)",
-    status: "Active",
-    statusColor: "bg-green-100 text-green-800",
-    students: "6/8 students",
-    schedule: "Sat & Sun • 10 AM",
-    progress: "Week 3 of 8",
-    actions: ["Manage Class", "View Students"],
-  },
-  {
-    title: "Beginner Classical Dance",
-    status: "Waiting",
-    statusColor: "bg-yellow-100 text-yellow-800",
-    students: "2/6 students",
-    schedule: "Weekdays • 5 PM",
-    progress: "Need 4 more",
-    actions: ["Promote Class", "Edit Details"],
-  },
-];
+// Static data removed - now using dynamic data from API
 
-const pendingTasks = [
-  {
-    text: "Complete profile verification",
-    subtext: "Upload DBS certificate",
-    color: "bg-red-50",
-    dotColor: "bg-red-500",
-    action: "Complete",
-  },
-  {
-    text: "Respond to messages",
-    subtext: "3 unread from students",
-    color: "bg-yellow-50",
-    dotColor: "bg-yellow-500",
-    action: "View",
-  },
-  {
-    text: "Add profile picture",
-    subtext: "Increase student trust",
-    color: "bg-blue-50",
-    dotColor: "bg-blue-500",
-    action: "Upload",
-  },
-];
-
-const ratingData = [
-  { stars: 5, count: 40, width: "85%" },
-  { stars: 4, count: 5, width: "10%" },
-  { stars: 3, count: 1, width: "3%" },
-];
+// Static rating data removed - now using dynamic mentor stats
 
 const Dashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -107,13 +37,16 @@ const Dashboard = () => {
 
   const [mentorDetails, setMentorDetails] = useState({});
   const [mentorClasses, setMentorClasses] = useState([]);
-
   const [upcomingSessionsCount, setUpcomingSessionsCount] = useState(0);
   const [totalHoursTaught, setTotalHoursTaught] = useState(0);
-
-
   const [totalBookings, setTotalBookings] = useState([]);
+  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [pendingTasks, setPendingTasks] = useState([]);
+  const [uniqueStudentCount, setUniqueStudentCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
+  const router = useRouter();
+  
   const quickStats = [
     {
       icon: "fas fa-clock",
@@ -127,11 +60,11 @@ const Dashboard = () => {
     {
       icon: "fas fa-user-graduate",
       title: "Students Enrolled",
-      value: `${totalBookings.length}`,
-      change: "+3",
+      value: `${uniqueStudentCount}`,
+      change: "Total unique",
       iconBg: "bg-green-100",
       iconColor: "text-green-600",
-      changeColor: "text-green-500",
+      changeColor: "text-gray-500",
     },
     {
       icon: "fas fa-calendar-check",
@@ -156,31 +89,92 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchMentorClasses = async (uid) => {
-      let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${uid}`;
-      const response = await axios.get(apiUrl);
-      setMentorClasses(response.data.classes || []);
+      try {
+        let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${uid}`;
+        const response = await axios.get(apiUrl);
+        const classes = response.data.classes || [];
+        
+        console.log('Fetched mentor classes:', classes);
+        setMentorClasses(classes);
 
-      let totalHoursTaught = 0;
-      response.data.classes.forEach(async (classObj) => {
-        const bookings = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?classId=${classObj.classId}`);
-        setTotalBookings([...totalBookings, ...bookings.data.bookings]);
-      });
-
-
-      response.data.classes.forEach(async (classObj) => {
-        totalHoursTaught += calculateTotalHoursTaught(classObj.schedule);
-      });
-
-      console.log(totalHoursTaught,'totalHoursTaught totalHoursTaught');
-
-      setTotalHoursTaught(totalHoursTaught);
-
-      let upcomingSessionsCount = 0;
-      response.data.classes.forEach((classObj) => {
-        upcomingSessionsCount += getUpcomingSessionsCount(classObj.schedule);
-      });
-      
-      setUpcomingSessionsCount(upcomingSessionsCount);
+        // Fetch all bookings and calculate metrics
+        let allBookings = [];
+        let totalEarnings = 0;
+        let calculatedHours = 0;
+        let calculatedUpcoming = 0;
+        let uniqueStudents = new Set(); // Track unique students
+        
+        // Update class capacity with actual enrollment
+        const updatedClasses = await Promise.all(classes.map(async (classObj) => {
+          try {
+            // Fetch bookings for this class
+            const bookingsResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?classId=${classObj.classId}`);
+            const classBookings = bookingsResponse.data.bookings || [];
+            allBookings = [...allBookings, ...classBookings];
+            
+            // Count unique students for this class
+            const confirmedBookings = classBookings.filter(booking => 
+              booking.status === 'confirmed' || booking.paymentStatus === 'paid'
+            );
+            
+            confirmedBookings.forEach(booking => {
+              if (booking.studentId) {
+                uniqueStudents.add(booking.studentId);
+              }
+            });
+            
+            // Calculate earnings from confirmed/paid bookings
+            confirmedBookings.forEach(booking => {
+              // Use booking subtotal first, then class pricing as fallback
+              const bookingAmount = parseFloat(booking.pricing?.subtotal || 0);
+              const classAmount = parseFloat(classObj.pricing?.subtotal || 0);
+              totalEarnings += bookingAmount > 0 ? bookingAmount : classAmount;
+            });
+            
+            // Update class with actual enrollment count
+            return {
+              ...classObj,
+              capacity: {
+                ...classObj.capacity,
+                currentEnrollment: confirmedBookings.length
+              }
+            };
+            
+          } catch (error) {
+            console.error(`Error fetching bookings for class ${classObj.classId}:`, error);
+            return classObj;
+          }
+        }));
+        
+        // Calculate hours and upcoming sessions from updated classes
+        for (const classObj of updatedClasses) {
+          if (classObj.schedule && classObj.schedule.weeklySchedule) {
+            calculatedHours += calculateTotalHoursTaught(classObj.schedule);
+            calculatedUpcoming += getUpcomingSessionsCount(classObj.schedule);
+          }
+        }
+        
+        console.log('Calculated metrics:', { 
+          allBookings, 
+          totalEarnings, 
+          calculatedHours, 
+          calculatedUpcoming,
+          uniqueStudentCount: uniqueStudents.size 
+        });
+        
+        // Set updated classes with correct enrollment counts
+        setMentorClasses(updatedClasses);
+        setTotalBookings(allBookings);
+        setTotalEarnings(totalEarnings);
+        setTotalHoursTaught(calculatedHours);
+        setUpcomingSessionsCount(calculatedUpcoming);
+        
+        // Store unique student count in state
+        setUniqueStudentCount(uniqueStudents.size);
+        
+      } catch (error) {
+        console.error('Error fetching mentor classes:', error);
+      }
     };
 
 
@@ -196,10 +190,34 @@ const Dashboard = () => {
           const mentorData = response.data?.mentor;
           setMentorDetails(mentorData);
           localStorage.setItem("mentor", JSON.stringify(mentorData));
-          fetchMentorClasses(mentorData.uid);
+          await fetchMentorClasses(mentorData.uid);
+          
+          // Generate pending tasks based on profile completeness
+          const tasks = [];
+          if (!mentorData.photoURL || mentorData.photoURL === '') {
+            tasks.push({
+              text: "Add profile picture",
+              subtext: "Increase student trust",
+              color: "bg-blue-50",
+              dotColor: "bg-blue-500",
+              action: "Upload"
+            });
+          }
+          if (!mentorData.backgroundChecked) {
+            tasks.push({
+              text: "Complete background check",
+              subtext: "Required for verification",
+              color: "bg-red-50",
+              dotColor: "bg-red-500",
+              action: "Complete"
+            });
+          }
+          setPendingTasks(tasks);
         }
+        setLoading(false);
       } catch (error) {
         console.error("Error fetching mentor details:", error);
+        setLoading(false);
       }
     };
 
@@ -207,6 +225,13 @@ const Dashboard = () => {
     // Fix: Add null check to prevent crash when localStorage is empty
     // Error was: "Cannot read properties of null (reading 'user')"
     const userData = localStorage.getItem("user");
+
+
+    if (!userData || !userData.user || userData.user.userType !== 'mentor') {
+      router.push('/user/dashboard');
+      return; // Stop further execution of this effect
+    }
+
     if (userData) {
       const user = JSON.parse(userData);
       if (user && user.user) {
@@ -408,42 +433,59 @@ const Dashboard = () => {
                   </div>
 
                   <div className="space-y-4">
-                    {upcomingSessions.map((session, index) => (
+                    {mentorClasses.length > 0 ? mentorClasses.slice(0, 3).map((classObj, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                       >
                         <div className="flex items-center space-x-4">
                           <div
-                            className={`w-12 h-12 ${session.color} rounded-full flex items-center justify-center`}
+                            className={`w-12 h-12 bg-primary rounded-full flex items-center justify-center`}
                           >
                             <span className="text-white font-semibold text-sm">
-                              {session.initials}
+                              {classObj.title?.charAt(0) || 'C'}
                             </span>
                           </div>
                           <div>
                             <h4 className="font-semibold text-gray-900">
-                              {session.name}
+                              {classObj.title}
                             </h4>
                             <p className="text-gray-600 text-sm">
-                              {session.subject}
+                              {classObj.subject} • {classObj.type}
                             </p>
                             <p className="text-gray-500 text-xs">
-                              {session.time}
+                              {classObj.schedule?.weeklySchedule?.[0]?.day} • {classObj.schedule?.weeklySchedule?.[0]?.startTime}
                             </p>
                           </div>
                         </div>
                         <div className="flex space-x-2">
-                          <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors">
-                            <i className="fas fa-video mr-1"></i>
-                            {session.action}
+                          <button 
+                            onClick={() => window.location.href = `/mentor/classes/${classObj.classId}`}
+                            className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors"
+                          >
+                            <i className="fas fa-eye mr-1"></i>
+                            View Class
                           </button>
                           <button className="text-gray-500 hover:text-gray-700 p-2">
                             <i className="fas fa-ellipsis-h"></i>
                           </button>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                          <i className="fas fa-chalkboard-teacher text-gray-400 text-xl"></i>
+                        </div>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-2">No Classes Yet</h4>
+                        <p className="text-gray-600 mb-4">Start by hosting your first class to see sessions here</p>
+                        <button 
+                          onClick={() => window.location.href = '/mentor/hostaclass'}
+                          className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+                        >
+                          <i className="fas fa-plus mr-2"></i>Host a Class
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -462,45 +504,65 @@ const Dashboard = () => {
                   </div>
 
                   <div className="space-y-4">
-                    {activeClasses.map((aclass, index) => (
+                    {mentorClasses.length > 0 ? mentorClasses.map((classObj, index) => (
                       <div
                         key={index}
                         className="border border-gray-200 rounded-lg p-4"
                       >
                         <div className="flex items-center justify-between mb-3">
                           <h3 className="font-semibold text-gray-900">
-                            {aclass.title}
+                            {classObj.title}
                           </h3>
                           <span
-                            className={`${aclass.statusColor} text-xs px-2 py-1 rounded-full font-medium`}
+                            className={`${classObj.status === 'approved' ? 'bg-green-100 text-green-800' : classObj.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'} text-xs px-2 py-1 rounded-full font-medium`}
                           >
-                            {aclass.status}
+                            {classObj.status || 'active'}
                           </span>
                         </div>
                         <div className="grid md:grid-cols-3 gap-4 text-sm">
                           <div>
-                            <p className="text-gray-500">Students Enrolled</p>
-                            <p className="font-semibold">{totalBookings.length}</p>
+                            <p className="text-gray-500">Capacity</p>
+                            <p className="font-semibold">{classObj.capacity?.currentEnrollment || 0}/{classObj.capacity?.maxStudents || 0} students</p>
                           </div>
                           <div>
                             <p className="text-gray-500">Schedule</p>
-                            <p className="font-semibold">{aclass.schedule}</p>
+                            <p className="font-semibold">{classObj.schedule?.weeklySchedule?.[0]?.day} • {classObj.schedule?.weeklySchedule?.[0]?.startTime}</p>
                           </div>
                           <div>
-                            <p className="text-gray-500">Progress</p>
-                            <p className="font-semibold">{aclass.progress}</p>
+                            <p className="text-gray-500">Type & Format</p>
+                            <p className="font-semibold">{classObj.type} • {classObj.format}</p>
                           </div>
                         </div>
                         <div className="mt-4 flex space-x-3">
-                          <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors">
-                            {aclass.actions[0]}
+                          <button 
+                            onClick={() => window.location.href = `/mentor/classes/${classObj.classId}`}
+                            className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors"
+                          >
+                            Manage Class
                           </button>
-                          <button className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-                            {aclass.actions[1]}
+                          <button 
+                            onClick={() => window.location.href = `/mentor/classes/${classObj.classId}/students`}
+                            className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+                          >
+                            View Students
                           </button>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                          <i className="fas fa-plus-circle text-gray-400 text-xl"></i>
+                        </div>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-2">No Active Classes</h4>
+                        <p className="text-gray-600 mb-4">Create your first class to start teaching</p>
+                        <button 
+                          onClick={() => window.location.href = '/mentor/hostaclass'}
+                          className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+                        >
+                          <i className="fas fa-plus mr-2"></i>Host a Class
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -580,39 +642,38 @@ const Dashboard = () => {
                   </h3>
                   <div className="text-center">
                     <div className="text-4xl font-bold text-gray-900 mb-1">
-                      4.9
+                      {mentorDetails.stats?.avgRating ? mentorDetails.stats.avgRating.toFixed(1) : '0.0'}
                     </div>
                     <div className="flex justify-center mb-2">
                       <div className="flex text-yellow-400">
-                        <i className="fas fa-star"></i>
-                        <i className="fas fa-star"></i>
-                        <i className="fas fa-star"></i>
-                        <i className="fas fa-star"></i>
-                        <i className="fas fa-star"></i>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <i 
+                            key={star}
+                            className={`fas fa-star ${
+                              star <= Math.round(mentorDetails.stats?.avgRating || 0) 
+                                ? 'text-yellow-400' 
+                                : 'text-gray-300'
+                            }`}
+                          ></i>
+                        ))}
                       </div>
                     </div>
                     <p className="text-gray-600 text-sm mb-4">
-                      Based on 47 reviews
+                      Based on {mentorDetails.stats?.totalReviews || 0} reviews
                     </p>
 
-                    <div className="space-y-2 text-left">
-                      {ratingData.map((rating, index) => (
-                        <div key={index} className="flex items-center">
-                          <span className="text-xs text-gray-500 w-8">
-                            {rating.stars}★
-                          </span>
-                          <div className="flex-1 bg-gray-200 rounded-full h-2 mx-2">
-                            <div
-                              className="bg-yellow-400 h-2 rounded-full"
-                              style={{ width: rating.width }}
-                            ></div>
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {rating.count}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                    {mentorDetails.stats?.totalReviews > 0 ? (
+                      <div className="space-y-2 text-left">
+                        <p className="text-sm text-gray-600 text-center">
+                          Rating breakdown coming soon
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-gray-500 mb-2">No reviews yet</p>
+                        <p className="text-xs text-gray-400">Start teaching to get your first review!</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

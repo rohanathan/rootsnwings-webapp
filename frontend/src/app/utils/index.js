@@ -49,84 +49,42 @@ export const formatDate = (dateString) => {
   ];
 
 
-export  const classifySessions = (classes) => {
-  const classifiedResults = [];
-
-  // Define the current reference time as per your prompt:
-  // Saturday, August 9, 2025 at 3:51 PM IST (updated from previous 3:43 PM IST in prompt)
-  // IST is UTC+5:30.
-  const currentReferenceTime = new Date('2025-08-09T15:51:00+05:30');
-
-  // Helper to get day of week name from JS Date.getDay() (0=Sunday, 6=Saturday)
-  const jsDayToDayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+export  function getSessionsSummary(classObject) {
   let completedSessionCount = 0;
   let upcomingSessionCount = 0;
+  // Get the current date and normalize it to the start of the day (midnight).
+  const now = new Date();
+  const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Iterate over each class object to calculate its session counts
-  classes.forEach(classObj => {
-   
+  // Handle both single object and array cases
+  const classArray = Array.isArray(classObject) ? classObject : [classObject];
 
-      // Handle 'one-on-one' class type
-      if (classObj.type === 'one-on-one') {
-          // For one-on-one, the schedule.startDate and the first item in weeklySchedule
-          // define a single, specific session occurrence.
-          const sessionDatePart = classObj.schedule.startDate;
-          const sessionTimePart = classObj.schedule.weeklySchedule[0]?.startTime; // Use optional chaining for safety
+  // Iterate through each class object
+  classArray.forEach(classObj => {
+    // Skip invalid class objects
+    if (!classObj?.schedule?.weeklySchedule) {
+      console.warn("Invalid class object: schedule or weeklySchedule is missing.");
+      return;
+    }
 
-          if (sessionDatePart && sessionTimePart) {
-              // Create a Date object for this specific session occurrence
-              const sessionStartDateTime = new Date(`${sessionDatePart}T${sessionTimePart}:00`);
+    // Iterate through each session in this class's schedule
+    classObj.schedule.weeklySchedule.forEach(session => {
+      // Parse the session date string into a Date object
+      const sessionDate = new Date(session.date);
+      // Normalize the session date to the start of its day for accurate comparison
+      const normalizedSessionDate = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
 
-              // Compare the session's start time with the current reference time
-              if (sessionStartDateTime < currentReferenceTime) {
-                  completedSessionCount++;
-              } else {
-                  upcomingSessionCount++;
-              }
-          }
+      // Check if the session's date has passed or is today (completed) or in the future (upcoming)
+      if (normalizedSessionDate <= currentDate) {
+        completedSessionCount++;
+      } else {
+        upcomingSessionCount++;
       }
-      // Handle 'group' class type
-      else if (classObj.type === 'group') {
-          const classProgramStartDate = new Date(classObj.schedule.startDate);
-          // Set end date to the end of the day for inclusive comparison
-          const classProgramEndDate = new Date(classObj.schedule.endDate);
-          classProgramEndDate.setHours(23, 59, 59, 999); // Set to end of day to include sessions on endDate
-
-          // Loop through each day from the class's start date to its end date
-          // Create a new Date object for 'd' in each iteration to avoid modifying the loop variable directly
-          for (let d = new Date(classProgramStartDate); d <= classProgramEndDate; d.setDate(d.getDate() + 1)) {
-              const currentDayOfWeekName = jsDayToDayName[d.getDay()];
-
-              // Check all weekly schedule rules for the current day of the week
-              classObj.schedule.weeklySchedule.forEach(sessionRule => {
-                  if (sessionRule.day === currentDayOfWeekName) {
-                      const [hour, minute] = sessionRule.startTime.split(':').map(Number);
-                      
-                      // Create a specific DateTime object for this particular session occurrence
-                      let sessionOccurrenceDateTime = new Date(d); // Copy the date
-                      sessionOccurrenceDateTime.setHours(hour, minute, 0, 0); // Set time to session start time
-
-                      // Compare this session occurrence with the current reference time
-                      if (sessionOccurrenceDateTime < currentReferenceTime) {
-                          completedSessionCount++;
-                      } else {
-                          upcomingSessionCount++;
-                      }
-                  }
-              });
-          }
-      }
-
-      // Add the calculated counts to the class object and push to results
-      classifiedResults.push({
-          ...classObj,
-          completedSessionCount,
-          upcomingSessionCount
-      });
+    });
   });
 
-  return {completedSessionCount , upcomingSessionCount};
-};
+  return { completedSessionCount, upcomingSessionCount };
+}
 
 
 export function calculateTotalHoursTaught(schedule) {

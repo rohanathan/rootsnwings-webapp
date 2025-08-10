@@ -244,7 +244,6 @@ export default function GroupBatches() {
         console.log('Fetching classes from:', apiUrl);
         
         const response = await axios.get(apiUrl);
-        setMentorData(response.data);
         setMentorClasses(response.data.classes || []);
         localStorage.setItem('availableMentorClass', JSON.stringify(response.data.classes || []));
         
@@ -254,6 +253,7 @@ export default function GroupBatches() {
             const mentorResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${urlMentorId}`);
             if (mentorResponse.data?.mentor) {
               localStorage.setItem('mentor', JSON.stringify(mentorResponse.data.mentor));
+              setMentorData(mentorResponse.data.mentor);
             }
           } catch (mentorError) {
             console.warn('Could not fetch mentor details:', mentorError);
@@ -270,6 +270,9 @@ export default function GroupBatches() {
 
     fetchClassesData();
   }, [searchParams]);
+
+  console.log(mentorData,'mentorData mentorClasses');
+  
 
   // Handle enrollment button click
   const handleEnrollNow = (batch) => {
@@ -300,7 +303,7 @@ export default function GroupBatches() {
       `}</style>
 
       {/* Navigation Component */}
-      <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
+      <nav className=" top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
         <div className="max-w-7xl mx-auto px-5">
           <div className="flex justify-between items-center py-4">
             <a href="#" className="text-2xl font-bold primary-dark">Roots & Wings</a>
@@ -309,10 +312,9 @@ export default function GroupBatches() {
             </div>
           </div>
         </div>
-      </nav>
 
-      {/* Dynamic Mentor Info Header */}
-      <div className="fixed top-20 w-full z-40 bg-white border-b border-gray-200 shadow-sm">
+             {/* Dynamic Mentor Info Header */}
+      <div className="pt-50 w-full z-40 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-5 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -325,12 +327,12 @@ export default function GroupBatches() {
                 />
               ) : (
                 <div className="w-14 h-14 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white text-lg font-bold">
-                  {mentorClasses[0]?.mentorName?.charAt(0) || 'M'}
+                  {mentorData?.displayName?.charAt(0) || 'M'}
                 </div>
               )}
               <div>
                 <h2 className="text-lg font-bold primary-dark">
-                  {mentorClasses[0]?.mentorName || 'Mentor Name'}
+                  {mentorData?.displayName || 'Mentor Name'}
                 </h2>
                 <p className="text-sm text-gray-600">
                   {[...new Set(mentorClasses.map(b => b.subject))].join(' & ').replace(/^\w/, c => c.toUpperCase())} Specialist
@@ -338,11 +340,15 @@ export default function GroupBatches() {
                 <div className="flex items-center gap-2">
                   <div className="flex text-yellow-400 text-xs">★★★★★</div>
                   <span className="text-xs text-gray-600">
-                    {mentorClasses[0]?.mentorRating || 4.9} (32 reviews)
+                    {mentorClasses[0]?.mentorRating || 0.0} (0 reviews)
                   </span>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full ml-2">
-                    Group Batch Specialist
+                  { mentorData?.subjects?.map(subject => 
+                       <span key={subject} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full ml-2">
+                        {subject}
                   </span>
+                    )}
+
+               
                 </div>
               </div>
             </div>
@@ -356,8 +362,12 @@ export default function GroupBatches() {
         </div>
       </div>
 
+      </nav>
+
+ 
+
       {/* Main Content */}
-      <main className="pt-40 pb-16">
+      <div className="mt-5 pb-16">
         <div className="max-w-7xl mx-auto px-5">
           
           {/* Page Header */}
@@ -615,7 +625,7 @@ export default function GroupBatches() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
       
     </>

@@ -39,10 +39,10 @@ const Homepage = () => {
     };
 
     const fetchTestimonials = async () => {
-      // const response = await axios.get(
-      //   "https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/testimonials?limit=3"
-      // );
-      // setTestimonials(response.data.testimonials);
+       const response = await axios.get(
+         "https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/?type=testimonials&limit=10"
+       );
+       setTestimonials(response.data.testimonials);
     };
 
     const fetchCategories = async () => {
