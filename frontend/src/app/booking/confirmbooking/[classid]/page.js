@@ -195,19 +195,24 @@ export default function BookingConfirmation() {
       );
 
       if (paymentResponse.status === 200) {
-        const { client_secret, payment_intent_id } = paymentResponse.data;
+        const { clientSecret, paymentIntentId } = paymentResponse.data;
+        
+        // Validate we have the required data
+        if (!clientSecret || !paymentIntentId) {
+          throw new Error('Invalid payment response: missing clientSecret or paymentIntentId');
+        }
         
         // Step 4: Redirect to payment page with client secret
         localStorage.setItem('payment_data', JSON.stringify({
-          client_secret,
-          payment_intent_id,
+          client_secret: clientSecret,
+          payment_intent_id: paymentIntentId,
           booking_id: booking.bookingId,
           amount: bookingTotal,
           currency: pricingBreakdown?.currency || 'GBP'
         }));
         
         // Redirect to payment page
-        window.location.href = `/payment?client_secret=${client_secret}&booking_id=${booking.bookingId}`;
+        window.location.href = `/payment?client_secret=${clientSecret}&booking_id=${booking.bookingId}`;
       } else {
         throw new Error('Failed to create payment intent');
       }

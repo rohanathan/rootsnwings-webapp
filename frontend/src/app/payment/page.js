@@ -157,10 +157,31 @@ export default function PaymentPage() {
         )}
 
         {/* Stripe payment form */}
-        {clientSecret && (
+        {clientSecret && clientSecret !== 'undefined' && (
           <Elements options={options} stripe={stripePromise}>
             <PaymentForm clientSecret={clientSecret} bookingId={bookingId} />
           </Elements>
+        )}
+
+        {/* Error state for invalid client secret */}
+        {(!clientSecret || clientSecret === 'undefined') && !loading && (
+          <div className="max-w-md mx-auto bg-red-50 border border-red-200 p-6 rounded-lg">
+            <h2 className="text-xl font-bold text-red-800 mb-4">Payment Error</h2>
+            <p className="text-red-700 mb-4">
+              There was an issue creating the payment session. This could be due to:
+            </p>
+            <ul className="list-disc list-inside text-red-700 mb-4 space-y-1">
+              <li>Server configuration issues</li>
+              <li>Invalid booking details</li>
+              <li>Payment processing temporarily unavailable</li>
+            </ul>
+            <button
+              onClick={() => window.location.href = '/workshop/listing'}
+              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold"
+            >
+              Go Back to Workshops
+            </button>
+          </div>
         )}
 
         {/* Test card info */}

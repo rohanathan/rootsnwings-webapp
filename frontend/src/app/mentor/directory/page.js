@@ -32,14 +32,16 @@ const MentorDirectory = () => {
   };
 
   useEffect(() => {
-    // Check if user is logged in, but don't require it
+    // Always fetch mentors regardless of login status
+    fetchBookings();
+    
+    // Check if user is logged in for user-specific features
     try {
       const userData = localStorage.getItem("user");
       if (userData) {
         const user = JSON.parse(userData);
         if (user && user.user) {
           setUser(user.user);
-          fetchBookings();
         }
       }
     } catch (error) {

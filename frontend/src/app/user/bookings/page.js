@@ -36,20 +36,34 @@ const MyBookings = () => {
     const fetchBookings = async () => {
       try {
         const userData = JSON.parse(localStorage.getItem("user"));
+        console.log("User data for bookings:", userData);
 
+        if (!userData || !userData.user) {
+          console.error("No user data found");
+          setError("Please log in to view your bookings");
+          setLoading(false);
+          return;
+        }
 
-        if (!userData || !userData.user || userData.user.userType !== 'student') {
-            router.push('/mentor/dashboard');
-            return; // Stop further execution of this effect
-          }
+        // Check user type - allow students and others to view bookings
+        if (userData.user.userType && userData.user.userType !== 'student') {
+          console.log("User type:", userData.user.userType, "- redirecting to mentor dashboard");
+          router.push('/mentor/dashboard');
+          return;
+        }
           
         if (!userData?.user?.uid) {
           throw new Error("User not found. Please log in again.");
         }
 
+        console.log("Fetching bookings for user ID:", userData.user.uid);
+
         const response = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?studentId=${userData.user.uid}`
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=${userData.user.uid}`
         );
+
+        console.log("Bookings API response:", response.data);
+        console.log("Bookings array:", response.data?.bookings);
 
         setBookings(response.data?.bookings || []);
         setLoading(false);

@@ -105,26 +105,32 @@ export default function BookingSuccess() {
 
   // Handler functions for button clicks
   const goToDashboard = () => {
-    alert('Redirecting to your dashboard...');
-    // In a real app: router.push('/dashboard');
+    window.location.href = '/user/bookings';
   };
 
   const messageMentor = () => {
-    alert('Opening chat with Priya Sharma...');
-    // In a real app: router.push('/chat/priya-sharma');
+    alert(`Opening chat with ${bookingDetails?.mentorName || 'your mentor'}...`);
+    // TODO: Implement messaging system later this week
   };
 
   const viewMoreClasses = () => {
-    alert('Redirecting to all classes...');
-    // In a real app: router.push('/classes');
+    window.location.href = '/workshop/listing';
   };
   
   const addToGoogleCalendar = () => {
-    const title = '8-Week Weekend Batch – Intermediate Kathak with Priya Sharma';
-    const startDate = '20250817T140000Z'; // Example start date from original HTML
-    const endDate = '20250817T150000Z'; // Example end date
-    const location = 'Community Centre Birmingham, 12 Washwood Heath Rd, B8 2AA';
-    const details = 'Your first class for the 8-Week Weekend Intensive with Priya Sharma.';
+    // Use booking data or fallback to stored class data
+    const className = bookingDetails?.className || 'Your Class';
+    const mentorName = bookingDetails?.mentorName || 'Your Mentor';
+    const title = `${className} with ${mentorName}`;
+    
+    // Use real first class date or fallback
+    const firstClassDate = getFirstClassDate();
+    const startDate = firstClassDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const endDate = new Date(firstClassDate.getTime() + 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'; // Add 1 hour
+    
+    const location = 'Online Class via Zoom'; // Default to online
+    const details = `Your class booking confirmation. Booking ID: ${bookingDetails?.bookingId || 'N/A'}`;
+    
     const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
     window.open(url, '_blank');
   };
@@ -248,8 +254,11 @@ export default function BookingSuccess() {
                 <div className="flex items-start gap-6 mb-8">
                   <div className="relative">
                     <div className="w-20 h-20 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                      {/* Get stored mentor data */}
+                      {/* Use booking mentor data or fallback to stored mentor */}
                       {(() => {
+                        if (bookingDetails?.mentorName) {
+                          return bookingDetails.mentorName.charAt(0);
+                        }
                         const storedMentor = JSON.parse(localStorage.getItem('mentor') || '{}');
                         return storedMentor.displayName?.charAt(0) || 'M';
                       })()}
@@ -260,7 +269,7 @@ export default function BookingSuccess() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-primary-dark mb-2">
-                      {(() => {
+                      {bookingDetails?.mentorName || (() => {
                         const storedMentor = JSON.parse(localStorage.getItem('mentor') || '{}');
                         return storedMentor.displayName || 'Mentor Name';
                       })()}
@@ -307,7 +316,7 @@ export default function BookingSuccess() {
                       <div>
                         <div className="font-semibold text-gray-700">Class</div>
                         <div className="text-primary-dark font-bold">
-                          {(() => {
+                          {bookingDetails?.className || (() => {
                             const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
                             return storedClass.title || 'Class Title';
                           })()}
@@ -380,23 +389,37 @@ export default function BookingSuccess() {
                         <div className="font-semibold text-gray-700">Total Paid</div>
                         <div className="text-primary-dark font-bold text-lg">
                           {(() => {
-                            const paymentData = JSON.parse(localStorage.getItem('payment_data') || '{}');
-                            const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                            // Try to get amount from booking data first, then fallback to localStorage
+                            if (bookingDetails?.pricing?.finalPrice) {
+                              // finalPrice is in pence, convert to pounds
+                              const amount = bookingDetails.pricing.finalPrice / 100;
+                              return amount === 0 ? 'FREE' : `£${amount}`;
+                            }
                             
+                            const paymentData = JSON.parse(localStorage.getItem('payment_data') || '{}');
                             if (paymentData.amount) {
                               return `£${paymentData.amount}`;
-                            } else if (storedClass.pricing?.perSessionRate === 0) {
+                            }
+                            
+                            const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                            if (storedClass.pricing?.perSessionRate === 0) {
                               return 'FREE';
                             } else if (storedClass.pricing?.perSessionRate) {
                               const total = storedClass.pricing.perSessionRate * (storedClass.pricing.totalSessions || 1);
                               return `£${total}`;
                             }
+                            
                             return 'Payment Processing...';
                           })()}
                         </div>
                         <div className="text-sm text-green-600">✅ {(() => {
-                          const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
-                          return storedClass.pricing?.perSessionRate === 0 ? 'Free Registration' : 'Payment Confirmed';
+                          if (bookingDetails?.paymentStatus === 'completed') {
+                            return 'Payment Confirmed';
+                          }
+                          if (bookingDetails?.pricing?.finalPrice === 0) {
+                            return 'Free Registration';
+                          }
+                          return 'Payment Confirmed';
                         })()}</div>
                       </div>
                     </div>
