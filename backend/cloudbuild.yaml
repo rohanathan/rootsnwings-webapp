@@ -1,6 +1,7 @@
 steps:
   # Step 1: Build the Docker Image
   - name: 'gcr.io/cloud-builders/docker'
+    dir: 'backend'
     args: ['build', '-t', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:latest', '.']
 
   # Step 2: Push the Docker Image to Artifact Registry
