@@ -1,13 +1,13 @@
 steps:
-  # Build the container image
+  # Step 1: Build the Docker Image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:latest', '.']
 
-  # Push the container image to Artifact Registry
+  # Step 2: Push the Docker Image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:latest']
 
-  # Deploy container image to Cloud Run
+  # Step 3: Deploy the Image to Cloud Run
   - name: 'gcr.io/google-appengine/exec-wrapper'
     args:
       - '-i'
@@ -20,3 +20,6 @@ steps:
           --service-account rootsnwings-firestore-accessor@${PROJECT_ID}.iam.gserviceaccount.com \
           --set-secrets="STRIPE_SECRET_KEY=stripe-secret:latest,RESEND_API_KEY=resend-api-key:latest" \
           --set-env-vars="FROM_EMAIL=onboarding@resend.dev,FRONTEND_URL=http://localhost:3000,BACKEND_URL=https://rootsnwings-api-944856745086.europe-west2.run.app"
+
+# ADD THIS LINE AT THE BOTTOM
+logsBucket: 'gs://rootsnwings-build-logs-rootsnwings-465610'
