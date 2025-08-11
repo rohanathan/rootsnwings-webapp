@@ -132,7 +132,7 @@ export default function BookingConfirmation() {
     }, 5000);
   };
 
-  // Replicating the functions from the original HTML
+  // Enhanced payment flow with Stripe integration
   const proceedToPayment = async () => {
     if (!isTermsAccepted) {
       alert('Please accept the terms and conditions to proceed.');
@@ -141,34 +141,84 @@ export default function BookingConfirmation() {
 
     setIsProcessing(true);
 
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      console.log('User data:', user);
 
-    const user = JSON.parse(localStorage.getItem('user'));
-    console.log(user,'user user user');
+      // Step 1: Create pending booking first
+      const bookingResponse = await axios.post(
+        'https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/',
+        {
+          mentorId: mentor.uid,
+          classId: selectedMentorClass.classId,
+          studentId: user.user.uid,
+          pricing: {
+            finalPrice: Math.round(bookingTotal * 100), // Convert to pence for Stripe
+            ...selectedMentorClass.pricing,
+          }
+        }
+      );
 
-    const response = await axios.post(
-      'https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/',
-      {
-        mentorId: mentor.uid,
-        classId: selectedMentorClass.classId,
-        studentId: user.user.uid,
-
-pricing : {
-  finalPrice:320,
-  ...selectedMentorClass.pricing,
-}
-
-        
+      if (bookingResponse.status !== 200) {
+        throw new Error('Failed to create booking');
       }
-    );
-    console.log(response,'response response response');
 
-    if(response.status === 200) {
-      setShowSuccessModal(true);
-      createConfetti();
-    } else {
+      const booking = bookingResponse.data.booking;
+      console.log('Created booking:', booking);
+
+      // Step 2: If free, confirm immediately
+      if (bookingTotal === 0) {
+        // For free bookings, confirm immediately
+        const confirmResponse = await axios.post(
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/${booking.bookingId}/confirm`,
+          { paymentStatus: 'completed' }
+        );
+        
+        if (confirmResponse.status === 200) {
+          // Store booking details and redirect to success page
+          localStorage.setItem('completedBooking', JSON.stringify(confirmResponse.data.booking));
+          window.location.href = '/booking/success';
+        }
+        return;
+      }
+
+      // Step 3: Create Stripe payment intent for paid bookings
+      const paymentResponse = await axios.post(
+        'https://rootsnwings-api-944856745086.europe-west2.run.app/payments/create-intent',
+        {
+          amount: Math.round(bookingTotal * 100), // Convert to pence
+          currency: pricingBreakdown?.currency?.toLowerCase() || 'gbp',
+          classId: selectedMentorClass.classId,
+          studentId: user.user.uid,
+          bookingId: booking.bookingId
+        }
+      );
+
+      if (paymentResponse.status === 200) {
+        const { client_secret, payment_intent_id } = paymentResponse.data;
+        
+        // Step 4: Redirect to payment page with client secret
+        localStorage.setItem('payment_data', JSON.stringify({
+          client_secret,
+          payment_intent_id,
+          booking_id: booking.bookingId,
+          amount: bookingTotal,
+          currency: pricingBreakdown?.currency || 'GBP'
+        }));
+        
+        // Redirect to payment page
+        window.location.href = `/payment?client_secret=${client_secret}&booking_id=${booking.bookingId}`;
+      } else {
+        throw new Error('Failed to create payment intent');
+      }
+      
+    } catch (error) {
+      console.error('Payment process error:', error);
       setShowErrorAlert(true);
+      alert('There was an error processing your booking. Please try again.');
+    } finally {
+      setIsProcessing(false);
     }
-    
   };
 
   const applyPromoCode = () => {

@@ -32,10 +32,19 @@ const MentorDirectory = () => {
   };
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    setUser(user.user);
-
-    fetchBookings();
+    // Check if user is logged in, but don't require it
+    try {
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        const user = JSON.parse(userData);
+        if (user && user.user) {
+          setUser(user.user);
+          fetchBookings();
+        }
+      }
+    } catch (error) {
+      console.log("No user logged in, directory is publicly accessible");
+    }
   }, []);
 
   // Handler for applying filters (currently a placeholder)

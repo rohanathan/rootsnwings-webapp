@@ -3,138 +3,17 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Navbar from '@/components/NavBar';
+import axios from 'axios';
+import { useRouter } from 'next/navigation';
 
-const workshopsData = [
-  {
-    id: 'vedic-chanting',
-    title: 'Introduction to Vedic Chanting',
-    mentor: 'Dr. Rajesh Patel',
-    mentorInitial: 'R',
-    mentorColor: 'from-orange-500 to-red-500',
-    description: 'Discover the ancient art of Vedic chanting. Learn basic Sanskrit pronunciations and experience the meditative power of sacred sounds.',
-    date: 'Saturday, July 27 • 2:00 PM - 4:00 PM',
-    duration: '2 hours',
-    location: 'Online via Zoom',
-    subject: 'music',
-    age: 'adult',
-    mode: 'online',
-    price: 'free',
-    dateFilter: 'this-week',
-    badges: [{ text: 'Free', color: 'bg-green-500' }, { text: 'New', color: 'bg-blue-500' }],
-    skills: [{ text: 'Adults', color: 'bg-indigo-100 text-indigo-700' }, { text: 'Beginner', color: 'bg-green-100 text-green-700' }],
-    icon: '🕉️',
-    capacity: 5,
-    initialCapacity: 5,
-  },
-  {
-    id: 'kathak-performance',
-    title: 'Kathak Performance Workshop',
-    mentor: 'Priya Sharma',
-    mentorInitial: 'P',
-    mentorColor: 'from-purple-500 to-pink-500',
-    description: 'Master performance techniques and learn to tell stories through Kathak dance. Includes costume guidance and stage presence tips.',
-    date: 'Sunday, August 3 • 4:00 PM - 7:00 PM',
-    duration: '3 hours',
-    location: 'Birmingham Dance Studio',
-    subject: 'dance',
-    age: 'teen',
-    mode: 'in-person',
-    price: 'under-20',
-    dateFilter: 'next-week',
-    badges: [{ text: 'Only 2 Left!', color: 'bg-red-500 animate-pulse' }],
-    skills: [{ text: 'Teens', color: 'bg-purple-100 text-purple-700' }, { text: 'Intermediate', color: 'bg-yellow-100 text-yellow-700' }],
-    icon: '💃',
-    capacity: 2,
-    initialCapacity: 2,
-  },
-  {
-    id: 'kids-watercolor',
-    title: 'Watercolor Magic for Kids',
-    mentor: 'Sarah Williams',
-    mentorInitial: 'S',
-    mentorColor: 'from-yellow-500 to-orange-500',
-    description: 'Fun watercolor techniques for young artists. All materials included. Perfect for developing creativity and fine motor skills.',
-    date: 'Saturday, July 28 • 10:00 AM - 12:00 PM',
-    duration: '2 hours',
-    location: 'Bristol Community Centre',
-    subject: 'art',
-    age: 'child',
-    mode: 'in-person',
-    price: 'under-20',
-    dateFilter: 'this-week',
-    badges: [{ text: 'Family', color: 'bg-green-500' }],
-    skills: [{ text: 'Children', color: 'bg-green-100 text-green-700' }, { text: 'Beginner', color: 'bg-blue-100 text-blue-700' }],
-    icon: '🎨',
-    capacity: 8,
-    initialCapacity: 8,
-  },
-  {
-    id: 'mobile-app',
-    title: 'Build Your First Mobile App',
-    mentor: 'David Chen',
-    mentorInitial: 'D',
-    mentorColor: 'from-blue-500 to-indigo-600',
-    description: 'Learn the basics of mobile app development using no-code tools. Create a working app by the end of the session!',
-    date: 'Saturday, August 4 • 1:00 PM - 5:00 PM',
-    duration: '4 hours',
-    location: 'Online via Zoom',
-    subject: 'tech',
-    age: 'teen',
-    mode: 'online',
-    price: '20-50',
-    dateFilter: 'next-week',
-    badges: [],
-    skills: [{ text: 'Teens', color: 'bg-purple-100 text-purple-700' }, { text: 'Beginner', color: 'bg-green-100 text-green-700' }],
-    icon: '💻',
-    capacity: 12,
-    initialCapacity: 12,
-  },
-  {
-    id: 'curry-masterclass',
-    title: 'Authentic Indian Curry Masterclass',
-    mentor: 'Anita Kumar',
-    mentorInitial: 'A',
-    mentorColor: 'from-green-500 to-teal-600',
-    description: 'Learn traditional curry-making techniques, spice combinations, and family recipes. Lunch included!',
-    date: 'Sunday, August 5 • 11:00 AM - 3:00 PM',
-    duration: '4 hours',
-    location: 'London Cooking Studio',
-    subject: 'cooking',
-    age: 'family',
-    mode: 'in-person',
-    price: '20-50',
-    dateFilter: 'this-month',
-    badges: [{ text: 'Popular', color: 'bg-orange-500' }],
-    skills: [{ text: 'Family', color: 'bg-pink-100 text-pink-700' }, { text: 'All Levels', color: 'bg-yellow-100 text-yellow-700' }],
-    icon: '🍛',
-    capacity: 4,
-    initialCapacity: 4,
-  },
-  {
-    id: 'stress-yoga',
-    title: 'Stress Relief Yoga Session',
-    mentor: 'Maya Patel',
-    mentorInitial: 'M',
-    mentorColor: 'from-teal-400 to-blue-500',
-    description: 'Gentle yoga flow designed to release tension and promote relaxation. Perfect after a busy week.',
-    date: 'Tomorrow, July 26 • 7:00 PM - 8:30 PM',
-    duration: '1.5 hours',
-    location: 'Hybrid (Online + In-person Manchester)',
-    subject: 'yoga',
-    age: 'adult',
-    mode: 'hybrid',
-    price: 'under-20',
-    dateFilter: 'tomorrow',
-    badges: [{ text: 'Tomorrow!', color: 'bg-red-500 animate-pulse' }],
-    skills: [{ text: 'Adults', color: 'bg-indigo-100 text-indigo-700' }, { text: 'All Levels', color: 'bg-green-100 text-green-700' }],
-    icon: '🧘‍♀️',
-    capacity: 15,
-    initialCapacity: 15,
-  },
-];
+// API Configuration
+const API_BASE_URL = 'https://rootsnwings-api-944856745086.europe-west2.run.app';
 
 export default function Home() {
-  const [workshops, setWorkshops] = useState(workshopsData);
+  const router = useRouter();
+  const [workshops, setWorkshops] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     subject: '',
     age: '',
@@ -144,18 +23,203 @@ export default function Home() {
   });
   const [notification, setNotification] = useState(null);
 
+  // Fetch workshops from API
+  const fetchWorkshops = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/classes/?type=workshop`);
+      const data = response.data;
+      
+      // The API returns workshops in data.classes array
+      const workshopClasses = data.classes || [];
+      
+      // Transform API data to match the component's expected format
+      const transformedWorkshops = workshopClasses.map(cls => ({
+        id: cls.classId,
+        title: cls.title,
+        mentor: cls.mentorName || 'TBD',
+        mentorInitial: cls.mentorName?.charAt(0) || 'M',
+        mentorColor: getColorFromSubject(cls.subject),
+        description: cls.description,
+        date: formatDate(cls.schedule),
+        duration: `${cls.schedule.sessionDuration} minutes`,
+        location: cls.format === 'online' ? 'Online' : 'In-person',
+        subject: getSubjectCategory(cls.subject),
+        age: cls.ageGroup,
+        mode: cls.format,
+        price: cls.pricing.perSessionRate === 0 ? 'free' : getPriceCategory(cls.pricing.perSessionRate),
+        dateFilter: getDateFilter(cls.schedule),
+        badges: getBadges(cls),
+        skills: getSkills(cls),
+        icon: getIcon(cls.subject),
+        capacity: cls.capacity.maxStudents - cls.capacity.currentEnrollment,
+        initialCapacity: cls.capacity.maxStudents,
+        totalSessions: cls.pricing.totalSessions,
+        level: cls.level,
+        rating: cls.avgRating
+      }));
+      
+      setWorkshops(transformedWorkshops);
+    } catch (error) {
+      console.error('Error fetching workshops:', error);
+      setError('Failed to load workshops. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper functions for data transformation
+  const formatDate = (schedule) => {
+    if (!schedule || !schedule.startDate) return 'TBD';
+    const startDate = new Date(schedule.startDate);
+    const endDate = schedule.endDate ? new Date(schedule.endDate) : startDate;
+    
+    // Get the first scheduled session time
+    const firstSession = schedule.weeklySchedule?.[0];
+    const timeString = firstSession ? `${firstSession.startTime} - ${firstSession.endTime}` : '';
+    
+    if (schedule.startDate === schedule.endDate || !schedule.endDate) {
+      // Single day workshop
+      return `${startDate.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}${timeString ? ` • ${timeString}` : ''}`;
+    } else {
+      // Multi-day workshop
+      return `${startDate.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      })} - ${endDate.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      })}${timeString ? ` • ${timeString}` : ''}`;
+    }
+  };
+
+  const getSubjectCategory = (subject) => {
+    const subjectMap = {
+      'music': 'music',
+      'anime': 'art',
+      'art': 'art',
+      'dance': 'dance',
+      'technology': 'tech',
+      'cooking': 'cooking',
+      'yoga': 'yoga',
+      'language': 'language',
+      'visual-arts': 'art',
+      'martial-arts': 'wellness'
+    };
+    return subjectMap[subject] || 'other';
+  };
+  
+  const getColorFromSubject = (subject) => {
+    const colorMap = {
+      'music': 'from-purple-500 to-pink-500',
+      'anime': 'from-orange-500 to-red-500',
+      'art': 'from-yellow-500 to-orange-500',
+      'dance': 'from-pink-500 to-purple-500',
+      'technology': 'from-blue-500 to-indigo-600',
+      'cooking': 'from-green-500 to-teal-600',
+      'yoga': 'from-teal-400 to-blue-500',
+      'language': 'from-indigo-500 to-purple-600',
+      'visual-arts': 'from-yellow-500 to-orange-500',
+      'martial-arts': 'from-red-500 to-pink-500'
+    };
+    return colorMap[subject] || 'from-gray-500 to-gray-600';
+  };
+
+  const getAgeGroupLabel = (ageGroup) => {
+    const ageLabels = {
+      'child': 'Children (5-12)',
+      'teen': 'Teenagers (13-17)',
+      'adult': 'Adults (18+)',
+      'family': 'Family Friendly',
+      'young-learner': 'Young Learners (3-8)'
+    };
+    return ageLabels[ageGroup] || 'All Ages';
+  };
+
+  const getPriceCategory = (price) => {
+    if (price === 0) return 'free';
+    if (price < 20) return 'under-20';
+    if (price <= 50) return '20-50';
+    return 'over-50';
+  };
+
+  const getDateFilter = (schedule) => {
+    if (!schedule || !schedule.startDate) return 'this-month';
+    const startDate = new Date(schedule.startDate);
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    if (startDate.toDateString() === now.toDateString()) return 'today';
+    if (startDate.toDateString() === tomorrow.toDateString()) return 'tomorrow';
+    if (startDate <= nextWeek) return 'this-week';
+    return 'this-month';
+  };
+
+  const getBadges = (cls) => {
+    const badges = [];
+    if (cls.pricing.perSessionRate === 0) {
+      badges.push({ text: 'Free', color: 'bg-green-500' });
+    }
+    if (cls.pricing.totalSessions > 1) {
+      badges.push({ text: `${cls.pricing.totalSessions} Sessions`, color: 'bg-blue-500' });
+    }
+    const spotsLeft = cls.capacity.maxStudents - cls.capacity.currentEnrollment;
+    if (spotsLeft <= 2 && spotsLeft > 0) {
+      badges.push({ text: `${spotsLeft} spots left!`, color: 'bg-red-500 animate-pulse' });
+    }
+    if (cls.avgRating && cls.avgRating >= 4.5) {
+      badges.push({ text: 'Highly Rated', color: 'bg-yellow-500' });
+    }
+    return badges;
+  };
+
+  const getSkills = (cls) => {
+    const skills = [];
+    
+    // Age group
+    const ageLabel = getAgeGroupLabel(cls.ageGroup);
+    skills.push({ text: ageLabel, color: 'bg-indigo-100 text-indigo-700' });
+    
+    // Level
+    const levelColors = {
+      'beginner': 'bg-green-100 text-green-700',
+      'intermediate': 'bg-yellow-100 text-yellow-700',
+      'advanced': 'bg-red-100 text-red-700'
+    };
+    const levelText = cls.level.charAt(0).toUpperCase() + cls.level.slice(1);
+    skills.push({ text: levelText, color: levelColors[cls.level] || 'bg-gray-100 text-gray-700' });
+    
+    return skills;
+  };
+
+  const getIcon = (subject) => {
+    const iconMap = {
+      'music': '🎵',
+      'anime': '🎨',
+      'art': '🎨',
+      'dance': '💃',
+      'technology': '💻',
+      'cooking': '👨‍🍳',
+      'yoga': '🧘‍♀️',
+      'language': '🗣️',
+      'visual-arts': '🎨',
+      'martial-arts': '🥋'
+    };
+    return iconMap[subject] || '📚';
+  };
+
   // Function to apply filters
   const applyFilters = () => {
-    const filteredWorkshops = workshopsData.filter(workshop => {
-      const subjectMatch = !filters.subject || workshop.subject === filters.subject;
-      const ageMatch = !filters.age || workshop.age === filters.age || workshop.age === 'family';
-      const modeMatch = !filters.mode || workshop.mode === filters.mode || workshop.mode === 'hybrid';
-      const dateMatch = !filters.date || workshop.dateFilter === filters.date;
-      const priceMatch = !filters.price || workshop.price === filters.price;
-
-      return subjectMatch && ageMatch && modeMatch && dateMatch && priceMatch;
-    });
-    setWorkshops(filteredWorkshops);
+    // Filters are now applied through API calls or client-side filtering
+    // This function can be enhanced to work with the real data
   };
 
   // Function to clear all filters
@@ -163,7 +227,12 @@ export default function Home() {
     setFilters({ subject: '', age: '', mode: '', date: '', price: '' });
   };
 
-  // Run applyFilters when filters state changes
+  // Fetch workshops on component mount
+  useEffect(() => {
+    fetchWorkshops();
+  }, []);
+
+  // Apply filters when filter state changes
   useEffect(() => {
     applyFilters();
   }, [filters]);
@@ -175,25 +244,57 @@ export default function Home() {
   };
 
   const registerWorkshop = (workshopId) => {
-    const workshopToUpdate = workshops.find(w => w.id === workshopId);
-    if (!workshopToUpdate || workshopToUpdate.capacity <= 0) return;
+    const workshop = workshops.find(w => w.id === workshopId);
+    if (!workshop || workshop.capacity <= 0) return;
 
-    // Show a custom alert message instead of the built-in `alert`
-    const bookingPrice = workshopToUpdate.price === 'free' ? 'free' : '£' + workshopToUpdate.price.split('-')[0];
-    const message = workshopToUpdate.price === 'free' ?
-      `🎉 Success! You're registered for this free workshop.\n\nConfirmation email sent with Zoom link and preparation materials.` :
-      `🎉 Booking confirmed! Payment of ${bookingPrice} processed.\n\nConfirmation email sent with location details and what to bring.`;
+    // Store workshop data in localStorage for the booking page
+    const classData = {
+      classId: workshop.id,
+      title: workshop.title,
+      subject: workshop.subject,
+      description: workshop.description,
+      level: workshop.level,
+      ageGroup: workshop.age,
+      format: workshop.mode,
+      schedule: {
+        startDate: workshop.date,
+        sessionDuration: parseInt(workshop.duration),
+        weeklySchedule: [{
+          day: workshop.date.split(',')[0], // Extract day from date
+          startTime: workshop.date.split('•')[1]?.split('-')[0]?.trim() || '14:00',
+          endTime: workshop.date.split('•')[1]?.split('-')[1]?.trim() || '16:00'
+        }]
+      },
+      capacity: {
+        maxStudents: workshop.initialCapacity,
+        currentEnrollment: workshop.initialCapacity - workshop.capacity
+      },
+      pricing: {
+        perSessionRate: workshop.price === 'free' ? 0 : parseFloat(workshop.price.split('-')[0] || '25'),
+        totalSessions: workshop.totalSessions || 1,
+        currency: 'GBP'
+      },
+      type: 'workshop'
+    };
 
-    alert(message); // Using alert for simplicity, but in a real app, a custom modal would be better.
+    const mentorData = {
+      uid: workshop.id, // Using workshop ID as fallback
+      displayName: workshop.mentor,
+      category: workshop.subject,
+      pricing: {
+        oneOnOneRate: classData.pricing.perSessionRate,
+        groupRate: classData.pricing.perSessionRate,
+        currency: 'GBP',
+        firstSessionFree: workshop.price === 'free'
+      }
+    };
 
-    // Update the workshop capacity
-    setWorkshops(prevWorkshops =>
-      prevWorkshops.map(workshop =>
-        workshop.id === workshopId
-          ? { ...workshop, capacity: Math.max(0, workshop.capacity - 1) }
-          : workshop
-      )
-    );
+    // Store data for booking page
+    localStorage.setItem('selectedMentorClass', JSON.stringify(classData));
+    localStorage.setItem('mentor', JSON.stringify(mentorData));
+
+    // Redirect to common booking confirmation page
+    router.push(`/booking/confirmbooking/${workshopId}`);
   };
 
   // This function simulates the JS logic from the original HTML file.
@@ -426,8 +527,36 @@ export default function Home() {
 
         {/* Workshops Grid Component */}
         <main className="max-w-7xl mx-auto px-5 py-12">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8" id="workshops-grid">
-            {workshops.map((workshop) => (
+          {loading && (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <span className="ml-4 text-gray-600">Loading workshops...</span>
+            </div>
+          )}
+          
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+              {error}
+              <button 
+                onClick={fetchWorkshops} 
+                className="ml-4 underline hover:no-underline"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+          
+          {!loading && !error && workshops.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🔍</div>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">No workshops found</h3>
+              <p className="text-gray-500">Try adjusting your filters or check back later for new workshops.</p>
+            </div>
+          )}
+          
+          {!loading && !error && workshops.length > 0 && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8" id="workshops-grid">
+              {workshops.map((workshop) => (
               <div
                 key={workshop.id}
                 className="workshop-card bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 overflow-hidden"
@@ -519,8 +648,9 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </main>
 
         {/* Footer CTA Section Component */}

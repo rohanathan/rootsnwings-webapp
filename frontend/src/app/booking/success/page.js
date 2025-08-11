@@ -1,9 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import axios from 'axios';
 
 export default function BookingSuccess() {
-  const firstClassDate = new Date('2025-08-17T14:00:00'); // Example date, same as original HTML
+  const searchParams = useSearchParams();
+  const [loading, setLoading] = useState(true);
+  const [bookingDetails, setBookingDetails] = useState(null);
+  const [error, setError] = useState('');
+  
+  // Get first class date from stored data
+  const getFirstClassDate = () => {
+    try {
+      const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+      if (storedClass.schedule?.startDate) {
+        const schedule = storedClass.schedule.weeklySchedule?.[0];
+        const timeString = schedule?.startTime || '14:00';
+        return new Date(`${storedClass.schedule.startDate}T${timeString}:00`);
+      }
+    } catch (e) {
+      console.error('Error parsing class date:', e);
+    }
+    return new Date('2025-08-17T14:00:00'); // fallback
+  };
+  
+  const firstClassDate = getFirstClassDate();
   const [countdown, setCountdown] = useState({
     days: '00',
     hours: '00',
@@ -11,7 +33,46 @@ export default function BookingSuccess() {
     seconds: '00',
   });
 
-  // Calculate countdown time on component mount and every second
+  // Handle payment confirmation from Stripe redirect
+  useEffect(() => {
+    const confirmPaymentAndBooking = async () => {
+      try {
+        const paymentIntent = searchParams.get('payment_intent');
+        const bookingId = searchParams.get('booking_id');
+        
+        if (paymentIntent && bookingId) {
+          // Payment came from Stripe - confirm it
+          const confirmResponse = await axios.post(
+            `https://rootsnwings-api-944856745086.europe-west2.run.app/payments/confirm-payment?booking_id=${bookingId}&payment_intent_id=${paymentIntent}`
+          );
+          
+          if (confirmResponse.data.success) {
+            setBookingDetails(confirmResponse.data.booking);
+            // Clear payment data
+            localStorage.removeItem('payment_data');
+            localStorage.removeItem('selectedMentorClass');
+            localStorage.removeItem('mentor');
+          }
+        } else {
+          // Direct booking success (no payment) - try to get booking details from localStorage
+          const storedBooking = localStorage.getItem('completedBooking');
+          if (storedBooking) {
+            setBookingDetails(JSON.parse(storedBooking));
+            localStorage.removeItem('completedBooking');
+          }
+        }
+      } catch (error) {
+        console.error('Error confirming payment:', error);
+        setError('There was an issue confirming your payment, but your booking may still be successful.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    confirmPaymentAndBooking();
+  }, [searchParams]);
+
+  // Calculate countdown time on component mount and every second  
   useEffect(() => {
     const calculateCountdown = () => {
       const now = new Date().getTime();
@@ -97,6 +158,37 @@ export default function BookingSuccess() {
     .animation-delay-600 { animation-delay: 0.6s; }
   `;
 
+  // Show loading state while confirming payment
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Confirming your booking...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if something went wrong
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h1 className="text-2xl font-bold text-orange-600 mb-4">Booking Issue</h1>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={() => window.location.href = '/user/bookings'}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Check My Bookings
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <style jsx global>{globalStyle}</style>
@@ -132,7 +224,7 @@ export default function BookingSuccess() {
             </div>
             <h1 className="text-5xl font-bold text-primary-dark mb-4">You're all set!</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              🎉 Your booking is confirmed! We've reserved your spot and notified Priya Sharma. 
+              🎉 Your booking is confirmed! We've reserved your spot and notified your mentor. 
               Get ready for an amazing learning journey!
             </p>
             <div className="inline-flex items-center bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-full font-bold mt-6 animate-slideUp animation-delay-500">
@@ -149,31 +241,60 @@ export default function BookingSuccess() {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-primary-dark">📋 Booking Summary</h2>
                   <div className="text-sm text-gray-500">
-                    ID: <span className="font-mono bg-gray-100 px-2 py-1 rounded">RW-2025-0847</span>
+                    ID: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{bookingDetails?.bookingId || 'Loading...'}</span>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-6 mb-8">
                   <div className="relative">
                     <div className="w-20 h-20 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                      P
+                      {/* Get stored mentor data */}
+                      {(() => {
+                        const storedMentor = JSON.parse(localStorage.getItem('mentor') || '{}');
+                        return storedMentor.displayName?.charAt(0) || 'M';
+                      })()}
                     </div>
                     <div className="absolute -bottom-1 -right-1 bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">
                       ✓
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold text-primary-dark mb-2">Priya Sharma</h3>
-                    <p className="text-gray-600 mb-4">Kathak Dance & Cultural Arts Expert</p>
+                    <h3 className="text-xl font-bold text-primary-dark mb-2">
+                      {(() => {
+                        const storedMentor = JSON.parse(localStorage.getItem('mentor') || '{}');
+                        return storedMentor.displayName || 'Mentor Name';
+                      })()}
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      {(() => {
+                        const storedMentor = JSON.parse(localStorage.getItem('mentor') || '{}');
+                        return storedMentor.category || 'Subject Expert';
+                      })()}
+                    </p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       <span className="px-4 py-2 bg-gradient-to-r from-blue-100 to-purple-100 text-primary-dark font-semibold rounded-full">
-                        📚 Weekend Group Batch
+                        📚 {(() => {
+                          const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                          return storedClass.type === 'workshop' ? 'Workshop' : 'Class';
+                        })()}
                       </span>
                       <span className="px-4 py-2 bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-700 font-semibold rounded-full">
-                        ⚡ Intermediate Level
+                        ⚡ {(() => {
+                          const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                          return storedClass.level?.charAt(0).toUpperCase() + storedClass.level?.slice(1) || 'All Levels';
+                        })()}
                       </span>
                       <span className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 font-semibold rounded-full">
-                        👦 Teens (13-17)
+                        👦 {(() => {
+                          const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                          const ageLabels = {
+                            'child': 'Children (5-12)',
+                            'teen': 'Teens (13-17)',
+                            'adult': 'Adults (18+)',
+                            'family': 'Family Friendly'
+                          };
+                          return ageLabels[storedClass.ageGroup] || 'All Ages';
+                        })()}
                       </span>
                     </div>
                   </div>
@@ -184,17 +305,53 @@ export default function BookingSuccess() {
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">📅</span>
                       <div>
-                        <div className="font-semibold text-gray-700">Schedule</div>
-                        <div className="text-primary-dark font-bold">8-Week Weekend Intensive</div>
-                        <div className="text-sm text-gray-500">Aug 17 - Sep 15, 2025</div>
+                        <div className="font-semibold text-gray-700">Class</div>
+                        <div className="text-primary-dark font-bold">
+                          {(() => {
+                            const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                            return storedClass.title || 'Class Title';
+                          })()}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {(() => {
+                            const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                            if (storedClass.schedule?.startDate) {
+                              const startDate = new Date(storedClass.schedule.startDate);
+                              const endDate = storedClass.schedule.endDate ? new Date(storedClass.schedule.endDate) : startDate;
+                              
+                              if (storedClass.schedule.startDate === storedClass.schedule.endDate || !storedClass.schedule.endDate) {
+                                return startDate.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                              } else {
+                                return `${startDate.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+                              }
+                            }
+                            return 'Schedule TBD';
+                          })()}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">⏰</span>
                       <div>
-                        <div className="font-semibold text-gray-700">Time</div>
-                        <div className="text-primary-dark font-bold">Sat & Sun | 2:00-3:00 PM</div>
-                        <div className="text-sm text-gray-500">16 total sessions</div>
+                        <div className="font-semibold text-gray-700">Time & Duration</div>
+                        <div className="text-primary-dark font-bold">
+                          {(() => {
+                            const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                            const schedule = storedClass.schedule?.weeklySchedule?.[0];
+                            if (schedule) {
+                              return `${schedule.startTime || '10:00'} - ${schedule.endTime || '11:00'}`;
+                            }
+                            return 'Time TBD';
+                          })()}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {(() => {
+                            const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                            const totalSessions = storedClass.pricing?.totalSessions || 1;
+                            const duration = storedClass.schedule?.sessionDuration || 60;
+                            return `${totalSessions} session${totalSessions > 1 ? 's' : ''} • ${duration} min each`;
+                          })()}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -203,22 +360,50 @@ export default function BookingSuccess() {
                       <span className="text-2xl">📍</span>
                       <div>
                         <div className="font-semibold text-gray-700">Location</div>
-                        <div className="text-primary-dark font-bold">Community Centre Birmingham</div>
-                        <div className="text-sm text-gray-500">12 Washwood Heath Rd, B8 2AA</div>
+                        <div className="text-primary-dark font-bold">
+                          {(() => {
+                            const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                            return storedClass.location || (storedClass.format === 'online' ? 'Online Class' : 'Location TBD');
+                          })()}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {(() => {
+                            const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                            return storedClass.format === 'online' ? 'Zoom link will be shared' : 'Address will be shared via email';
+                          })()}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">💰</span>
                       <div>
                         <div className="font-semibold text-gray-700">Total Paid</div>
-                        <div className="text-primary-dark font-bold text-lg">£187.50</div>
-                        <div className="text-sm text-green-600">✅ Payment Confirmed</div>
+                        <div className="text-primary-dark font-bold text-lg">
+                          {(() => {
+                            const paymentData = JSON.parse(localStorage.getItem('payment_data') || '{}');
+                            const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                            
+                            if (paymentData.amount) {
+                              return `£${paymentData.amount}`;
+                            } else if (storedClass.pricing?.perSessionRate === 0) {
+                              return 'FREE';
+                            } else if (storedClass.pricing?.perSessionRate) {
+                              const total = storedClass.pricing.perSessionRate * (storedClass.pricing.totalSessions || 1);
+                              return `£${total}`;
+                            }
+                            return 'Payment Processing...';
+                          })()}
+                        </div>
+                        <div className="text-sm text-green-600">✅ {(() => {
+                          const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
+                          return storedClass.pricing?.perSessionRate === 0 ? 'Free Registration' : 'Payment Confirmed';
+                        })()}</div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-primary-light to-accent-light p-6 rounded-2xl mb-6">
+                <div className="bg-gradient-to-r from-primary-light to-accent-light p-6 rounded-2xl">
                   <h4 className="font-bold text-primary-dark mb-3">⏱️ Your first class starts in:</h4>
                   <div className="flex justify-center gap-4 text-center">
                     <div className="bg-white p-3 rounded-xl shadow">
@@ -235,32 +420,6 @@ export default function BookingSuccess() {
                     </div>
                   </div>
                 </div>
-
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl mb-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">🌤️</span>
-                      <div>
-                        <div className="font-semibold text-gray-700">Weather for your first class</div>
-                        <div className="text-sm text-gray-600">Saturday, Aug 17 in Birmingham</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-primary-dark">22°C</div>
-                      <div className="text-xs text-gray-600">Partly Cloudy</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-green-50 to-teal-50 p-4 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">🚗</span>
-                    <div>
-                      <div className="font-semibold text-gray-700">Estimated travel time</div>
-                      <div className="text-sm text-gray-600">From your location: ~15 minutes by car, 25 minutes by bus</div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -270,10 +429,7 @@ export default function BookingSuccess() {
                 <h3 className="text-lg font-bold text-primary-dark mb-4">🚀 Quick Actions</h3>
                 <div className="space-y-3">
                   <button onClick={goToDashboard} className="w-full bg-gradient-to-r from-primary to-blue-500 hover:from-blue-500 hover:to-primary text-white py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105">
-                    📊 Go to My Dashboard
-                  </button>
-                  <button onClick={messageMentor} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-pink-500 hover:to-purple-500 text-white py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105">
-                    💬 Message Priya Sharma
+                    📊 View My Bookings
                   </button>
                   <button onClick={viewMoreClasses} className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white py-3 rounded-xl font-semibold transition-all duration-300">
                     🔍 View More Classes
@@ -284,34 +440,12 @@ export default function BookingSuccess() {
               {/* Calendar Integration */}
               <div className="bg-white rounded-3xl p-6 shadow-xl">
                 <h3 className="text-lg font-bold text-primary-dark mb-4">📅 Add to Calendar</h3>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <button onClick={addToGoogleCalendar} className="bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg font-medium transition-colors text-sm">
-                    📅 Google
-                  </button>
-                  <button className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-3 rounded-lg font-medium transition-colors text-sm">
-                    📧 Outlook
-                  </button>
-                  <button className="bg-gray-800 hover:bg-gray-900 text-white py-2 px-3 rounded-lg font-medium transition-colors text-sm">
-                    🍎 Apple
-                  </button>
-                  <button className="bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded-lg font-medium transition-colors text-sm">
-                    🗓️ Other
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500">
-                  You will receive a separate calendar invite with a recurring schedule.
+                <button onClick={addToGoogleCalendar} className="w-full bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                  📅 Add to Google Calendar
+                </button>
+                <p className="text-xs text-gray-500 text-center mt-3">
+                  You will also receive a calendar invite via email.
                 </p>
-              </div>
-
-              {/* QR Code section */}
-              <div className="bg-white rounded-3xl p-6 shadow-xl">
-                <h3 className="text-lg font-bold text-primary-dark mb-4">🎟️ Your Ticket QR Code</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  For in-person classes, show this QR code at the reception.
-                </p>
-                <div className="flex justify-center items-center">
-                  <img src="https://placehold.co/200x200/e2e8f0/4a5568?text=QR+Code+Here" alt="QR Code" className="w-48 h-48 rounded-xl shadow-md"/>
-                </div>
               </div>
             </div>
           </div>

@@ -557,7 +557,16 @@ def create_class(class_data: Dict) -> str:
         class_id = f"class_{str(uuid.uuid4())[:8]}"
         
         # Ensure mentorName is always set (required field for ClassItem validation)
-        if not class_data.get("mentorName"):
+        if not class_data.get("mentorName") and class_data.get("mentorId"):
+            try:
+                mentor = fetch_mentor_by_id(class_data["mentorId"])
+                if mentor and hasattr(mentor, 'displayName'):
+                    class_data["mentorName"] = mentor.displayName
+                else:
+                    class_data["mentorName"] = "Unknown Mentor"
+            except:
+                class_data["mentorName"] = "Unknown Mentor"
+        elif not class_data.get("mentorName"):
             class_data["mentorName"] = "Unknown Mentor"
         
         # Add system fields
@@ -618,12 +627,29 @@ def update_class_flexible(class_id: str, update_data: dict) -> dict:
         flexible_update = update_data.copy()
         flexible_update["updatedAt"] = datetime.now().isoformat()
         
+        # If mentorId is being updated or mentorName is being cleared, fetch mentor name
+        current_data = doc.to_dict()
+        if ("mentorId" in flexible_update and flexible_update["mentorId"]) or (flexible_update.get("mentorName") is None):
+            mentor_id = flexible_update.get("mentorId", current_data.get("mentorId"))
+            if mentor_id:
+                try:
+                    from app.services.mentor_service import fetch_mentor_by_id
+                    mentor = fetch_mentor_by_id(mentor_id)
+                    if mentor and hasattr(mentor, 'displayName'):
+                        flexible_update["mentorName"] = mentor.displayName
+                    else:
+                        flexible_update["mentorName"] = "Unknown Mentor"
+                except:
+                    flexible_update["mentorName"] = "Unknown Mentor"
+        
         # Update with ANY fields
         doc_ref.update(flexible_update)
         
-        # Return updated class as plain dict
+        # Return updated class as clean data
         updated_doc = doc_ref.get()
-        return updated_doc.to_dict()
+        updated_data = updated_doc.to_dict()
+        updated_data["classId"] = class_id
+        return clean_data(updated_data)
     
     except HTTPException:
         raise
