@@ -332,28 +332,14 @@ export default function Home() {
     <>
       <Head>
         <title>Upcoming Workshops - Roots & Wings</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        colors: {
-                            primary: '#00A2E8',
-                            'primary-dark': '#00468C',
-                            'primary-light': '#f8fbff',
-                            'accent-light': '#e8f4ff'
-                        },
-                        fontFamily: {
-                            sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif']
-                        }
-                    }
-                }
-            }
-          `
-        }} />
         <style dangerouslySetInnerHTML={{
           __html: `
+            :root {
+              --primary: #00A2E8;
+              --primary-dark: #00468C;
+              --primary-light: #f8fbff;
+              --accent-light: #e8f4ff;
+            }
             @keyframes fadeIn {
                 from { opacity: 0; transform: translateY(20px); }
                 to { opacity: 1; transform: translateY(0); }

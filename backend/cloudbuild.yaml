@@ -24,5 +24,5 @@ steps:
       - '--set-secrets=STRIPE_SECRET_KEY=stripe-secret:latest,RESEND_API_KEY=resend-api-key:latest'
       - '--set-env-vars=FROM_EMAIL=onboarding@resend.dev,FRONTEND_URL=http://localhost:3000,BACKEND_URL=https://rootsnwings-api-944856745086.europe-west2.run.app'
 
-# For Logging n
+# For Logging added
 logsBucket: 'gs://rootsnwings-build-logs-rootsnwings-465610'
