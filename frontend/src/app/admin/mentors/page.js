@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
-import AccountDropDown from "@/components/AccountDropDown";
+// import AccountDropDown from "@/components/AccountDropDown";
 import { checkAdminAccess } from "@/utils/adminAuth";
 import axios from "axios";
+import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 
 const AdminMentorsPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -86,7 +87,7 @@ const AdminMentorsPage = () => {
   const handleStatusChange = async (mentorId, newStatus) => {
     try {
       await axios.put(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${mentorId}/`,
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${mentorId}`,
         { status: newStatus }
       );
       
@@ -159,15 +160,15 @@ const AdminMentorsPage = () => {
             </button>
             <h1 className="text-2xl font-bold text-primary-dark">Manage Mentors</h1>
           </div>
-          <AccountDropDown
+          <MentorHeaderAccount
             isProfileDropdownOpen={isProfileDropdownOpen}
             profileDropdownBtnRef={null}
-            toggleProfileDropdown={toggleProfileDropdown}
+            handleProfileDropdownClick={toggleProfileDropdown}
             profileDropdownRef={null}
             user={user}
             mentorDetails={null}
           />
-        </div>
+        </div> 
       </header>
 
       <div className="flex">

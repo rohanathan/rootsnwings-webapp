@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
-import AccountDropDown from "@/components/AccountDropDown";
+// import AccountDropDown from "@/components/AccountDropDown";
 import { checkAdminAccess } from "@/utils/adminAuth";
 import axios from "axios";
+import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 
 const AdminClassesPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -158,10 +159,10 @@ const AdminClassesPage = () => {
             </button>
             <h1 className="text-2xl font-bold text-primary-dark">Manage Classes</h1>
           </div>
-          <AccountDropDown
+          <MentorHeaderAccount
             isProfileDropdownOpen={isProfileDropdownOpen}
             profileDropdownBtnRef={null}
-            toggleProfileDropdown={toggleProfileDropdown}
+            handleProfileDropdownClick={toggleProfileDropdown}
             profileDropdownRef={null}
             user={user}
             mentorDetails={null}

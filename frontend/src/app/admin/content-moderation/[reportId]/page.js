@@ -32,8 +32,9 @@ const ReportDetailPage = () => {
         setUser(userData.user);
         
         // Check admin role
-        const userRoles = JSON.parse(localStorage.getItem("userRoles") || "[]");
-        if (!userRoles.includes("admin")) {
+        if (
+          !(userData?.user?.roles?.includes("admin"))
+        ) {
           setError("Admin access required. Insufficient permissions.");
           setLoading(false);
           return;

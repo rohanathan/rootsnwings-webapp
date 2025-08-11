@@ -16,7 +16,10 @@ export const checkAdminAccess = () => {
 
     // Method 1: Check userRoles array (new onboarding flow)
     const userRoles = JSON.parse(localStorage.getItem("userRoles") || "[]");
-    if (userRoles.includes("admin")) {
+    if (
+      !(userData?.user?.roles?.includes("admin")
+    )
+    ) {
       return { hasAccess: true, user: userData.user };
     }
 

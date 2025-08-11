@@ -60,12 +60,13 @@ const Dashboard = () => {
             const profileResponse = await axios.get(
               `https://rootsnwings-api-944856745086.europe-west2.run.app/users/me?user_id=${userData.user.uid}`
             );
+            console.log(profileResponse,'profileResponse profileResponse');
             
             if (profileResponse.data?.user) {
               // Check if profile is complete
-              if (!profileResponse.data.user.profileComplete) {
+              if (false) {
                 console.log("Profile not complete, redirecting to onboarding");
-                window.location.href = '/user/onboarding';
+                // window.location.href = '/user/onboarding';
                 return;
               }
               

@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
-import AccountDropDown from "@/components/AccountDropDown";
+// import AccountDropDown from "@/components/AccountDropDown";
 import { checkAdminAccess } from "@/utils/adminAuth";
 import axios from "axios";
+import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 
 const AdminDashboard = () => {
   // State management
@@ -303,14 +304,14 @@ const AdminDashboard = () => {
 
           {/* Right: Profile Dropdown */}
           <div className="relative">
-            <AccountDropDown
-              isProfileDropdownOpen={isProfileDropdownOpen}
-              profileDropdownBtnRef={profileDropdownBtnRef}
-              toggleProfileDropdown={toggleProfileDropdown}
-              profileDropdownRef={profileDropdownRef}
-              user={user}
-              mentorDetails={null}
-            />
+          <MentorHeaderAccount
+            isProfileDropdownOpen={isProfileDropdownOpen}
+            profileDropdownBtnRef={null}
+            handleProfileDropdownClick={toggleProfileDropdown}
+            profileDropdownRef={null}
+            user={user}
+            mentorDetails={null}
+          />
           </div>
         </div>
       </header>

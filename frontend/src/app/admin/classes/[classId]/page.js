@@ -2,8 +2,9 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar";
-import AccountDropDown from "@/components/AccountDropDown";
+// import AccountDropDown from "@/components/AccountDropDown";
 import axios from "axios";
+import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 
 const AdminClassDetailPage = () => {
   const params = useParams();
@@ -56,8 +57,10 @@ const AdminClassDetailPage = () => {
         setUser(userData.user);
         
         // Check admin role
-        const userRoles = JSON.parse(localStorage.getItem("userRoles") || "[]");
-        if (!userRoles.includes("admin")) {
+        // const userRoles = JSON.parse(localStorage.getItem("userRoles") || "[]");
+        if (
+          !(userData?.user?.roles?.includes("admin"))
+        ) {
           setError("Admin access required. Insufficient permissions.");
           setLoading(false);
           return;
@@ -215,10 +218,10 @@ const AdminClassDetailPage = () => {
             </button>
             <h1 className="text-2xl font-bold text-primary-dark">Class Details</h1>
           </div>
-          <AccountDropDown
+          <MentorHeaderAccount
             isProfileDropdownOpen={isProfileDropdownOpen}
             profileDropdownBtnRef={null}
-            toggleProfileDropdown={toggleProfileDropdown}
+            handleProfileDropdownClick={toggleProfileDropdown}
             profileDropdownRef={null}
             user={user}
             mentorDetails={null}

@@ -245,7 +245,7 @@ const MentorDetail = () => {
                         <div className="flex justify-between items-center py-4">
                             <a href="#" className="text-2xl font-bold text-primary-dark">Roots & Wings</a>
                             <div className="flex items-center space-x-6">
-                                <a href="#" className="text-gray-600 hover:text-primary transition-colors">← Back to Mentors</a>
+                                <a href="/mentor/directory" className="text-gray-600 hover:text-primary transition-colors">← Back to Mentors</a>
                               
                             </div>
                         </div>

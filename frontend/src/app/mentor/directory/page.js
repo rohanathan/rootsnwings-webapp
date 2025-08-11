@@ -326,7 +326,7 @@ const MentorDirectory = () => {
             <div className="text-gray-600">
               Showing{" "}
               <strong id="results-count" className="text-primary-dark">
-                {mentors.length}
+                {mentors.filter(mentor => mentor.status === 'active').length}
               </strong>{" "}
               mentors in the UK
             </div>
@@ -339,7 +339,7 @@ const MentorDirectory = () => {
             className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
             id="mentors-grid"
           >
-            {mentors.map((mentor, index) => (
+            {mentors.filter(mentor => mentor.status === 'active').map((mentor, index) => (
               <div
                 key={index}
                 className="bg-white border-2 border-gray-100 rounded-2xl p-6 hover:border-primary hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group relative"

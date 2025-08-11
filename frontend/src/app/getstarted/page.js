@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import axios from 'axios';
+import Navbar from '@/components/NavBar';
 
 const AuthPages = () => {
 
@@ -126,7 +127,14 @@ const AuthPages = () => {
       console.log('Login successful:', response.data);
       alert('Successfully logged in!');
       localStorage.setItem('user', JSON.stringify(response.data));
-      window.location.href = '/user/onboarding';
+
+      if(
+        response?.data?.user?.roles?.includes('admin')
+      ){
+        window.location.href = '/admin/dashboard';
+        return;
+      }
+        window.location.href = '/user/dashboard';
     })
     .catch(error => {
       console.error('Login failed:', error);
@@ -139,47 +147,27 @@ const AuthPages = () => {
     <>
       <Head>
         <title>{activeTab === 'signup' ? 'Sign Up - Roots & Wings' : 'Sign In - Roots & Wings'}</title>
-        {/* Using CDN and inline script for Tailwind to replicate the HTML file's setup */}
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script
-          id="tailwind-config"
-          dangerouslySetInnerHTML={{
-            __html: `
-              tailwind.config = {
-                theme: {
-                  extend: {
-                    colors: {
-                      primary: '#00A2E8',
-                      'primary-dark': '#00468C',
-                      'primary-light': '#f8fbff',
-                      'accent-light': '#e8f4ff'
-                    },
-                    fontFamily: {
-                      sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif']
-                    }
-                  }
-                }
-              }
-            `,
-          }}
-        />
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
 
       <div className="font-sans text-gray-800 bg-primary-light min-h-screen flex flex-col">
         {/* Header Component */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
+
+        <Navbar />
+
+        {/* <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex justify-between items-center py-4">
               {/* Logo */}
-              <div className="flex items-center space-x-3">
+              {/* <div className="flex items-center space-x-3">
                 <div className="text-2xl font-bold text-primary-dark">Roots & Wings</div>
                 <span className="hidden md:block text-sm text-gray-500">Educational Mentorship Platform</span>
-              </div>
+              </div>  */}
               
               {/* Navigation Links */}
-              <nav className="hidden md:flex items-center space-x-6">
+
+           
+              {/* <nav className="hidden md:flex items-center space-x-6">
                 <a href="/" className="text-gray-700 hover:text-primary font-medium transition-colors">
                   <i className="fas fa-home mr-2"></i>Home
                 </a>
@@ -189,10 +177,12 @@ const AuthPages = () => {
                 <a href="/workshop/listing" className="text-gray-700 hover:text-primary font-medium transition-colors">
                   <i className="fas fa-calendar mr-2"></i>Workshops
                 </a>
-              </nav>
-            </div>
+              </nav> */}
+
+
+            {/* </div>
           </div>
-        </header>
+        </header> */}
 
         {/* Main Content */}
         <main className="flex-1 flex items-center justify-center px-6 py-12">
