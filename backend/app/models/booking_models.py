@@ -13,6 +13,7 @@ class PaymentStatus(str, Enum):
     PAID = "paid"
     UNPAID = "unpaid"
     REFUNDED = "refunded"
+    COMPLETED = "completed"  # Legacy value from existing bookings
 
 class AttendanceStatus(str, Enum):
     PRESENT = "present"

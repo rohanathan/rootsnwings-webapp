@@ -53,8 +53,8 @@ def confirm_payment(booking_id: str, payment_intent_id: str):
         from app.services.booking_service import update_booking_flexible
         
         update_data = {
-            "status": "confirmed",
-            "paymentStatus": "completed", 
+            "bookingStatus": "confirmed",
+            "paymentStatus": "paid", 
             "paymentIntentId": payment_intent_id,
             "confirmedAt": datetime.now().isoformat()
         }
