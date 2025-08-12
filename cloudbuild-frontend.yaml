@@ -5,8 +5,6 @@ steps:
     args: ['install']
 
   # Step 2: Build the Next.js application
-  # This step now passes all the necessary environment variables
-  # from the trigger to the Next.js build process.
   - name: 'gcr.io/cloud-builders/npm'
     dir: 'frontend'
     args: ['run', 'build']
@@ -22,20 +20,19 @@ steps:
       - 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${_NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}'
 
   # Step 3: Deploy to Firebase Hosting
+  # This step now uses bash to correctly expand the $FIREBASE_TOKEN environment variable.
   - name: 'gcr.io/cloud-builders/npm'
     dir: 'frontend'
+    entrypoint: 'bash'
     secretEnv: ['FIREBASE_TOKEN']
     args:
-      - 'run'
-      - 'firebase'
-      - '--'
-      - 'deploy'
-      - '--project'
-      - '${PROJECT_ID}'
-      - '--only'
-      - 'hosting'
-      - '--token'
-      - '${FIREBASE_TOKEN}'
+      - '-c'
+      - |
+        npm run firebase -- \
+        deploy \
+        --project=${PROJECT_ID} \
+        --only=hosting \
+        --token=$FIREBASE_TOKEN
 
 # Make the Firebase token available to the build steps
 availableSecrets:
