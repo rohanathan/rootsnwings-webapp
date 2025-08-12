@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 
-export default function BookingSuccess() {
+function BookingSuccessContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [bookingDetails, setBookingDetails] = useState(null);
@@ -475,5 +475,13 @@ export default function BookingSuccess() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function BookingSuccess() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BookingSuccessContent />
+    </Suspense>
   );
 }
