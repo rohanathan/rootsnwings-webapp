@@ -12,7 +12,7 @@ const ContentModerationPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
-  Filter states
+  // Filter states
   const [statusFilter, setStatusFilter] = useState("pending");
   const [typeFilter, setTypeFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
