@@ -4,7 +4,7 @@ from app.models.class_models import ClassItem, ClassListResponse, FeaturedClassR
 from app.services.class_service import (
     search_classes, fetch_all_classes, fetch_all_workshops, fetch_featured_classes,
     fetch_upcoming_workshops, fetch_class_by_id, get_class_categories, get_class_subjects,
-    create_class, update_class_flexible, approve_class
+    create_class, update_class_flexible
 )
 from app.services.mentor_service import fetch_mentor_by_id
 from app.services.firestore import db
@@ -234,23 +234,6 @@ def update_existing_class(class_id: str, update_data: dict):
     """
     updated_class = update_class_flexible(class_id, update_data)
     return {"class": updated_class}
-
-@router.post("/{class_id}/approve")
-def approve_existing_class(class_id: str, admin_notes: str = ""):
-    """
-    Approve a class and finalize searchMetadata.
-    
-    This endpoint is typically used by admin users to approve pending classes.
-    """
-    success = approve_class(class_id, admin_notes)
-    if success:
-        return {
-            "message": "Class approved successfully",
-            "classId": class_id,
-            "status": "approved"
-        }
-    else:
-        raise HTTPException(status_code=500, detail="Failed to approve class")
 
 @router.post("/one-on-one/create")
 def create_one_on_one_class(request: dict):

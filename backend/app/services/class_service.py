@@ -577,8 +577,7 @@ def create_class(class_data: Dict) -> str:
         class_data["classId"] = class_id
         class_data["createdAt"] = now
         class_data["updatedAt"] = now
-        # class_data["status"] = "pending_approval"  # COMMENTED OUT - Auto-approve for testing
-        class_data["status"] = "approved"  # AUTO-APPROVE for testing
+        class_data["status"] = "pending"  # Classes need admin approval
         
         # Auto-generate searchMetadata
         class_data["searchMetadata"] = generate_search_metadata(class_data)
@@ -658,42 +657,3 @@ def update_class_flexible(class_id: str, update_data: dict) -> dict:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update class: {str(e)}")
-
-def approve_class(class_id: str, admin_notes: str = "") -> bool:
-    """
-    Approve a class and finalize searchMetadata.
-    Returns True if successful.
-    """
-    try:
-        doc_ref = db.collection("classes").document(class_id)
-        doc = doc_ref.get()
-        
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail="Class not found")
-        
-        class_data = doc.to_dict()
-        
-        # Update status and approval workflow
-        updates = {
-            "status": "approved",
-            "updatedAt": datetime.now().isoformat(),
-            "approvalWorkflow.reviewStatus": "approved",
-            "approvalWorkflow.adminNotes": admin_notes,
-            "approvalWorkflow.adminChecks.scheduleValid": True,
-            "approvalWorkflow.adminChecks.pricingValid": True,
-            "approvalWorkflow.adminChecks.contentClear": True,
-            "approvalWorkflow.adminChecks.mentorQualified": True,
-            "approvalWorkflow.adminChecks.capacityReasonable": True
-        }
-        
-        # Regenerate final searchMetadata
-        updates["searchMetadata"] = generate_search_metadata(class_data)
-        
-        doc_ref.update(updates)
-        
-        return True
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to approve class: {str(e)}")
