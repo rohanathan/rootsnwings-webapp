@@ -82,7 +82,7 @@ const workshopsData = [
     format: "in-person",
     subject: "kathak",
     description: "Intensive 2-day workshop focusing on advanced Kathak techniques, expressions, and performance skills. Perfect for dancers looking to deepen their practice in a concentrated format.",
-    mentorName: " Sharma",
+    mentorName: " ShaRSrma",
     mentorPhotoURL: "https://randomuser.me/api/portraits/women/45.jpg",
     mentorRating: 4.9,
     pricing: {

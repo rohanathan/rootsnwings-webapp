@@ -30,9 +30,9 @@ steps:
       - |
         npm run firebase -- \
         deploy \
-        --project=${PROJECT_ID} \
+        --project=$$PROJECT_ID \
         --only=hosting \
-        --token=$FIREBASE_TOKEN
+        --token=$$FIREBASE_TOKEN
 
 # Make the Firebase token available to the build steps
 availableSecrets:
