@@ -1,11 +1,11 @@
 steps:
   # Step 1: Install npm dependencies
-  - name: 'gcr.io/cloud-builders/npm'
+  - name: 'gcr.io/cloud-builders/npm:node-20'
     dir: 'frontend'
     args: ['install']
 
   # Step 2: Build the Next.js application
-  - name: 'gcr.io/cloud-builders/npm'
+  - name: 'gcr.io/cloud-builders/npm:node-20'
     dir: 'frontend'
     args: ['run', 'build']
     env:
@@ -21,7 +21,7 @@ steps:
 
   # Step 3: Deploy to Firebase Hosting
   # This step now uses bash to correctly expand the $FIREBASE_TOKEN environment variable.
-  - name: 'gcr.io/cloud-builders/npm'
+  - name: 'gcr.io/cloud-builders/npm:node-20'
     dir: 'frontend'
     entrypoint: 'bash'
     secretEnv: ['FIREBASE_TOKEN']
