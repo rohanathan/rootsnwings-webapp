@@ -52,7 +52,7 @@ app.include_router(reviews.router)
 app.include_router(metadata.router)
 app.include_router(messages.router)
 
-# Create uploads directory if it doesn't exist
+# Create uploads directory if it does not exist
 uploads_dir = "uploads"
 if not os.path.exists(uploads_dir):
     os.makedirs(uploads_dir)
