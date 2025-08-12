@@ -149,7 +149,7 @@ const workshopsData = [
     format: "online",
     subject: "performance",
     description: "Exclusive single-day masterclass focusing on stage presence, advanced choreography, and professional performance techniques. Limited to experienced dancers only.",
-    mentorName: "Priya Sharma",
+    mentorName: " Sharma",
     mentorPhotoURL: "https://randomuser.me/api/portraits/women/45.jpg",
     mentorRating: 4.9,
     pricing: {
