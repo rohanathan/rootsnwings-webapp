@@ -213,7 +213,7 @@ const workshopsData = [
     format: "hybrid",
     subject: "cultural_dance",
     description: "Immersive 4-day workshop exploring the cultural significance and traditional techniques of classical Indian dance forms, combining theory with practical sessions.",
-    mentorName: "Priya Sharma",
+    mentorName: " Sharma",
     mentorPhotoURL: "https://randomuser.me/api/portraits/women/45.jpg",
     mentorRating: 4.9,
     pricing: {
