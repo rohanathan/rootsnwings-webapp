@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar";
-//import AccountDropDown from "@/components/AccountDropDown";
 import axios from "axios";
 
 const ReportDetailPage = () => {
@@ -216,15 +215,7 @@ const ReportDetailPage = () => {
             </button>
             <h1 className="text-2xl font-bold text-primary-dark">Report Details</h1>
           </div>
-          <AccountDropDown
-            isProfileDropdownOpen={isProfileDropdownOpen}
-            profileDropdownBtnRef={null}
-            toggleProfileDropdown={toggleProfileDropdown}
-            profileDropdownRef={null}
-            user={user}
-            mentorDetails={null}
-          />
-        </div>
+
       </header>
 
       <div className="flex">

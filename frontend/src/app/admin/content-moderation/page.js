@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
-//import AccountDropDown from "@/components/AccountDropDown";
 import { checkAdminAccess } from "@/utils/adminAuth";
 import axios from "axios";
 
@@ -265,16 +264,7 @@ const ContentModerationPage = () => {
               <i className="fas fa-bars text-xl"></i>
             </button>
             <h1 className="text-2xl font-bold text-primary-dark">Content Moderation</h1>
-          </div>
-          <AccountDropDown
-            isProfileDropdownOpen={isProfileDropdownOpen}
-            profileDropdownBtnRef={null}
-            toggleProfileDropdown={toggleProfileDropdown}
-            profileDropdownRef={null}
-            user={user}
-            mentorDetails={null}
-          />
-        </div>
+
       </header>
 
       <div className="flex">
