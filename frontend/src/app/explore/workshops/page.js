@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { calculateTotalPayable, formatPrice } from '../../utils/pricingCalculator';
@@ -241,7 +241,7 @@ const workshopsData = [
   }
 ];
 
-export default function Workshops() {
+function WorkshopsContent() {
   const searchParams = useSearchParams();
   
   const [filters, setFilters] = useState({
@@ -689,5 +689,13 @@ export default function Workshops() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function Workshops() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <WorkshopsContent />
+    </Suspense>
   );
 }
