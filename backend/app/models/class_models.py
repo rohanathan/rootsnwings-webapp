@@ -77,6 +77,7 @@ class ClassItem(BaseModel):
     totalReviews: Optional[int] = 0
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
+    status: Optional[str] = None  # Add status field for admin functionality
 
 class ClassListResponse(BaseModel):
     classes: List[ClassItem]

@@ -20,20 +20,24 @@ const AdminClassesPage = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  
+  // Modal states
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [actionType, setActionType] = useState(""); // 'approve' or 'reject'
+  const [actionMessage, setActionMessage] = useState("");
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
   const statusOptions = [
     { value: "all", label: "All Statuses" },
-    { value: "pending_approval", label: "Pending Approval" },
+    { value: "pending", label: "Pending" },
     { value: "approved", label: "Approved" },
-    { value: "rejected", label: "Rejected" },
-    { value: "active", label: "Active" },
-    { value: "inactive", label: "Inactive" }
+    { value: "rejected", label: "Rejected" }
   ];
 
   const typeOptions = [
     { value: "all", label: "All Types" },
-    { value: "one-on-one", label: "One-on-One" },
-    { value: "batch", label: "Batch Classes" },
+    { value: "group", label: "Group Classes" },
     { value: "workshop", label: "Workshops" }
   ];
 
@@ -66,6 +70,8 @@ const AdminClassesPage = () => {
         );
         
         if (response.data?.classes) {
+          console.log("Loaded classes:", response.data.classes);
+          console.log("First class status:", response.data.classes[0]?.status);
           setClasses(response.data.classes);
           setTotalPages(response.data.totalPages || 1);
         }
@@ -81,7 +87,90 @@ const AdminClassesPage = () => {
     loadClasses();
   }, [currentPage, searchQuery, statusFilter, typeFilter]);
 
-  // Handle class status change
+  // Handle opening view details modal
+  const handleViewDetails = (classItem) => {
+    console.log("Opening details for class:", classItem);
+    setSelectedClass(classItem);
+    setIsModalOpen(true);
+  };
+
+  // Handle approve/reject action
+  const handleClassAction = (classItem, action) => {
+    console.log(`${action}ing class:`, classItem);
+    setSelectedClass(classItem);
+    setActionType(action);
+    setActionMessage("");
+    setIsActionModalOpen(true);
+  };
+
+  // Submit approve/reject with message
+  const submitClassAction = async () => {
+    if (!actionMessage.trim()) {
+      alert("Please provide a message for this action.");
+      return;
+    }
+
+    try {
+      let updatePayload = {};
+      
+      if (actionType === 'approve') {
+        // On approval: set all admin checks to true, update review status, clear admin notes
+        updatePayload = {
+          approvalWorkflow: {
+            ...selectedClass.approvalWorkflow,
+            reviewStatus: "approved",
+            reviewedAt: new Date().toISOString(),
+            reviewedBy: user.uid || "admin"
+          },
+          adminChecks: {
+            capacityReasonable: true,
+            contentClear: true,
+            mentorQualified: true,
+            pricingValid: true,
+            scheduleValid: true
+          },
+          adminNotes: "", // Clear notes on approval
+          status: "approved" // Set status to approved
+        };
+      } else {
+        // On rejection: update review status, add admin notes
+        updatePayload = {
+          approvalWorkflow: {
+            ...selectedClass.approvalWorkflow,
+            reviewStatus: "rejected",
+            reviewedAt: new Date().toISOString(),
+            reviewedBy: user.uid || "admin"
+          },
+          adminNotes: actionMessage, // Store rejection reason
+          status: "rejected"
+        };
+      }
+      
+      console.log("Sending update payload:", updatePayload);
+      
+      await axios.put(
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${selectedClass.classId}`,
+        updatePayload
+      );
+      
+      // Remove the class from the list (since it's no longer pending)
+      setClasses(prev => prev.filter(c => c.classId !== selectedClass.classId));
+      
+      // Close modal and reset states
+      setIsActionModalOpen(false);
+      setActionMessage("");
+      setActionType("");
+      setSelectedClass(null);
+      
+      alert(`Class ${actionType}d successfully! The mentor will be notified.`);
+      
+    } catch (error) {
+      console.error(`Error ${actionType}ing class:`, error);
+      alert(`Failed to ${actionType} class. Please try again.`);
+    }
+  };
+
+  // Handle class status change for other statuses
   const handleStatusChange = async (classId, newStatus) => {
     try {
       await axios.put(
@@ -102,11 +191,9 @@ const AdminClassesPage = () => {
 
   const getStatusBadge = (status) => {
     const statusStyles = {
-      pending_approval: "bg-yellow-100 text-yellow-800",
+      pending: "bg-yellow-100 text-yellow-800",
       approved: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
-      active: "bg-blue-100 text-blue-800",
-      inactive: "bg-gray-100 text-gray-800"
+      rejected: "bg-red-100 text-red-800"
     };
     
     return (
@@ -255,40 +342,27 @@ const AdminClassesPage = () => {
                             </div>
                             <div className="flex items-center space-x-2">
                               <button 
-                                onClick={() => window.location.href = `/admin/classes/${classItem.classId}`}
-                                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition-colors"
+                                onClick={() => handleViewDetails(classItem)}
+                                className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm hover:bg-blue-200 transition-colors"
                               >
-                                <i className="fas fa-edit mr-1"></i>Edit
+                                <i className="fas fa-eye mr-1"></i>View Details
                               </button>
                               
-                              {classItem.status === 'pending_approval' && (
+                              {classItem.status === 'pending' && (
                                 <>
                                   <button 
-                                    onClick={() => handleStatusChange(classItem.classId, 'approved')}
+                                    onClick={() => handleClassAction(classItem, 'approve')}
                                     className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 transition-colors"
                                   >
                                     <i className="fas fa-check mr-1"></i>Approve
                                   </button>
                                   <button 
-                                    onClick={() => handleStatusChange(classItem.classId, 'rejected')}
+                                    onClick={() => handleClassAction(classItem, 'reject')}
                                     className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600 transition-colors"
                                   >
                                     <i className="fas fa-times mr-1"></i>Reject
                                   </button>
                                 </>
-                              )}
-                              
-                              {classItem.status === 'approved' && (
-                                <select
-                                  value={classItem.status}
-                                  onChange={(e) => handleStatusChange(classItem.classId, e.target.value)}
-                                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-                                >
-                                  <option value="approved">Approved</option>
-                                  <option value="active">Active</option>
-                                  <option value="inactive">Inactive</option>
-                                  <option value="rejected">Reject</option>
-                                </select>
                               )}
                             </div>
                           </div>
@@ -339,6 +413,310 @@ const AdminClassesPage = () => {
           </div>
         </main>
       </div>
+
+      {/* Class Details Modal */}
+      {isModalOpen && selectedClass && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Class Details</h2>
+              <button 
+                onClick={() => {setIsModalOpen(false); setSelectedClass(null);}}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Class Header */}
+              <div className="border-b border-gray-200 pb-6">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">{selectedClass?.title || 'Untitled Class'}</h1>
+                <p className="text-gray-600 mb-4">
+                  {selectedClass?.subject || 'Unknown Subject'} • {selectedClass?.category || 'Unknown Category'} • by {selectedClass?.mentorName || 'Unknown Mentor'}
+                </p>
+                <div className="flex items-center space-x-4">
+                  {getStatusBadge(selectedClass?.status)}
+                  <span className="text-sm text-gray-500">
+                    <i className="fas fa-calendar mr-1"></i>
+                    Created {selectedClass?.createdAt ? new Date(selectedClass.createdAt).toLocaleDateString() : 'Unknown Date'}
+                  </span>
+                  {selectedClass?.approvalWorkflow?.reviewStatus && (
+                    <span className="text-sm text-gray-500">
+                      <i className="fas fa-clipboard-check mr-1"></i>
+                      Review: {selectedClass.approvalWorkflow.reviewStatus}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Basic Information */}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Description:</span>
+                        <p className="text-gray-900">{selectedClass?.description || "No description provided"}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Level:</span>
+                          <p className="text-gray-900">{selectedClass?.level || "Not specified"}</p>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Age Group:</span>
+                          <p className="text-gray-900">{selectedClass?.ageGroup || "Not specified"}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Format:</span>
+                          <p className="text-gray-900">{selectedClass?.format || "Not specified"}</p>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Type:</span>
+                          <p className="text-gray-900">{selectedClass?.type || "Not specified"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mentor Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Mentor Information</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Name:</span>
+                        <p className="text-gray-900">{selectedClass?.mentorName || "Unknown"}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Mentor ID:</span>
+                        <p className="text-gray-900 font-mono text-sm">{selectedClass?.mentorId || "Unknown"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pricing & Capacity */}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Pricing Information</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Per Session:</span>
+                        <p className="text-gray-900">£{selectedClass?.pricing?.perSessionRate || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Total Sessions:</span>
+                        <p className="text-gray-900">{selectedClass?.pricing?.totalSessions || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Subtotal:</span>
+                        <p className="text-gray-900">£{selectedClass?.pricing?.subtotal || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Currency:</span>
+                        <p className="text-gray-900">{selectedClass?.pricing?.currency || 'GBP'}</p>
+                      </div>
+                      {selectedClass.pricing?.discount && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Discount:</span>
+                          <p className="text-gray-900">{selectedClass.pricing.discount.percentage}% ({selectedClass.pricing.discount.reason})</p>
+                        </div>
+                      )}
+                      {selectedClass.pricing?.total && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Final Total:</span>
+                          <p className="text-gray-900 font-semibold">£{selectedClass.pricing.total}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Capacity Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Capacity Information</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Max Students:</span>
+                        <p className="text-gray-900">{selectedClass?.capacity?.maxStudents || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Min Students:</span>
+                        <p className="text-gray-900">{selectedClass?.capacity?.minStudents || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Current Enrollment:</span>
+                        <p className="text-gray-900">{selectedClass?.capacity?.currentEnrollement || selectedClass?.capacity?.currentEnrollment || 0}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Schedule Information */}
+                  {selectedClass?.schedule && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Schedule Information</h3>
+                      <div className="space-y-3">
+                        {selectedClass.schedule.startDate && (
+                          <div>
+                            <span className="text-sm font-medium text-gray-500">Start Date:</span>
+                            <p className="text-gray-900">{new Date(selectedClass.schedule.startDate).toLocaleDateString()}</p>
+                          </div>
+                        )}
+                        {selectedClass.schedule.endDate && (
+                          <div>
+                            <span className="text-sm font-medium text-gray-500">End Date:</span>
+                            <p className="text-gray-900">{new Date(selectedClass.schedule.endDate).toLocaleDateString()}</p>
+                          </div>
+                        )}
+                        {selectedClass.schedule.sessionDuration && (
+                          <div>
+                            <span className="text-sm font-medium text-gray-500">Session Duration:</span>
+                            <p className="text-gray-900">{selectedClass.schedule.sessionDuration} minutes</p>
+                          </div>
+                        )}
+                        {selectedClass.schedule.weeklySchedule && selectedClass.schedule.weeklySchedule.length > 0 && (
+                          <div>
+                            <span className="text-sm font-medium text-gray-500">Weekly Schedule:</span>
+                            <div className="mt-2 space-y-1">
+                              {selectedClass.schedule.weeklySchedule.map((slot, index) => (
+                                <p key={index} className="text-gray-900 bg-gray-50 px-2 py-1 rounded text-sm">
+                                  {slot.day}: {slot.startTime} - {slot.endTime}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Admin Checks */}
+                  {selectedClass?.adminChecks && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Admin Checks</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <i className={`fas ${selectedClass.adminChecks.capacityReasonable ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500'}`}></i>
+                          <span className="text-sm">Capacity Reasonable</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <i className={`fas ${selectedClass.adminChecks.contentClear ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500'}`}></i>
+                          <span className="text-sm">Content Clear</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <i className={`fas ${selectedClass.adminChecks.mentorQualified ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500'}`}></i>
+                          <span className="text-sm">Mentor Qualified</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <i className={`fas ${selectedClass.adminChecks.pricingValid ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500'}`}></i>
+                          <span className="text-sm">Pricing Valid</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <i className={`fas ${selectedClass.adminChecks.scheduleValid ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500'}`}></i>
+                          <span className="text-sm">Schedule Valid</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Class Meta */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Class Metadata</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">Class ID:</span>
+                    <p className="font-mono">{selectedClass?.classId || 'Unknown'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Created:</span>
+                    <p>{selectedClass?.createdAt ? new Date(selectedClass.createdAt).toLocaleString() : 'Unknown'}</p>
+                  </div>
+                  {selectedClass?.updatedAt && (
+                    <div>
+                      <span className="text-gray-500">Last Updated:</span>
+                      <p>{new Date(selectedClass.updatedAt).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {selectedClass?.approvalWorkflow?.reviewedAt && (
+                    <div>
+                      <span className="text-gray-500">Last Reviewed:</span>
+                      <p>{new Date(selectedClass.approvalWorkflow.reviewedAt).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {selectedClass?.adminNotes && (
+                    <div className="md:col-span-2">
+                      <span className="text-gray-500">Admin Notes:</span>
+                      <p className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-lg mt-1">{selectedClass.adminNotes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Modal (Approve/Reject with Message) */}
+      {isActionModalOpen && selectedClass && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-bold text-gray-900">
+                {actionType === 'approve' ? 'Approve' : 'Reject'} Class
+              </h2>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-gray-600 mb-2">
+                  You are about to <strong>{actionType}</strong> the class: 
+                </p>
+                <p className="font-semibold text-gray-900">{selectedClass?.title || 'Unknown Class'}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  by {selectedClass?.mentorName || 'Unknown Mentor'} • {selectedClass?.subject || 'Unknown Subject'}
+                </p>
+              </div>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Message to mentor (required):
+                </label>
+                <textarea
+                  value={actionMessage}
+                  onChange={(e) => setActionMessage(e.target.value)}
+                  placeholder={`Enter your reason for ${actionType}ing this class...`}
+                  rows="4"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              
+              <div className="flex items-center justify-end space-x-3">
+                <button 
+                  onClick={() => {setIsActionModalOpen(false); setActionMessage(""); setActionType(""); setSelectedClass(null);}}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={submitClassAction}
+                  className={`px-6 py-2 rounded-lg text-white font-medium transition-colors ${
+                    actionType === 'approve' 
+                      ? 'bg-green-500 hover:bg-green-600' 
+                      : 'bg-red-500 hover:bg-red-600'
+                  }`}
+                >
+                  {actionType === 'approve' ? 'Approve Class' : 'Reject Class'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

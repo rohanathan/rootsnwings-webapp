@@ -12,6 +12,7 @@ from app.routers import reviews
 from app.routers import metadata
 from app.routers import auth
 from app.routers import user_onboarding
+from app.routers import messages
 from fastapi.staticfiles import StaticFiles  
 import os
 
@@ -51,6 +52,7 @@ app.include_router(debug.router)
 app.include_router(availability.router)
 app.include_router(reviews.router)
 app.include_router(metadata.router)
+app.include_router(messages.router)
 
 # Create uploads directory if it doesn't exist
 uploads_dir = "uploads"

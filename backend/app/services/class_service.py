@@ -371,9 +371,12 @@ def clean_docs_from_list(doc_list):
 
 def clean_data(data: Dict) -> Dict:
     """Clean data by removing internal fields and ensuring required fields"""
-    # Remove internal/admin fields
+    # Remove internal/admin fields but preserve status for admin functionality
     data.pop("approvalWorkflow", None)
     data.pop("searchMetadata", None)
+    
+    # Preserve status field for admin interface - this is essential
+    # The status field will be: "pending", "approved", "rejected"
     
     # Ensure classId is set
     if "classId" not in data and "id" in data:
