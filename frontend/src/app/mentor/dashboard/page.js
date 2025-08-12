@@ -181,6 +181,8 @@ const Dashboard = () => {
 
     // Fetch mentor details from API
     const fetchMentorDetails = async (user) => {
+      console.log(user,'user user user');
+      
       try {
         if (user?.user?.uid) {
           const response = await axios.get(
@@ -227,10 +229,10 @@ const Dashboard = () => {
     const userData = localStorage.getItem("user");
 
 
-    if (!userData || !userData.user || userData.user.userType !== 'mentor') {
-      router.push('/user/dashboard');
-      return; // Stop further execution of this effect
-    }
+    // if (!userData || !userData.user || userData.user.userType !== 'mentor') {
+    //   // router.push('/user/dashboard');
+    //   return; 
+    // }
 
     if (userData) {
       const user = JSON.parse(userData);
@@ -433,7 +435,7 @@ const Dashboard = () => {
                   </div>
 
                   <div className="space-y-4">
-                    {mentorClasses.length > 0 ? mentorClasses.slice(0, 3).map((classObj, index) => (
+                    {mentorClasses.length > 0  &&  mentorClasses.filter(classObj => classObj.status === 'active').length ? mentorClasses.filter(classObj => classObj.status === 'active').slice(0, 3).map((classObj, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"

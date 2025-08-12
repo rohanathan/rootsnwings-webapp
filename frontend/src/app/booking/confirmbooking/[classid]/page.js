@@ -23,9 +23,12 @@ export default function BookingConfirmation() {
 
   const [selectedMentorClass, setSelectedMentorClass] = useState({});
   const [mentor, setMentor] = useState({});
-
+  const [user, setUser] = useState({});
 
   useEffect(() => {
+    const userData = JSON.parse(localStorage.getItem('user'));
+    setUser(userData.user);
+
     const loadClassData = async () => {
       setLoading(true);
       try {
@@ -326,6 +329,28 @@ const getAgeGroupBadge = (ageGroup) => {
   const levelBadge = getLevelBadge(selectedMentorClass.level);
   const ageBadge = getAgeGroupBadge(selectedMentorClass.ageGroup);
 
+  const confirmBooking = async () => {
+    try {
+      const bookingResponse = await axios.post(
+        'https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/',
+        {
+          mentorId: mentor.uid,
+          classId: selectedMentorClass.classId,
+          studentId: user.uid,
+          paymentStatus: 'completed'
+        }
+      );
+
+      if (bookingResponse.status === 200) {
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error('Error confirming booking:', error);
+      setShowErrorAlert(true);
+      alert('There was an error confirming your booking. Please try again.');
+    }
+  }
+
   return (
     <>
       <style jsx global>{globalStyle}</style>
@@ -625,7 +650,7 @@ const getAgeGroupBadge = (ageGroup) => {
               {/* Action Buttons */}
               <div className="space-y-4 mb-8">
                 <button
-                  onClick={proceedToPayment}
+                  onClick={confirmBooking}
                   disabled={!isTermsAccepted || isProcessing}
                   className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
                     ${isTermsAccepted && !isProcessing ? 'bg-primary hover:bg-blue-500 text-white' : 'bg-gray-300 text-gray-500'}`}

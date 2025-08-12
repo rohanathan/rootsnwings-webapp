@@ -91,7 +91,7 @@ const AuthPages = () => {
       console.log('Registration successful:', response.data);
       alert('Account created successfully!');
       localStorage.setItem('user', JSON.stringify(response.data));
-      window.location.href = '/user/dashboard';
+      window.location.href = '/user/onboarding';
     })
     .catch(error => {
       console.error('Registration failed:', error);

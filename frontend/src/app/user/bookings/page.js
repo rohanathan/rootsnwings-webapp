@@ -3,6 +3,7 @@ import UserSidebar from "@/components/UserSidebar";
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
+import { getSessionsSummary } from "@/app/utils";
 
 const Dashboard = () => {
   // State to manage the mobile sidebar's visibility
@@ -19,6 +20,8 @@ const Dashboard = () => {
   const [youngLearners, setYoungLearners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [bookingsClasses, setBookingsClasses] = useState([]);
 
   const profileDropdownRef = useRef(null);
   const profileDropdownBtnRef = useRef(null);
@@ -93,16 +96,38 @@ const Dashboard = () => {
           }
         }
         
-        // Fetch user's bookings
+
+        const fetchBookingsClasses = async () => {
+
+            // Fetch user's bookings
         try {
           const bookingsResponse = await axios.get(
             `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?studentId=${userData.user.uid}`
           );
           setBookings(bookingsResponse.data?.bookings || []);
+
+
+          bookingsResponse.data?.bookings.forEach(async (booking) => {
+              try {
+                const classResponse = await axios.get(
+                  `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${booking.classId}`
+                );
+                setBookingsClasses(prev => [...prev, classResponse.data?.class]);
+              } catch (error) {
+                console.error('Error fetching class data:', error);
+              }
+          });
+
+
+
         } catch (bookingError) {
           console.log("No bookings found");
           setBookings([]);
         }
+        }
+
+        fetchBookingsClasses();
+      
         
       } catch (error) {
         console.error("Error loading user data:", error);
@@ -406,7 +431,7 @@ const Dashboard = () => {
                     <i className="fas fa-calendar-check text-green-600 text-xl"></i>
                   </div>
                   <h3 className="text-2xl font-bold text-gray-800">
-                    {bookings.reduce((total, booking) => total + (booking.totalSessions || 0), 0)}
+                    {bookingsClasses.reduce((total, bookingClass) => total + (bookingClass.schedule.weeklySchedule.length || 0), 0)}
                   </h3>
                   <p className="text-gray-600 text-sm">Total Sessions</p>
                 </div>
@@ -426,9 +451,9 @@ const Dashboard = () => {
                     <i className="fas fa-percentage text-orange-600 text-xl"></i>
                   </div>
                   <h3 className="text-2xl font-bold text-gray-800">
-                    {bookings.length > 0 ? Math.round(
-                      bookings.reduce((total, booking) => 
-                        total + (booking.progressPercentage || 0), 0) / bookings.length
+                    {bookingsClasses.length > 0 ? Math.round(
+                      bookingsClasses.reduce((total, bookingClass) => 
+                        total + (getSessionsSummary([bookingClass]).completedSessionCount / bookingClass.schedule.weeklySchedule.length * 100 || 0), 0) / bookingsClasses.length
                     ) : 0}%
                   </h3>
                   <p className="text-gray-600 text-sm">Avg Progress</p>
@@ -443,7 +468,7 @@ const Dashboard = () => {
                 <div className="bg-white rounded-xl shadow-sm p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      Today's Sessions
+                      My Sessions
                     </h3>
                     <a
                       href="#"
@@ -454,46 +479,46 @@ const Dashboard = () => {
                   </div>
 
                   <div className="space-y-4">
-                    {bookings.length > 0 ? (
-                      bookings.slice(0, 3).map((booking, index) => (
-                        <div key={booking.bookingId} className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors">
+                    {bookingsClasses.length > 0 ? (
+                      bookingsClasses.slice(0, 3).map((bookingClass, index) => (
+                        <div key={bookingClass.classId} className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors">
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                               <span className="text-white font-semibold">
-                                {booking.className?.charAt(0) || 'C'}
+                                {bookingClass.subject?.charAt(0) || 'C'}
                               </span>
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
                                 <h4 className="font-medium text-gray-900">
-                                  {booking.className || 'Class Session'}
+                                  {bookingClass.subject || 'Class Session'}
                                 </h4>
                                 <span className={`text-xs px-2 py-1 rounded-full ${
-                                  booking.status === 'confirmed' 
-                                    ? 'bg-green-100 text-green-800'
-                                    : booking.status === 'pending'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-gray-100 text-gray-800'
+            
+                                     'bg-green-100 text-green-800'
+                                    // : bookingClass.status === 'pending'
+                                    // ? 'bg-yellow-100 text-yellow-800'
+                                    // : 'bg-gray-100 text-gray-800'
                                 }`}>
-                                  {booking.status || 'Active'}
+                                  {bookingClass.category || 'N/A'}
                                 </span>
                               </div>
                               <p className="text-gray-600 text-sm">
-                                Progress: {booking.completedSessions || 0}/{booking.totalSessions || 0} sessions
+                                Progress: { getSessionsSummary([bookingClass]).completedSessionCount }/{bookingClass.schedule.weeklySchedule.length || 0} sessions
                               </p>
                               <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                                 <span>
                                   <i className="fas fa-calendar mr-1"></i>
-                                  {new Date(booking.createdAt).toLocaleDateString()}
+                                  {new Date(bookingClass.createdAt).toLocaleDateString()}
                                 </span>
                                 <span>
-                                  <i className="fas fa-percentage mr-1"></i>
-                                  {booking.progressPercentage || 0}% Complete
+                 
+                                  { Math.round(getSessionsSummary([bookingClass]).completedSessionCount / bookingClass.schedule.weeklySchedule.length * 100) || 0}                  <i className="fas fa-percentage mr-1"></i> Complete
                                 </span>
                               </div>
                             </div>
                             <button 
-                              onClick={() => window.location.href = `/user/bookings/${booking.bookingId}`}
+                              onClick={() => window.location.href = `/user/bookings/${bookingClass.bookingId}`}
                               className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors"
                             >
                               View Details

@@ -61,7 +61,7 @@ export default function Schedule() {
     setLoading(true);
     setMessage('');
     try {
-      const response = await fetch(`http://localhost:8000/availability/mentors/${mentorId}`, {
+      const response = await fetch(`https://rootsnwings-api-944856745086.europe-west2.run.app/availability/mentors/${mentorId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -106,7 +106,7 @@ const mentorMock = {
 const MentorDetail = () => {
     const [isBioExpanded, setIsBioExpanded] = useState(false);
     const [activeTab, setActiveTab] = useState('one-on-one');
-    const [mentorData, setMentorData] = useState(mentorMock);
+    const [mentorData, setMentorData] = useState({});
     const [reviews, setReviews] = useState([]);
     const [reviewsLoading, setReviewsLoading] = useState(false);
     const [mentorClasses, setMentorClasses] = useState([]);
@@ -114,7 +114,7 @@ const MentorDetail = () => {
     console.log(mentorClasses,'mentorClasses mentorClasses');
     
     useEffect(() => {
-        const storedMentor = localStorage?.getItem("mentor");
+        const storedMentor = localStorage.getItem("mentor");
         
         if (!storedMentor) {
             window.location.href = "/mentor/directory";
@@ -122,8 +122,11 @@ const MentorDetail = () => {
         }
 
         const initialMentorData = JSON.parse(storedMentor);
-        setMentorData(initialMentorData);
+
         console.log(initialMentorData, 'initialMentorData initialMentorData');
+
+
+        setMentorData(initialMentorData);
 
 
 
@@ -151,47 +154,47 @@ const MentorDetail = () => {
     }, []);
 
     // Load reviews and fresh mentor data when mentor UID is available
-    useEffect(() => {
-        if (mentorData?.uid) {
-            loadMentorReviews(mentorData.uid);
-            loadFreshMentorData(mentorData.uid);
-        }
-    }, [mentorData?.uid]);
+    // useEffect(() => {
+    //     if (mentorData?.uid) {
+    //         loadMentorReviews(mentorData.uid);
+    //         loadFreshMentorData(mentorData.uid);
+    //     }
+    // }, [mentorData?.uid]);
 
-    const loadMentorReviews = async (mentorId) => {
-        try {
-            console.log('Starting to load reviews for mentor:', mentorId);
-            setReviewsLoading(true);
-            const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/?type=mentor&id=${mentorId}`);
-            console.log('Reviews API response:', response.data);
-            console.log('Reviews array:', response.data.reviews);
-            console.log('Reviews count:', response.data.reviews?.length || 0);
-            setReviews(response.data.reviews || []);
-        } catch (error) {
-            console.error('Failed to load reviews:', error);
-            console.error('Error details:', error.response?.data);
-            setReviews([]); // Fallback to empty array
-        } finally {
-            console.log('Reviews loading finished, setting loading to false');
-            setReviewsLoading(false);
-        }
-    };
+    // const loadMentorReviews = async (mentorId) => {
+    //     try {
+    //         console.log('Starting to load reviews for mentor:', mentorId);
+    //         setReviewsLoading(true);
+    //         const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/?type=mentor&id=${mentorId}`);
+    //         console.log('Reviews API response:', response.data);
+    //         console.log('Reviews array:', response.data.reviews);
+    //         console.log('Reviews count:', response.data.reviews?.length || 0);
+    //         setReviews(response.data.reviews || []);
+    //     } catch (error) {
+    //         console.error('Failed to load reviews:', error);
+    //         console.error('Error details:', error.response?.data);
+    //         setReviews([]); // Fallback to empty array
+    //     } finally {
+    //         console.log('Reviews loading finished, setting loading to false');
+    //         setReviewsLoading(false);
+    //     }
+    // };
 
-    const loadFreshMentorData = async (mentorId) => {
-        try {
-            console.log('Fetching mentor data for ID:', mentorId);
-            const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${mentorId}`);
-            if (response.data.mentor) {
-                console.log('Fresh mentor data structure:', response.data.mentor);
-                console.log('Qualifications field:', response.data.mentor.qualifications);
-                console.log('QualificationsSummary field:', response.data.mentor.qualificationsSummary);
-                setMentorData(response.data.mentor);
-            }
-        } catch (error) {
-            console.error('Failed to load fresh mentor data. Error:', error.message);
-            console.log('Using fallback data from localStorage/mock');
-        }
-    };
+    // const loadFreshMentorData = async (mentorId) => {
+    //     try {
+    //         console.log('Fetching mentor data for ID:', mentorId);
+    //         const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${mentorId}`);
+    //         if (response.data.mentor) {
+    //             console.log('Fresh mentor data structure:', response.data.mentor);
+    //             console.log('Qualifications field:', response.data.mentor.qualifications);
+    //             console.log('QualificationsSummary field:', response.data.mentor.qualificationsSummary);
+    //             setMentorData(response.data.mentor);
+    //         }
+    //     } catch (error) {
+    //         console.error('Failed to load fresh mentor data. Error:', error.message);
+    //         console.log('Using fallback data from localStorage/mock');
+    //     }
+    // };
 
 
  
@@ -234,10 +237,10 @@ const MentorDetail = () => {
         { icon: "🔄", label: `${(mentorData?.stats?.repeatStudentRate * 100).toFixed(0)}% Repeat Students` },
         { icon: "💬", label: `Replies in ${mentorData?.stats?.responseTimeMinutes}min` },
     ];
-
+    
     return (
         <>
-            <div className="min-h-screen font-sans text-gray-800 bg-gray-50">
+           { Object.keys(mentorData).length > 0 && <div className="min-h-screen font-sans text-gray-800 bg-gray-50">
 
                 {/* Navigation Component */}
                 <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
@@ -844,9 +847,11 @@ const MentorDetail = () => {
 
                     </div>
                 </main>
-            </div>
+            </div>}
         </>
     );
 };
+
+
 
 export default MentorDetail;
