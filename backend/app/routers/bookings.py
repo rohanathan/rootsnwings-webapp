@@ -1,29 +1,26 @@
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from app.models.booking_models import (
-    SimpleBooking, SimpleBookingRequest, SimpleBookingUpdate, 
-    SimpleBookingResponse, SimpleBookingListResponse,
-    SessionAttendance, SessionAttendanceRequest, AttendanceResponse, AttendanceListResponse
+    SimpleBookingRequest, SimpleBookingResponse, SimpleBookingListResponse
 )
 from app.services.booking_service import (
     create_simple_booking, get_simple_booking, update_booking_flexible,
-    get_bookings_by_student, get_bookings_by_mentor, get_bookings_by_class,
-    confirm_booking, cancel_booking, mark_attendance, get_attendance_by_booking
+    get_bookings_by_student, get_bookings_by_mentor, get_bookings_by_class
 )
 
 router = APIRouter(
     prefix="/bookings",
-    tags=["Bookings"]
+    tags=["Bookings - Simplified API"]
 )
 
-# CORE 3 BOOKING ENDPOINTS
+# ==========================================
+# SIMPLIFIED BOOKINGS API - 3 ENDPOINTS ONLY
+# ==========================================
 
-@router.post("/", response_model=SimpleBookingResponse)
+@router.post("/")
 def create_booking(booking_request: SimpleBookingRequest):
     """
-    Create a minimal booking - just references classId for schedule info.
-    
-    Frontend handles all session calculations from class.schedule.weeklySchedule
+    Create a booking with complete MongoDB flexibility.
     
     Example:
     {
@@ -33,112 +30,201 @@ def create_booking(booking_request: SimpleBookingRequest):
       "pricing": {
         "finalPrice": 480,
         "currency": "GBP"
-      }
+      },
+      "anyCustomField": "any value"
     }
     """
     booking = create_simple_booking(booking_request)
     return {"booking": booking}
 
 @router.put("/{booking_id}")
-def update_booking_status(booking_id: str, update_data: dict):
+def update_booking(
+    booking_id: str, 
+    update_data: Dict[str, Any],
+    action: Optional[str] = Query(None, description="Quick action: confirm, cancel, mark_attendance")
+):
     """
-    Update booking with any fields - pure MongoDB flexibility.
+    Universal booking updater - handles everything in one endpoint.
     
-    Frontend can send ANY field it wants:
-    - { "isCancelled": true }
-    - { "bookingStatus": "confirmed", "paymentStatus": "paid", "customField": "value" }
-    - { "mentorNotes": "Excellent student" }
-    - { "anyField": "anyValue" }
+    Supports all operations:
+    - Basic updates: PUT /bookings/123 with JSON body
+    - Quick actions: PUT /bookings/123?action=confirm
+    - Attendance: PUT /bookings/123?action=mark_attendance with session data
+    - Cancellation: PUT /bookings/123?action=cancel
+    - Any custom fields: { "mentorNotes": "Great student", "customField": "value" }
+    
+    Examples:
+    
+    # Confirm booking (payment received)
+    PUT /bookings/123?action=confirm
+    Body: { "paymentId": "pay_123", "confirmedAt": "2025-08-12T10:30:00Z" }
+    
+    # Cancel booking
+    PUT /bookings/123?action=cancel
+    Body: { "cancelReason": "Student unavailable", "refundAmount": 480 }
+    
+    # Mark session attendance
+    PUT /bookings/123?action=mark_attendance
+    Body: { 
+      "sessionDate": "2025-08-15", 
+      "status": "present", 
+      "notes": "Great participation",
+      "markedBy": "mentor_id"
+    }
+    
+    # Custom update
+    PUT /bookings/123
+    Body: { "specialRequests": "Need earlier time slot", "priorityLevel": "high" }
     """
-    booking = update_booking_flexible(booking_id, update_data)
-    return {"booking": booking}
+    try:
+        # Handle quick actions with predefined logic
+        if action == "confirm":
+            # Merge user data with confirmation defaults
+            confirm_data = {
+                "bookingStatus": "confirmed",
+                "paymentStatus": "paid",
+                **update_data  # User can override defaults
+            }
+            booking = update_booking_flexible(booking_id, confirm_data)
+            
+        elif action == "cancel":
+            # Merge user data with cancellation defaults
+            cancel_data = {
+                "bookingStatus": "cancelled",
+                "isCancelled": True,
+                "cancelledAt": update_data.get("cancelledAt"),
+                **update_data  # User can override defaults
+            }
+            booking = update_booking_flexible(booking_id, cancel_data)
+            
+        elif action == "mark_attendance":
+            # Handle attendance as part of booking data
+            # Get current booking to update attendance records
+            current_booking = get_simple_booking(booking_id)
+            if not current_booking:
+                raise HTTPException(status_code=404, detail="Booking not found")
+            
+            # Initialize attendance array if doesn't exist
+            attendance_records = current_booking.get("attendance", [])
+            
+            # Add new attendance record
+            session_date = update_data.get("sessionDate")
+            if not session_date:
+                raise HTTPException(status_code=400, detail="sessionDate required for attendance")
+            
+            # Remove existing attendance for same date (update scenario)
+            attendance_records = [a for a in attendance_records if a.get("sessionDate") != session_date]
+            
+            # Add new attendance record
+            new_attendance = {
+                "sessionDate": session_date,
+                "status": update_data.get("status", "present"),
+                "notes": update_data.get("notes", ""),
+                "markedBy": update_data.get("markedBy", ""),
+                "markedAt": update_data.get("markedAt")
+            }
+            attendance_records.append(new_attendance)
+            
+            # Update booking with attendance data
+            attendance_update = {
+                "attendance": attendance_records,
+                **{k: v for k, v in update_data.items() if k not in ['sessionDate', 'status', 'notes', 'markedBy', 'markedAt']}
+            }
+            booking = update_booking_flexible(booking_id, attendance_update)
+            
+        else:
+            # Direct flexible update - no action processing
+            booking = update_booking_flexible(booking_id, update_data)
+        
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+            
+        response = {"booking": booking}
+        if action:
+            response["action_performed"] = action
+            
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update booking: {str(e)}")
 
-@router.get("/", response_model=SimpleBookingListResponse)
+@router.get("/")
 def get_bookings(
+    bookingId: Optional[str] = Query(None, description="Get specific booking by ID"),
     studentId: Optional[str] = Query(None, description="Get bookings for student"),
     mentorId: Optional[str] = Query(None, description="Get bookings for mentor"), 
     classId: Optional[str] = Query(None, description="Get bookings for class"),
+    include_attendance: bool = Query(True, description="Include attendance records"),
     page: int = Query(1, ge=1, description="Page number"),
     pageSize: int = Query(20, ge=1, le=100, description="Items per page")
 ):
     """
-    Get bookings with filtering and pagination.
+    Universal booking getter - handles single booking and filtered lists.
     
     Examples:
-    - /simple-bookings?studentId=user031 - Student's bookings
-    - /simple-bookings?mentorId=user026 - Mentor's bookings  
-    - /simple-bookings?classId=class_anime_001 - Class bookings
+    - GET /bookings?bookingId=booking_123 - Get specific booking
+    - GET /bookings?studentId=user031 - Student's bookings
+    - GET /bookings?mentorId=user026 - Mentor's bookings  
+    - GET /bookings?classId=class_anime_001 - Class bookings
+    - GET /bookings?studentId=user031&include_attendance=false - Without attendance data
     """
-    if studentId:
-        bookings, total = get_bookings_by_student(studentId, page, pageSize)
-    elif mentorId:
-        bookings, total = get_bookings_by_mentor(mentorId, page, pageSize)
-    elif classId:
-        bookings, total = get_bookings_by_class(classId, page, pageSize)
-    else:
-        raise HTTPException(status_code=400, detail="Must provide studentId, mentorId, or classId")
-    
-    total_pages = (total + pageSize - 1) // pageSize
-    
-    return {
-        "bookings": bookings,
-        "total": total,
-        "page": page,
-        "pageSize": pageSize,
-        "totalPages": total_pages
-    }
+    try:
+        # Handle single booking request
+        if bookingId:
+            booking = get_simple_booking(bookingId)
+            if not booking:
+                raise HTTPException(status_code=404, detail="Booking not found")
+            
+            # Optionally filter out attendance data
+            if not include_attendance and "attendance" in booking:
+                booking_copy = booking.copy()
+                del booking_copy["attendance"]
+                booking = booking_copy
+                
+            return {"booking": booking}
+        
+        # Handle filtered list requests
+        if studentId:
+            bookings, total = get_bookings_by_student(studentId, page, pageSize)
+        elif mentorId:
+            bookings, total = get_bookings_by_mentor(mentorId, page, pageSize)
+        elif classId:
+            bookings, total = get_bookings_by_class(classId, page, pageSize)
+        else:
+            raise HTTPException(status_code=400, detail="Must provide bookingId, studentId, mentorId, or classId")
+        
+        # Optionally filter out attendance data from list results
+        if not include_attendance:
+            filtered_bookings = []
+            for booking in bookings:
+                if "attendance" in booking:
+                    booking_copy = booking.copy()
+                    del booking_copy["attendance"]
+                    filtered_bookings.append(booking_copy)
+                else:
+                    filtered_bookings.append(booking)
+            bookings = filtered_bookings
+        
+        total_pages = (total + pageSize - 1) // pageSize
+        
+        return {
+            "bookings": bookings,
+            "total": total,
+            "page": page,
+            "pageSize": pageSize,
+            "totalPages": total_pages
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get bookings: {str(e)}")
 
-# CONVENIENCE ENDPOINTS
-
-@router.get("/{booking_id}", response_model=SimpleBookingResponse)
-def get_booking_by_id(booking_id: str):
-    """Get specific booking by ID"""
-    booking = get_simple_booking(booking_id)
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    return {"booking": booking}
-
-@router.post("/{booking_id}/confirm", response_model=SimpleBookingResponse)
-def confirm_booking_payment(booking_id: str):
-    """Confirm booking and mark as paid (moves from pending → confirmed)"""
-    booking = confirm_booking(booking_id)
-    return {"booking": booking}
-
-@router.post("/{booking_id}/cancel", response_model=SimpleBookingResponse)
-def cancel_booking_request(booking_id: str):
-    """Cancel booking and mark as refunded"""
-    booking = cancel_booking(booking_id)
-    return {"booking": booking}
-
-# OPTIONAL ATTENDANCE ENDPOINTS
-
-@router.post("/{booking_id}/attendance", response_model=AttendanceResponse)
-def mark_session_attendance(
-    booking_id: str, 
-    attendance_request: SessionAttendanceRequest,
-    marked_by: str = Query(..., description="Mentor ID marking attendance")
-):
-    """
-    Mark attendance for a specific session (optional feature).
-    
-    Example:
-    {
-      "bookingId": "booking_123",
-      "sessionDate": "2025-08-05", 
-      "status": "present",
-      "notes": "Great participation"
-    }
-    """
-    # Override bookingId from URL path
-    attendance_request.bookingId = booking_id
-    attendance = mark_attendance(attendance_request, marked_by)
-    return {"attendance": attendance}
-
-@router.get("/{booking_id}/attendance", response_model=AttendanceListResponse)
-def get_booking_attendance(booking_id: str):
-    """Get all attendance records for a booking"""
-    attendance_records = get_attendance_by_booking(booking_id)
-    return {
-        "attendance": attendance_records,
-        "total": len(attendance_records)
-    }
+# ==========================================
+# SIMPLIFIED TO 3 ENDPOINTS TOTAL
+# POST /bookings/ - Create booking
+# GET /bookings/ - Get bookings (supports bookingId filter for single booking)
+# PUT /bookings/{booking_id} - Update everything (confirmation, cancellation, attendance, custom fields)
+# ==========================================
