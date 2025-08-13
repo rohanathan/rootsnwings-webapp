@@ -21,6 +21,7 @@ const Homepage = () => {
   const [testimonials, setTestimonials] = useState([]);
   const [categories, setCategories] = useState([]);
   const [cities, setCities] = useState([]);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const fetchMentors = async () => {
@@ -70,6 +71,8 @@ const Homepage = () => {
 
   // useEffect to handle dynamic content on component mount
   useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    setUser(user?.user);
     // Dynamically calculate and update workshop dates
     const updateWorkshopDates = () => {
       const today = new Date();
@@ -149,7 +152,7 @@ const Homepage = () => {
 
       <div className="font-sans text-gray-800 bg-white">
 
-        <Navbar /> 
+        <Navbar user={user} /> 
 
         {/* Hero Section Component */}
         <section

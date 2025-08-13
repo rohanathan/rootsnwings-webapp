@@ -15,8 +15,6 @@ const Navbar = ({ user }) => {
     }
   };
 
-  //  const user = JSON.parse(localStorage.getItem('user'));
-
   return (
     <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
       <div className="max-w-7xl mx-auto px-5">

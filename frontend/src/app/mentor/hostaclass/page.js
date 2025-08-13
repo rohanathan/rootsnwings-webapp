@@ -97,6 +97,11 @@ const HostClassPage = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
+
+    if(user?.user?.userType !== 'mentor'){
+      window.location.href = '/';
+    }
+    
     setUser(user.user);
 
     const mentor = JSON.parse(localStorage.getItem("mentor"));

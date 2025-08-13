@@ -224,15 +224,12 @@ const Dashboard = () => {
     };
 
 
-    // Fix: Add null check to prevent crash when localStorage is empty
-    // Error was: "Cannot read properties of null (reading 'user')"
     const userData = localStorage.getItem("user");
 
-
-    // if (!userData || !userData.user || userData.user.userType !== 'mentor') {
-    //   // router.push('/user/dashboard');
-    //   return; 
-    // }
+    if (userData?.user?.userType !== 'mentor') {
+      router.push('/');
+      return; 
+    }
 
     if (userData) {
       const user = JSON.parse(userData);

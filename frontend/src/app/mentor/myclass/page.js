@@ -14,7 +14,6 @@ export default function MyClass() {
   const [user, setUser] = useState({});
   const [mentorDetails, setMentorDetails] = useState({});
 
-  const [classStats, setClassStats] = useState([]);
   const [mentorClasses, setMentorClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [classData, setClassData] = useState({
@@ -26,6 +25,10 @@ export default function MyClass() {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     setUser(user.user);
+
+    if (user?.user?.userType !== "mentor") {
+      window.location.href = "/";
+    }
 
     const mentor = JSON.parse(localStorage.getItem("mentor"));
     setMentorDetails(mentor);
@@ -345,7 +348,13 @@ export default function MyClass() {
                   }`}
                   onClick={() => handleTabClick("active")}
                 >
-                  Active Classes ({mentorClasses.filter(classObj => classObj.status === 'active').length})
+                  Active Classes (
+                  {
+                    mentorClasses.filter(
+                      (classObj) => classObj.status === "active"
+                    ).length
+                  }
+                  )
                 </button>
                 <button
                   className={`px-6 py-3 border-b-2 font-semibold class-tab ${
@@ -355,7 +364,13 @@ export default function MyClass() {
                   }`}
                   onClick={() => handleTabClick("waiting")}
                 >
-                  Pending Approval ({mentorClasses.filter(classObj => classObj.status === 'pending').length})
+                  Pending Approval (
+                  {
+                    mentorClasses.filter(
+                      (classObj) => classObj.status === "pending"
+                    ).length
+                  }
+                  )
                 </button>
                 <button
                   className={`px-6 py-3 border-b-2 font-semibold class-tab ${
@@ -365,7 +380,13 @@ export default function MyClass() {
                   }`}
                   onClick={() => handleTabClick("completed")}
                 >
-                  Completed ({mentorClasses.filter(classObj => classObj.status === 'completed').length})
+                  Completed (
+                  {
+                    mentorClasses.filter(
+                      (classObj) => classObj.status === "completed"
+                    ).length
+                  }
+                  )
                 </button>
               </div>
             </div>
@@ -377,7 +398,10 @@ export default function MyClass() {
                   <i className="fas fa-spinner fa-spin text-2xl text-primary mb-4"></i>
                   <p className="text-gray-600">Loading your classes...</p>
                 </div>
-              ) : activeTab === "active" && mentorClasses.filter(classObj => classObj.status === 'approved').length === 0 ? (
+              ) : activeTab === "active" &&
+                mentorClasses.filter(
+                  (classObj) => classObj.status === "approved"
+                ).length === 0 ? (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
                     <i className="fas fa-chalkboard-teacher text-gray-400 text-xl"></i>
@@ -399,287 +423,299 @@ export default function MyClass() {
                 </div>
               ) : (
                 activeTab === "active" &&
-                mentorClasses.filter(classObj => classObj.status === 'approved').map((classItem, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-xl border border-gray-200 p-6"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">
-                            {classItem.title}
-                          </h3>
-                          <span
-                            className={`${
-                              classItem.status === "approved"
-                                ? "bg-green-100 text-green-800"
-                                : classItem.status === "pending"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-gray-100 text-gray-800"
-                            } text-xs px-2 py-1 rounded-full font-medium`}
-                          >
-                            {classItem.status}
-                          </span>
-                          <span
-                            className={`${
-                              classItem.format === "in-person"
-                                ? "bg-blue-100 text-blue-800"
+                mentorClasses
+                  .filter((classObj) => classObj.status === "approved")
+                  .map((classItem, index) => (
+                    <div
+                      key={index}
+                      className="bg-white rounded-xl border border-gray-200 p-6"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="text-xl font-bold text-gray-900">
+                              {classItem.title}
+                            </h3>
+                            <span
+                              className={`${
+                                classItem.status === "approved"
+                                  ? "bg-green-100 text-green-800"
+                                  : classItem.status === "pending"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-gray-100 text-gray-800"
+                              } text-xs px-2 py-1 rounded-full font-medium`}
+                            >
+                              {classItem.status}
+                            </span>
+                            <span
+                              className={`${
+                                classItem.format === "in-person"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : classItem.format === "online"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-purple-100 text-purple-800"
+                              } text-xs px-2 py-1 rounded-full font-medium`}
+                            >
+                              {classItem.format === "in-person"
+                                ? "In-person"
                                 : classItem.format === "online"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-purple-100 text-purple-800"
-                            } text-xs px-2 py-1 rounded-full font-medium`}
-                          >
-                            {classItem.format === "in-person"
-                              ? "In-person"
-                              : classItem.format === "online"
-                              ? "Online"
-                              : "Hybrid"}
-                          </span>
-                        </div>
-                        <p className="text-gray-600 mb-4">
-                          {classItem.description}
-                        </p>
+                                ? "Online"
+                                : "Hybrid"}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 mb-4">
+                            {classItem.description}
+                          </p>
 
-                        <div className="grid md:grid-cols-4 gap-6 mb-4">
-                          <div>
-                            <p className="text-sm text-gray-500">
-                              Students Enrolled
-                            </p>
-                            <p className="text-lg font-semibold text-gray-900">
-                              {classItem.enrolledCount || 0}/
-                              {classItem.capacity?.maxStudents || 0} students
-                            </p>
-                            <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                              <div
-                                className={`${
-                                  (classItem.enrolledCount /
-                                    classItem.capacity?.maxStudents) *
-                                    100 >
-                                  50
-                                    ? "bg-green-500"
-                                    : "bg-yellow-500"
-                                } h-2 rounded-full`}
-                                style={{
-                                  width: `${
+                          <div className="grid md:grid-cols-4 gap-6 mb-4">
+                            <div>
+                              <p className="text-sm text-gray-500">
+                                Students Enrolled
+                              </p>
+                              <p className="text-lg font-semibold text-gray-900">
+                                {classItem.enrolledCount || 0}/
+                                {classItem.capacity?.maxStudents || 0} students
+                              </p>
+                              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                <div
+                                  className={`${
                                     (classItem.enrolledCount /
                                       classItem.capacity?.maxStudents) *
-                                      100 || 0
-                                  }%`,
-                                }}
-                              ></div>
+                                      100 >
+                                    50
+                                      ? "bg-green-500"
+                                      : "bg-yellow-500"
+                                  } h-2 rounded-full`}
+                                  style={{
+                                    width: `${
+                                      (classItem.enrolledCount /
+                                        classItem.capacity?.maxStudents) *
+                                        100 || 0
+                                    }%`,
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Schedule</p>
+                              <p className="text-lg font-semibold text-gray-900">
+                                {classItem.schedule?.weeklySchedule?.[0]?.day}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {
+                                  classItem.schedule?.weeklySchedule?.[0]
+                                    ?.startTime
+                                }{" "}
+                                -{" "}
+                                {
+                                  classItem.schedule?.weeklySchedule?.[0]
+                                    ?.endTime
+                                }
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Duration</p>
+                              <p className="text-lg font-semibold text-gray-900">
+                                {classItem.schedule?.totalSessions || 0}{" "}
+                                sessions
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {classItem.type}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Revenue</p>
+                              <p className="text-lg font-semibold text-green-600">
+                                £{(classItem.revenue || 0).toFixed(0)}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                £{classItem.pricing?.basePrice || 0}/session
+                              </p>
                             </div>
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Schedule</p>
-                            <p className="text-lg font-semibold text-gray-900">
-                              {classItem.schedule?.weeklySchedule?.[0]?.day}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {
-                                classItem.schedule?.weeklySchedule?.[0]
-                                  ?.startTime
-                              }{" "}
-                              -{" "}
-                              {classItem.schedule?.weeklySchedule?.[0]?.endTime}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Duration</p>
-                            <p className="text-lg font-semibold text-gray-900">
-                              {classItem.schedule?.totalSessions || 0} sessions
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {classItem.type}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Revenue</p>
-                            <p className="text-lg font-semibold text-green-600">
-                              £{(classItem.revenue || 0).toFixed(0)}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              £{classItem.pricing?.basePrice || 0}/session
-                            </p>
+
+                          <div className="flex items-center space-x-2 mb-4">
+                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                              {classItem.subject}
+                            </span>
+                            <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium">
+                              {classItem.format}
+                            </span>
+                            {classItem.pricing?.discountPercentage && (
+                              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
+                                {classItem.pricing.discountPercentage}% off
+                              </span>
+                            )}
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-2 mb-4">
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
-                            {classItem.subject}
-                          </span>
-                          <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium">
-                            {classItem.format}
-                          </span>
-                          {classItem.pricing?.discountPercentage && (
-                            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">
-                              {classItem.pricing.discountPercentage}% off
-                            </span>
-                          )}
+                        <div className="flex space-x-2 ml-4">
+                          <button className="text-gray-500 hover:text-gray-700 p-2">
+                            <i className="fas fa-ellipsis-h"></i>
+                          </button>
                         </div>
                       </div>
 
-                      <div className="flex space-x-2 ml-4">
-                        <button className="text-gray-500 hover:text-gray-700 p-2">
-                          <i className="fas fa-ellipsis-h"></i>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          onClick={() =>
+                            (window.location.href = `/mentor/classes/${classItem.classId}`)
+                          }
+                          className="px-4 py-2 rounded-lg transition-colors text-sm font-medium bg-primary text-white hover:bg-primary-dark"
+                        >
+                          <i className="fas fa-users mr-2"></i>
+                          View Students ({classItem.enrolledCount || 0})
+                        </button>
+                        <button className="px-4 py-2 rounded-lg transition-colors text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50">
+                          <i className="fas fa-calendar mr-2"></i>
+                          Manage Schedule
+                        </button>
+                        <button className="px-4 py-2 rounded-lg transition-colors text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50">
+                          <i className="fas fa-edit mr-2"></i>
+                          Edit Class
                         </button>
                       </div>
                     </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        onClick={() =>
-                          (window.location.href = `/mentor/classes/${classItem.classId}`)
-                        }
-                        className="px-4 py-2 rounded-lg transition-colors text-sm font-medium bg-primary text-white hover:bg-primary-dark"
-                      >
-                        <i className="fas fa-users mr-2"></i>
-                        View Students ({classItem.enrolledCount || 0})
-                      </button>
-                      <button className="px-4 py-2 rounded-lg transition-colors text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50">
-                        <i className="fas fa-calendar mr-2"></i>
-                        Manage Schedule
-                      </button>
-                      <button className="px-4 py-2 rounded-lg transition-colors text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50">
-                        <i className="fas fa-edit mr-2"></i>
-                        Edit Class
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  ))
               )}
-              
-              {activeTab === "waiting" && 
-              mentorClasses.filter(classObj => classObj.status === 'pending').length > 0  &&
-                mentorClasses.filter(classObj => classObj.status === 'pending').map((classItem, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-xl border border-yellow-300 p-6"
-                  >
-                    123
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">
-                            {classItem.title}
-                          </h3>
-                          <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
-                            Pending Approval
-                          </span>
-                          <span
-                            className={`${
-                              classItem.format === "in-person"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-green-100 text-green-800"
-                            } text-xs px-2 py-1 rounded-full font-medium`}
-                          >
-                            {classItem.format === "in-person"
-                              ? "In-person"
-                              : "Online"}
-                          </span>
-                        </div>
-                        <p className="text-gray-600 mb-4">
-                          {classItem.description}
-                        </p>
 
-                        <div className="grid md:grid-cols-4 gap-6 mb-4">
-                          <div>
-                            <p className="text-sm text-gray-500">
-                              Students Enrolled
-                            </p>
-                            <p className="text-lg font-semibold text-gray-900">
-                              {classItem.enrolledCount || 0}/
-                              {classItem.capacity?.minStudents || 0} needed
-                            </p>
-                            <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                              <div
-                                className="bg-red-500 h-2 rounded-full"
-                                style={{
-                                  width: `${
-                                    ((classItem.enrolledCount || 0) /
-                                      (classItem.capacity?.minStudents || 1)) *
-                                      100 || 0
-                                  }%`,
-                                }}
-                              ></div>
+              {activeTab === "waiting" &&
+                mentorClasses.filter(
+                  (classObj) => classObj.status === "pending"
+                ).length > 0 &&
+                mentorClasses
+                  .filter((classObj) => classObj.status === "pending")
+                  .map((classItem, index) => (
+                    <div
+                      key={index}
+                      className="bg-white rounded-xl border border-yellow-300 p-6"
+                    >
+                      123
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="text-xl font-bold text-gray-900">
+                              {classItem.title}
+                            </h3>
+                            <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
+                              Pending Approval
+                            </span>
+                            <span
+                              className={`${
+                                classItem.format === "in-person"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-green-100 text-green-800"
+                              } text-xs px-2 py-1 rounded-full font-medium`}
+                            >
+                              {classItem.format === "in-person"
+                                ? "In-person"
+                                : "Online"}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 mb-4">
+                            {classItem.description}
+                          </p>
+
+                          <div className="grid md:grid-cols-4 gap-6 mb-4">
+                            <div>
+                              <p className="text-sm text-gray-500">
+                                Students Enrolled
+                              </p>
+                              <p className="text-lg font-semibold text-gray-900">
+                                {classItem.enrolledCount || 0}/
+                                {classItem.capacity?.minStudents || 0} needed
+                              </p>
+                              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                <div
+                                  className="bg-red-500 h-2 rounded-full"
+                                  style={{
+                                    width: `${
+                                      ((classItem.enrolledCount || 0) /
+                                        (classItem.capacity?.minStudents ||
+                                          1)) *
+                                        100 || 0
+                                    }%`,
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Schedule</p>
+                              <p className="text-lg font-semibold text-gray-900">
+                                {classItem.schedule?.weeklySchedule?.[0]?.day}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {
+                                  classItem.schedule?.weeklySchedule?.[0]
+                                    ?.startTime
+                                }{" "}
+                                -{" "}
+                                {
+                                  classItem.schedule?.weeklySchedule?.[0]
+                                    ?.endTime
+                                }
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Status</p>
+                              <p className="text-lg font-semibold text-orange-600">
+                                Need{" "}
+                                {(classItem.capacity?.minStudents || 0) -
+                                  (classItem.enrolledCount || 0)}{" "}
+                                more
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                to start class
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">
+                                Potential Revenue
+                              </p>
+                              <p className="text-lg font-semibold text-gray-900">
+                                £
+                                {(
+                                  (classItem.capacity?.maxStudents || 0) *
+                                  (classItem.pricing?.basePrice || 0) *
+                                  (classItem.schedule?.totalSessions || 1)
+                                ).toFixed(0)}
+                              </p>
+                              <p className="text-sm text-gray-600">when full</p>
                             </div>
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Schedule</p>
-                            <p className="text-lg font-semibold text-gray-900">
-                              {classItem.schedule?.weeklySchedule?.[0]?.day}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {
-                                classItem.schedule?.weeklySchedule?.[0]
-                                  ?.startTime
-                              }{" "}
-                              -{" "}
-                              {classItem.schedule?.weeklySchedule?.[0]?.endTime}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Status</p>
-                            <p className="text-lg font-semibold text-orange-600">
-                              Need{" "}
-                              {(classItem.capacity?.minStudents || 0) -
-                                (classItem.enrolledCount || 0)}{" "}
-                              more
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              to start class
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">
-                              Potential Revenue
-                            </p>
-                            <p className="text-lg font-semibold text-gray-900">
-                              £
-                              {(
-                                (classItem.capacity?.maxStudents || 0) *
-                                (classItem.pricing?.basePrice || 0) *
-                                (classItem.schedule?.totalSessions || 1)
-                              ).toFixed(0)}
-                            </p>
-                            <p className="text-sm text-gray-600">when full</p>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center space-x-2 mb-4">
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
-                            {classItem.subject}
-                          </span>
-                          <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium">
-                            Under-enrolled
-                          </span>
+                          <div className="flex items-center space-x-2 mb-4">
+                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                              {classItem.subject}
+                            </span>
+                            <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium">
+                              Under-enrolled
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      <div className="flex flex-wrap gap-3">
+                        <button className="px-4 py-2 rounded-lg transition-colors text-sm font-medium bg-yellow-500 text-white hover:bg-yellow-600">
+                          <i className="fas fa-bullhorn mr-2"></i>
+                          Promote Class
+                        </button>
+                        <button
+                          onClick={() =>
+                            (window.location.href = `/mentor/classes/${classItem.classId}`)
+                          }
+                          className="px-4 py-2 rounded-lg transition-colors text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        >
+                          <i className="fas fa-users mr-2"></i>
+                          View Students ({classItem.enrolledCount || 0})
+                        </button>
+                        <button className="px-4 py-2 rounded-lg transition-colors text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50">
+                          <i className="fas fa-edit mr-2"></i>
+                          Edit Details
+                        </button>
+                      </div>
                     </div>
+                  ))}
 
-                    <div className="flex flex-wrap gap-3">
-                      <button className="px-4 py-2 rounded-lg transition-colors text-sm font-medium bg-yellow-500 text-white hover:bg-yellow-600">
-                        <i className="fas fa-bullhorn mr-2"></i>
-                        Promote Class
-                      </button>
-                      <button
-                        onClick={() =>
-                          (window.location.href = `/mentor/classes/${classItem.classId}`)
-                        }
-                        className="px-4 py-2 rounded-lg transition-colors text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50"
-                      >
-                        <i className="fas fa-users mr-2"></i>
-                        View Students ({classItem.enrolledCount || 0})
-                      </button>
-                      <button className="px-4 py-2 rounded-lg transition-colors text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50">
-                        <i className="fas fa-edit mr-2"></i>
-                        Edit Details
-                      </button>
-                    </div>
-                  </div>
-                ))
-              }
-              
               {activeTab === "completed" && classData.completed.length === 0 ? (
                 <div className="text-center py-12">
                   <i className="fas fa-check-circle text-green-300 text-6xl mb-4"></i>
@@ -786,8 +822,6 @@ export default function MyClass() {
                   </div>
                 ))
               )}
-  
-              
             </div>
           </main>
         </div>

@@ -41,7 +41,7 @@ export const formatDate = (dateString) => {
     { icon: 'fas fa-home', text: 'Dashboard', active: 1 , href: '/mentor/dashboard' },
     { icon: 'fas fa-chalkboard-teacher',  active: 2,  text: 'My Classes' , href: '/mentor/myclass' },
     { icon: 'fas fa-plus-circle', active: 3, text: 'Host a Class' , href: '/mentor/hostaclass' },
-    { icon: 'fas fa-users', active: 4, text: 'Workshops' , href: '/mentor/workshops' },
+    // { icon: 'fas fa-users', active: 4, text: 'Workshops' , href: '/mentor/workshops' },
     { icon: 'fas fa-calendar-alt', active: 5, text: 'Schedule' , href: '/mentor/schedule' },
     { icon: 'fas fa-students', active: 6, text: 'Students' , href: '/mentor/students' },
     { icon: 'fas fa-pound-sign', active: 7, text: 'Earnings' , href: '/mentor/earnings' },

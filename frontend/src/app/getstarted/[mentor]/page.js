@@ -34,7 +34,7 @@ const AuthPages = () => {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'));
     if(user?.user?.userType === 'student'){
-      window.location.href = '/user/dashboard';
+      window.location.href = '/mentor/dashboard';
     }else if(user?.user?.userType === 'mentor'){
       window.location.href = '/mentor/dashboard';
     }
@@ -123,7 +123,7 @@ const AuthPages = () => {
       console.log('Login successful:', response.data);
       alert('Successfully logged in!');
       localStorage.setItem('user', JSON.stringify(response.data));
-      window.location.href = '/user/onboarding';
+      window.location.href = '/mentor/dashboard';
     })
     .catch(error => {
       console.error('Login failed:', error);
@@ -137,7 +137,6 @@ const AuthPages = () => {
       <Head>
         <title>{activeTab === 'signup' ? 'Sign Up - Roots & Wings' : 'Sign In - Roots & Wings'}</title>
         {/* Using CDN and inline script for Tailwind to replicate the HTML file's setup */}
-        <script src="https://cdn.tailwindcss.com"></script>
         <script
           id="tailwind-config"
           dangerouslySetInnerHTML={{
@@ -160,7 +159,6 @@ const AuthPages = () => {
             `,
           }}
         />
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
 

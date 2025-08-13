@@ -26,6 +26,10 @@ const Dashboard = () => {
     const user = JSON.parse(localStorage.getItem("user"));
     setUser(user.user);
 
+    if (user?.user?.userType !== "student") {
+      window.location.href = "/";
+    }
+
     const fetchBookings = async () => {
       try {
         const bookingsResponse = await axios.get(
@@ -38,12 +42,11 @@ const Dashboard = () => {
             const classResponse = await axios.get(
               `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${booking.classId}`
             );
-            setBookingsClasses(prev => [...prev, classResponse.data?.class]);
+            setBookingsClasses((prev) => [...prev, classResponse.data?.class]);
           } catch (error) {
-            console.error('Error fetching class data:', error);
+            console.error("Error fetching class data:", error);
           }
-      });
-
+        });
       } catch (error) {}
     };
 
@@ -227,23 +230,30 @@ const Dashboard = () => {
                   <h2 className="text-xl font-semibold text-gray-900 mb-6">
                     My Learning Overview
                   </h2>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
-                    {user.role === 'parent' && 
-                    <div className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-lg transition-shadow">
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i className="fas fa-users text-blue-600 text-xl"></i>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {user.role === "parent" && (
+                      <div className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-lg transition-shadow">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <i className="fas fa-users text-blue-600 text-xl"></i>
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-800">3</h3>
+                        <p className="text-gray-600 text-sm">Active Learners</p>
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-800">3</h3>
-                      <p className="text-gray-600 text-sm">Active Learners</p>
-                    </div>}
+                    )}
 
                     <div className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-lg transition-shadow">
                       <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i className="fas fa-book text-green-600 text-xl"></i>
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-800">{bookingsClasses.reduce((total, bookingClass) => total + (bookingClass.schedule.weeklySchedule.length || 0), 0)}</h3>
+                      <h3 className="text-2xl font-bold text-gray-800">
+                        {bookingsClasses.reduce(
+                          (total, bookingClass) =>
+                            total +
+                            (bookingClass.schedule.weeklySchedule.length || 0),
+                          0
+                        )}
+                      </h3>
                       <p className="text-gray-600 text-sm">Total Sessions</p>
                     </div>
 
@@ -251,7 +261,9 @@ const Dashboard = () => {
                       <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i className="fas fa-user-graduate text-purple-600 text-xl"></i>
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-800">{bookings.length}</h3>
+                      <h3 className="text-2xl font-bold text-gray-800">
+                        {bookings.length}
+                      </h3>
                       <p className="text-gray-600 text-sm">Mentors</p>
                     </div>
 
@@ -263,7 +275,6 @@ const Dashboard = () => {
                       <p className="text-gray-600 text-sm">Total Hours</p>
                     </div>
 
-
                     <div className="bg-white rounded-xl p-6 text-center shadow-sm hover:shadow-lg transition-shadow">
                       <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i className="fas fa-book text-pink-600 text-xl"></i>
@@ -271,96 +282,105 @@ const Dashboard = () => {
                       <h3 className="text-2xl font-bold text-gray-800">4</h3>
                       <p className="text-gray-600 text-sm">Total Classes</p>
                     </div>
-
                   </div>
                 </section>
 
                 {/* Upcoming Sessions & Quick Actions */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-     
+                  <div className="lg:col-span-2">
+                    <div className="bg-white rounded-xl shadow-sm p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Upcoming's Sessions
+                        </h3>
+                        <a
+                          href="#"
+                          className="text-primary hover:text-primary-dark text-sm font-medium"
+                        >
+                          View All
+                        </a>
+                      </div>
 
-                <div className="lg:col-span-2">
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Upcoming's Sessions
-                    </h3>
-                    <a
-                      href="#"
-                      className="text-primary hover:text-primary-dark text-sm font-medium"
-                    >
-                      View All
-                    </a>
-                  </div>
-
-                  <div className="space-y-4">
-                    {bookings.length > 0 ? (
-                      bookings.slice(0, 3).map((booking, index) => (
-                        <div key={booking.bookingId} className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors">
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-white font-semibold">
-                                {booking.className?.charAt(0) || 'C'}
-                              </span>
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-medium text-gray-900">
-                                  {booking.className || 'Class Session'}
-                                </h4>
-                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                  booking.status === 'confirmed' 
-                                    ? 'bg-green-100 text-green-800'
-                                    : booking.status === 'pending'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {booking.status || 'Active'}
-                                </span>
-                              </div>
-                              <p className="text-gray-600 text-sm">
-                                Progress: {booking.completedSessions || 0}/{booking.totalSessions || 0} sessions
-                              </p>
-                              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                                <span>
-                                  <i className="fas fa-calendar mr-1"></i>
-                                  {new Date(booking.createdAt).toLocaleDateString()}
-                                </span>
-                                <span>
-                                  <i className="fas fa-percentage mr-1"></i>
-                                  {booking.progressPercentage || 0}% Complete
-                                </span>
-                              </div>
-                            </div>
-                            <button 
-                              onClick={() => window.location.href = `/user/bookings/${booking.bookingId}`}
-                              className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors"
+                      <div className="space-y-4">
+                        {bookings.length > 0 ? (
+                          bookings.slice(0, 3).map((booking, index) => (
+                            <div
+                              key={booking.bookingId}
+                              className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors"
                             >
-                              View Details
+                              <div className="flex items-start space-x-4">
+                                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white font-semibold">
+                                    {booking.className?.charAt(0) || "C"}
+                                  </span>
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="font-medium text-gray-900">
+                                      {booking.className || "Class Session"}
+                                    </h4>
+                                    <span
+                                      className={`text-xs px-2 py-1 rounded-full ${
+                                        booking.status === "confirmed"
+                                          ? "bg-green-100 text-green-800"
+                                          : booking.status === "pending"
+                                          ? "bg-yellow-100 text-yellow-800"
+                                          : "bg-gray-100 text-gray-800"
+                                      }`}
+                                    >
+                                      {booking.status || "Active"}
+                                    </span>
+                                  </div>
+                                  <p className="text-gray-600 text-sm">
+                                    Progress: {booking.completedSessions || 0}/
+                                    {booking.totalSessions || 0} sessions
+                                  </p>
+                                  <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                                    <span>
+                                      <i className="fas fa-calendar mr-1"></i>
+                                      {new Date(
+                                        booking.createdAt
+                                      ).toLocaleDateString()}
+                                    </span>
+                                    <span>
+                                      <i className="fas fa-percentage mr-1"></i>
+                                      {booking.progressPercentage || 0}%
+                                      Complete
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() =>
+                                    (window.location.href = `/user/bookings/${booking.bookingId}`)
+                                  }
+                                  className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors"
+                                >
+                                  View Details
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                              <i className="fas fa-calendar-plus text-gray-400 text-xl"></i>
+                            </div>
+                            <p className="text-gray-600 mb-4">
+                              No upcoming sessions
+                            </p>
+                            <button
+                              onClick={() =>
+                                (window.location.href = "/explore")
+                              }
+                              className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+                            >
+                              Book Your First Session
                             </button>
                           </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                          <i className="fas fa-calendar-plus text-gray-400 text-xl"></i>
-                        </div>
-                        <p className="text-gray-600 mb-4">No upcoming sessions</p>
-                        <button 
-                          onClick={() => window.location.href = '/explore'}
-                          className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-                        >
-                          Book Your First Session
-                        </button>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </div>
-
-
-                  
 
                   {/* Quick Actions */}
                   <div>
@@ -603,11 +623,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div> */}
-
-                
               </div>
-
-
             </>
           )}
         </main>

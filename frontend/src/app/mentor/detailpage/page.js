@@ -111,7 +111,6 @@ const MentorDetail = () => {
     const [reviewsLoading, setReviewsLoading] = useState(false);
     const [mentorClasses, setMentorClasses] = useState([]);
 
-    console.log(mentorClasses,'mentorClasses mentorClasses');
     
     useEffect(() => {
         const storedMentor = localStorage.getItem("mentor");
@@ -120,15 +119,8 @@ const MentorDetail = () => {
             window.location.href = "/mentor/directory";
             return;
         }
-
         const initialMentorData = JSON.parse(storedMentor);
-
-        console.log(initialMentorData, 'initialMentorData initialMentorData');
-
-
         setMentorData(initialMentorData);
-
-
 
         // Get mentor's classes
         const fetchMentorClasses = async (mentorId) => {
@@ -851,7 +843,5 @@ const MentorDetail = () => {
         </>
     );
 };
-
-
 
 export default MentorDetail;

@@ -11,6 +11,11 @@ const AchievementsPage = () => {
 
   // This useEffect handles the mobile sidebar toggle on window resize.
   useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if(user?.user?.userType !== 'student'){
+      window.location.href = '/';
+    }
+
     const handleResize = () => {
       if (window.innerWidth >= 768) {
         setIsSidebarOpen(false);

@@ -20,6 +20,12 @@ export default function Earnings() {
   };
 
   useEffect(() => {
+
+    const user = JSON.parse(localStorage.getItem('user'));
+    if(user?.user?.userType !== 'mentor'){
+      window.location.href = '/';
+    }
+
     // Logic to close dropdown on outside click
     const handleOutsideClick = (e) => {
       const profileDropdownBtn = document.getElementById('profile-dropdown-btn');

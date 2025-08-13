@@ -14,7 +14,6 @@ export default function Home() {
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     subject: '',
     age: '',
@@ -22,173 +21,50 @@ export default function Home() {
     date: '',
     price: '',
   });
-  const [categories, setCategories] = useState([]);
-  const [totalResults, setTotalResults] = useState(0);
-  const [notification, setNotification] = useState(null);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    setUser(user);
+  }, []);
 
   // Fetch workshops from API
   const fetchWorkshops = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      
-      // Always fetch workshops
-      params.append('type', 'workshop');
-      params.append('status', 'approved'); // Only show approved workshops
-      
-      // Add search query
-      if (searchQuery) {
-        params.append('q', searchQuery);
-      }
-      
-      // Add filters - fix parameter names to match backend
-      if (filters.subject) {
-        // Map frontend category names to backend category values
-        const categoryMapping = {
-          'Music': 'music',
-          'Art & Craft': 'visual_arts',
-          'Dance': 'performing_arts',
-          'Technology': 'technology',
-          'Cooking': 'culinary_arts',
-          'Yoga': 'wellness',
-          'Language': 'languages',
-          'Martial Arts': 'martial_arts'
-        };
-        const mappedCategory = categoryMapping[filters.subject] || filters.subject.toLowerCase().replace(' ', '_');
-        params.append('category', mappedCategory);
-      }
-      
-      if (filters.age) {
-        params.append('ageGroup', filters.age);
-      }
-      
-      if (filters.mode) {
-        // Map frontend mode values to backend format values
-        const modeMapping = {
-          'online': 'online',
-          'in-person': 'in-person',
-          'hybrid': 'hybrid'
-        };
-        const mappedMode = modeMapping[filters.mode] || filters.mode;
-        params.append('format', mappedMode);
-      }
-      
-      // Price filtering (convert price categories to actual ranges)
-      if (filters.price === 'free') {
-        params.append('maxPrice', '0');
-      } else if (filters.price === 'under-20') {
-        params.append('maxPrice', '19.99');
-      } else if (filters.price === '20-50') {
-        params.append('minPrice', '20');
-        params.append('maxPrice', '50');
-      } else if (filters.price === 'over-50') {
-        params.append('minPrice', '50.01');
-      }
-      
-      // Date filtering for upcoming workshops
-      if (filters.date) {
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const nextWeek = new Date(today);
-        nextWeek.setDate(nextWeek.getDate() + 7);
-        const nextMonth = new Date(today);
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        
-        let startDateFrom = null;
-        let startDateTo = null;
-        
-        switch (filters.date) {
-          case 'today':
-            startDateFrom = today.toISOString().split('T')[0];
-            startDateTo = today.toISOString().split('T')[0];
-            break;
-          case 'tomorrow':
-            startDateFrom = tomorrow.toISOString().split('T')[0];
-            startDateTo = tomorrow.toISOString().split('T')[0];
-            break;
-          case 'this-week':
-            startDateFrom = today.toISOString().split('T')[0];
-            startDateTo = nextWeek.toISOString().split('T')[0];
-            break;
-          case 'next-week':
-            startDateFrom = nextWeek.toISOString().split('T')[0];
-            const weekAfterNext = new Date(nextWeek);
-            weekAfterNext.setDate(weekAfterNext.getDate() + 7);
-            startDateTo = weekAfterNext.toISOString().split('T')[0];
-            break;
-          case 'this-month':
-            startDateFrom = today.toISOString().split('T')[0];
-            startDateTo = nextMonth.toISOString().split('T')[0];
-            break;
-        }
-        
-        if (startDateFrom) {
-          params.append('startDateFrom', startDateFrom);
-        }
-        if (startDateTo) {
-          params.append('startDateTo', startDateTo);
-        }
-      } else {
-        // If no date filter, only show upcoming workshops
-        params.append('startDateFrom', new Date().toISOString().split('T')[0]);
-      }
-      
-      // Sorting and pagination
-      params.append('sortBy', 'startDate');
-      params.append('sortOrder', 'asc');
-      params.append('page', '1');
-      params.append('pageSize', '50');
-      
-      const apiUrl = `${API_BASE_URL}/classes/?${params.toString()}`;
-      console.log('=== WORKSHOP FETCH DEBUG ===');
-      console.log('API URL:', apiUrl);
-      console.log('Current filters:', filters);
-      console.log('Search query:', searchQuery);
-      console.log('Params object:', Object.fromEntries(params));
-      
-      const response = await axios.get(apiUrl);
-      console.log('API Response total:', response.data.total);
-      console.log('API Response classes count:', response.data.classes?.length);
-      console.log('API Response data:', response.data);
+      const response = await axios.get(`${API_BASE_URL}/classes/?type=workshop`);
       const data = response.data;
       
       // The API returns workshops in data.classes array
       const workshopClasses = data.classes || [];
-      setTotalResults(data.total || 0);
-      
-      console.log('Raw workshop classes:', workshopClasses);
       
       // Transform API data to match the component's expected format
-      const transformedWorkshops = workshopClasses.map(cls => {
-        console.log('Processing class:', cls);
-        return {
-          id: cls.classId,
-          title: cls.title,
-          mentor: cls.mentorName || 'TBD',
-          mentorInitial: cls.mentorName?.charAt(0) || 'M',
-          mentorColor: getColorFromSubject(cls.subject),
-          description: cls.description,
-          date: formatDate(cls.schedule),
-          duration: `${cls.schedule?.sessionDuration || 60} minutes`,
-          location: cls.format === 'online' ? 'Online' : 'In-person',
-          subject: getSubjectCategory(cls.subject),
-          age: cls.ageGroup,
-          mode: cls.format,
-          price: cls.pricing?.perSessionRate === 0 ? 'free' : getPriceCategory(cls.pricing?.perSessionRate || 0),
-          dateFilter: getDateFilter(cls.schedule),
-          badges: getBadges(cls),
-          skills: getSkills(cls),
-          icon: getIcon(cls.subject),
-          capacity: (cls.capacity?.maxStudents || 0) - (cls.capacity?.currentEnrollment || 0),
-          initialCapacity: cls.capacity?.maxStudents || 0,
-          totalSessions: cls.pricing?.totalSessions || 1,
-          level: cls.level,
-          rating: cls.avgRating
-        };
-      });
+      const transformedWorkshops = workshopClasses.map(cls => ({
+        id: cls.classId,
+        title: cls.title,
+        mentor: cls.mentorName || 'TBD',
+        mentorInitial: cls.mentorName?.charAt(0) || 'M',
+        mentorColor: getColorFromSubject(cls.subject),
+        description: cls.description,
+        date: formatDate(cls.schedule),
+        duration: `${cls.schedule.sessionDuration} minutes`,
+        location: cls.format === 'online' ? 'Online' : 'In-person',
+        subject: getSubjectCategory(cls.subject),
+        age: cls.ageGroup,
+        mode: cls.format,
+        price: cls.pricing.perSessionRate === 0 ? 'free' : getPriceCategory(cls.pricing.perSessionRate),
+        dateFilter: getDateFilter(cls.schedule),
+        badges: getBadges(cls),
+        skills: getSkills(cls),
+        icon: getIcon(cls.subject),
+        capacity: cls.capacity.maxStudents - cls.capacity.currentEnrollment,
+        initialCapacity: cls.capacity.maxStudents,
+        totalSessions: cls.pricing.totalSessions,
+        level: cls.level,
+        rating: cls.avgRating,
+        pricing: cls.pricing
+      }));
       
-      console.log('Transformed workshops:', transformedWorkshops);
       setWorkshops(transformedWorkshops);
     } catch (error) {
       console.error('Error fetching workshops:', error);
@@ -198,58 +74,35 @@ export default function Home() {
     }
   };
 
-  // Fetch categories for filter dropdown
-  const fetchCategories = async () => {
-    try {
-      console.log('Fetching categories from:', `${API_BASE_URL}/metadata/categories`);
-      const response = await axios.get(`${API_BASE_URL}/metadata/categories`);
-      console.log('Categories response:', response.data);
-      if (response.data && response.data.categories) {
-        console.log('Setting categories:', response.data.categories.length, 'categories');
-        setCategories(response.data.categories);
-      } else {
-        console.log('No categories in response');
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
-
   // Helper functions for data transformation
   const formatDate = (schedule) => {
     if (!schedule || !schedule.startDate) return 'TBD';
+    const startDate = new Date(schedule.startDate);
+    const endDate = schedule.endDate ? new Date(schedule.endDate) : startDate;
     
-    try {
-      const startDate = new Date(schedule.startDate);
-      const endDate = schedule.endDate ? new Date(schedule.endDate) : startDate;
-      
-      // Get the first scheduled session time
-      const firstSession = schedule.weeklySchedule?.[0];
-      const timeString = firstSession ? `${firstSession.startTime} - ${firstSession.endTime}` : '';
-      
-      if (schedule.startDate === schedule.endDate || !schedule.endDate) {
-        // Single day workshop
-        return `${startDate.toLocaleDateString('en-GB', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })}${timeString ? ` • ${timeString}` : ''}`;
-      } else {
-        // Multi-day workshop
-        return `${startDate.toLocaleDateString('en-GB', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric'
-        })} - ${endDate.toLocaleDateString('en-GB', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric'
-        })}${timeString ? ` • ${timeString}` : ''}`;
-      }
-    } catch (error) {
-      console.error('Error formatting date:', error, schedule);
-      return 'TBD';
+    // Get the first scheduled session time
+    const firstSession = schedule.weeklySchedule?.[0];
+    const timeString = firstSession ? `${firstSession.startTime} - ${firstSession.endTime}` : '';
+    
+    if (schedule.startDate === schedule.endDate || !schedule.endDate) {
+      // Single day workshop
+      return `${startDate.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}${timeString ? ` • ${timeString}` : ''}`;
+    } else {
+      // Multi-day workshop
+      return `${startDate.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      })} - ${endDate.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      })}${timeString ? ` • ${timeString}` : ''}`;
     }
   };
 
@@ -305,32 +158,26 @@ export default function Home() {
 
   const getDateFilter = (schedule) => {
     if (!schedule || !schedule.startDate) return 'this-month';
+    const startDate = new Date(schedule.startDate);
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     
-    try {
-      const startDate = new Date(schedule.startDate);
-      const now = new Date();
-      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      
-      if (startDate.toDateString() === now.toDateString()) return 'today';
-      if (startDate.toDateString() === tomorrow.toDateString()) return 'tomorrow';
-      if (startDate <= nextWeek) return 'this-week';
-      return 'this-month';
-    } catch (error) {
-      console.error('Error getting date filter:', error, schedule);
-      return 'this-month';
-    }
+    if (startDate.toDateString() === now.toDateString()) return 'today';
+    if (startDate.toDateString() === tomorrow.toDateString()) return 'tomorrow';
+    if (startDate <= nextWeek) return 'this-week';
+    return 'this-month';
   };
 
   const getBadges = (cls) => {
     const badges = [];
-    if (cls.pricing?.perSessionRate === 0) {
+    if (cls.pricing.perSessionRate === 0) {
       badges.push({ text: 'Free', color: 'bg-green-500' });
     }
-    if (cls.pricing?.totalSessions > 1) {
-      badges.push({ text: `${cls.pricing?.totalSessions} Sessions`, color: 'bg-blue-500' });
+    if (cls.pricing.totalSessions > 1) {
+      badges.push({ text: `${cls.pricing.totalSessions} Sessions`, color: 'bg-blue-500' });
     }
-    const spotsLeft = (cls.capacity?.maxStudents || 0) - (cls.capacity?.currentEnrollment || 0);
+    const spotsLeft = cls.capacity.maxStudents - cls.capacity.currentEnrollment;
     if (spotsLeft <= 2 && spotsLeft > 0) {
       badges.push({ text: `${spotsLeft} spots left!`, color: 'bg-red-500 animate-pulse' });
     }
@@ -353,7 +200,7 @@ export default function Home() {
       'intermediate': 'bg-yellow-100 text-yellow-700',
       'advanced': 'bg-red-100 text-red-700'
     };
-    const levelText = cls.level ? cls.level.charAt(0).toUpperCase() + cls.level.slice(1) : 'All Levels';
+    const levelText = cls.level.charAt(0).toUpperCase() + cls.level.slice(1);
     skills.push({ text: levelText, color: levelColors[cls.level] || 'bg-gray-100 text-gray-700' });
     
     return skills;
@@ -377,44 +224,29 @@ export default function Home() {
 
   // Function to apply filters
   const applyFilters = () => {
-    fetchWorkshops();
+    // Filters are now applied through API calls or client-side filtering
+    // This function can be enhanced to work with the real data
   };
 
   // Function to clear all filters
   const clearAllFilters = () => {
-    setSearchQuery('');
     setFilters({ subject: '', age: '', mode: '', date: '', price: '' });
   };
 
-  // Fetch workshops and categories on component mount
+  // Fetch workshops on component mount
   useEffect(() => {
-    fetchCategories();
     fetchWorkshops();
   }, []);
 
-  // Apply filters when filter state changes (debounced) - individual dependencies to avoid infinite re-renders
+  // Apply filters when filter state changes
   useEffect(() => {
-    console.log('Filter useEffect triggered:', { searchQuery, filters });
-    const timer = setTimeout(() => {
-      console.log('Debounced fetch triggered');
-      fetchWorkshops();
-    }, 300);
-    
-    return () => {
-      console.log('Clearing timeout');
-      clearTimeout(timer);
-    };
-  }, [searchQuery, filters.subject, filters.age, filters.mode, filters.date, filters.price]);
+    applyFilters();
+  }, [filters]);
 
   const handleFilterChange = (e) => {
     const { id, value } = e.target;
     const filterKey = id.replace('-filter', '');
-    console.log('Filter changed:', filterKey, '=', value);
-    setFilters(prevFilters => {
-      const newFilters = { ...prevFilters, [filterKey]: value };
-      console.log('New filters state:', newFilters);
-      return newFilters;
-    });
+    setFilters(prevFilters => ({ ...prevFilters, [filterKey]: value }));
   };
 
   const registerWorkshop = (workshopId) => {
@@ -524,7 +356,7 @@ export default function Home() {
       <div className="font-sans text-gray-800 bg-gray-50">
 
         {/* Navigation Component */}
-        <Navbar   />
+        <Navbar user={user?.user} />
 
         {/* <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
           <div className="max-w-7xl mx-auto px-5">
@@ -575,42 +407,24 @@ export default function Home() {
         {/* Filters Bar Component */}
         <section className="bg-white shadow-lg sticky top-16 z-40 border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-5 py-6">
-            {/* Search Bar */}
-            <div className="mb-6">
-              <div className="relative max-w-2xl mx-auto">
-                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" aria-hidden="true">
-                  🔍
-                </span>
-                <input
-                  type="text"
-                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors text-lg"
-                  placeholder="Search workshops by title, subject, or mentor..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  aria-label="Search workshops"
-                />
-              </div>
-            </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-              {/* Category Filter */}
+              {/* Subject Filter */}
               <div>
-                <label htmlFor="subject-filter" className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+                <label htmlFor="subject-filter" className="block text-sm font-semibold text-gray-700 mb-2">Subject</label>
                 <select
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:outline-none bg-white"
                   id="subject-filter"
                   value={filters.subject}
                   onChange={handleFilterChange}
                 >
-                  <option value="">All Categories</option>
-                  <option value="Music">Music</option>
-                  <option value="Art & Craft">Art & Craft</option>
-                  <option value="Dance">Dance</option>
-                  <option value="Technology">Technology</option>
-                  <option value="Cooking">Cooking</option>
-                  <option value="Yoga">Yoga</option>
-                  <option value="Language">Language</option>
-                  <option value="Martial Arts">Martial Arts</option>
+                  <option value="">All Subjects</option>
+                  <option value="music">Music</option>
+                  <option value="dance">Dance</option>
+                  <option value="yoga">Yoga & Wellness</option>
+                  <option value="art">Art & Craft</option>
+                  <option value="language">Languages</option>
+                  <option value="cooking">Cooking</option>
+                  <option value="tech">Technology</option>
                 </select>
               </div>
 
@@ -695,19 +509,7 @@ export default function Home() {
 
             {/* Results Count */}
             <div className="mt-4 text-center text-gray-600">
-              {loading ? (
-                <span className="text-gray-500">Searching workshops...</span>
-              ) : (
-                <>
-                  <span id="results-count">
-                    Showing {workshops.length} of {totalResults} workshop{workshops.length !== 1 ? 's' : ''}
-                  </span>
-                  {(searchQuery || filters.subject || filters.age || filters.mode || filters.date || filters.price) && (
-                    <span className="text-gray-500 ml-2">(filtered results)</span>
-                  )}
-                  {' '} •{' '}
-                </>
-              )}
+              <span id="results-count">Showing {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}</span> •
               <button className="text-primary hover:text-primary-dark font-semibold" onClick={clearAllFilters}>
                 Clear all filters
               </button>
@@ -809,12 +611,11 @@ export default function Home() {
 
                   {/* Description */}
                   <p className="text-gray-600 text-sm mb-4 leading-relaxed">{workshop.description}</p>
-
                   {/* Capacity */}
                   <div className="flex items-center justify-between mb-4">
-                    {workshop.price !== 'free' && (
+                    {workshop.pricing && (
                       <div className="text-2xl font-bold text-primary-dark">
-                        £{workshop.price.includes('-') ? workshop.price.split('-')[0] : workshop.price}
+                        £ {workshop?.pricing?.perSessionRate || 0}
                       </div>
                     )}
                     <div className="flex items-center text-sm text-gray-600">
@@ -834,7 +635,7 @@ export default function Home() {
                     onClick={() => registerWorkshop(workshop.id)}
                     disabled={workshop.capacity <= 0}
                   >
-                    {workshop.price === 'free' ? 'Register Free' : `Book Now - £${workshop.price.includes('-') ? workshop.price.split('-')[0] : workshop.price}`}
+                    {!(workshop.pricing) === 'free' ? 'Register Free' : `Book Now`}
                   </button>
                 </div>
               </div>
