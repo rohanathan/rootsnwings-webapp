@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form, Body, Request
 from typing import Optional, Dict, Any
 import os
 import uuid
+import json
 from pathlib import Path
 from datetime import datetime
 from app.services.user_service import (
@@ -164,9 +165,9 @@ def get_user(
         raise HTTPException(status_code=500, detail=f"Failed to get user: {str(e)}")
 
 @router.put("/{user_id}")
-def update_user(
+async def update_user(
+    request: Request,
     user_id: str,
-    update_data: Optional[Dict[str, Any]] = None,
     profile_type: Optional[str] = Query(None, description="Update specific profile: student, parent, mentor"),
     delete_account: bool = Query(False, description="Set true to delete account"),
     file: Optional[UploadFile] = File(None, description="Profile image file"),
@@ -196,16 +197,28 @@ def update_user(
                 raise HTTPException(status_code=500, detail="Failed to delete account")
             return {"message": "Account deleted successfully"}
         
-        # Parse JSON data if file upload
-        if file and json_data:
-            import json
-            try:
-                update_data = json.loads(json_data)
-            except json.JSONDecodeError:
-                raise HTTPException(status_code=400, detail="Invalid JSON data")
+        # Parse update data from request body
+        update_data = {}
         
-        if not update_data:
-            update_data = {}
+        # Check content type to determine how to parse the body
+        content_type = request.headers.get("content-type", "")
+        
+        if "multipart/form-data" in content_type:
+            # Handle multipart form data (file uploads)
+            if json_data:
+                try:
+                    update_data = json.loads(json_data)
+                except json.JSONDecodeError:
+                    raise HTTPException(status_code=400, detail="Invalid JSON data in form")
+        else:
+            # Handle JSON request body
+            try:
+                body = await request.body()
+                if body:
+                    update_data = await request.json()
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid JSON in request body")
+        
         
         # Handle file upload
         image_url = None
@@ -283,8 +296,16 @@ def update_user(
                 profile_data = {**base_profile, **update_data}
                 doc_ref.set(profile_data)
             else:
-                update_data["updatedAt"] = datetime.now().isoformat()
-                doc_ref.update(update_data)
+                # Get existing profile data
+                existing_profile = doc_ref.get().to_dict()
+                # Merge with update data
+                merged_data = {**existing_profile, **update_data}
+                merged_data["updatedAt"] = datetime.now().isoformat()
+                
+                try:
+                    doc_ref.set(merged_data)  # Use set instead of update to ensure all fields are saved
+                except Exception as e:
+                    raise e
             
             # Get updated profile
             updated_profile = doc_ref.get().to_dict()

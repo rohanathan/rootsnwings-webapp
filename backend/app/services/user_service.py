@@ -139,7 +139,7 @@ def create_student_profile(uid: str, profile_data: StudentProfileCreate) -> Stud
             raise HTTPException(status_code=404, detail="User not found")
         
         # Check if profile already exists
-        existing_profile = db.collection("students").document(uid).get()
+        existing_profile = db.collection("student_profiles").document(uid).get()
         if existing_profile.exists:
             raise HTTPException(status_code=400, detail="Student profile already exists")
         
@@ -153,7 +153,7 @@ def create_student_profile(uid: str, profile_data: StudentProfileCreate) -> Stud
         })
         
         # Save to Firestore
-        db.collection("students").document(uid).set(profile_dict)
+        db.collection("student_profiles").document(uid).set(profile_dict)
         
         # Update user's hasStudentProfile flag
         db.collection("users").document(uid).update({
@@ -171,7 +171,7 @@ def create_student_profile(uid: str, profile_data: StudentProfileCreate) -> Stud
 def get_student_profile(uid: str) -> Optional[StudentProfile]:
     """Get student profile"""
     try:
-        doc = db.collection("students").document(uid).get()
+        doc = db.collection("student_profiles").document(uid).get()
         if not doc.exists:
             return None
         
@@ -184,7 +184,7 @@ def get_student_profile(uid: str) -> Optional[StudentProfile]:
 def update_student_profile_flexible(uid: str, update_data: dict) -> dict:
     """Update student profile"""
     try:
-        doc_ref = db.collection("students").document(uid)
+        doc_ref = db.collection("student_profiles").document(uid)
         doc = doc_ref.get()
         
         if not doc.exists:
