@@ -135,6 +135,7 @@ class StudentProfile(BaseModel):
     ageGroup: str = "adult"  # adult, teen, child
     step: int = 1
     location: Optional[Location] = None
+    savedMentors: List[str] = Field(default_factory=list)  # List of mentor UIDs
     
 class StudentProfileCreate(BaseModel):
     interests: List[str] = Field(default_factory=list)
@@ -150,6 +151,7 @@ class StudentProfileUpdate(BaseModel):
     preferredLanguages: Optional[List[str]] = None
     ageGroup: Optional[str] = None
     step: Optional[int] = None
+    savedMentors: Optional[List[str]] = None
 
 class StudentProfileResponse(BaseModel):
     success: bool = True

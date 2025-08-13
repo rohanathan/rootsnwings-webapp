@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import {
@@ -77,7 +77,7 @@ function PaymentForm({ clientSecret, bookingId }) {
   );
 }
 
-function PaymentPageContent() {
+export default function PaymentPage() {
   const searchParams = useSearchParams();
   const [clientSecret, setClientSecret] = useState('');
   const [bookingId, setBookingId] = useState('');
@@ -195,13 +195,5 @@ function PaymentPageContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function PaymentPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <PaymentPageContent />
-    </Suspense>
   );
 }

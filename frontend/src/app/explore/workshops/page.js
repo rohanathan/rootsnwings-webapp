@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { calculateTotalPayable, formatPrice } from '../../utils/pricingCalculator';
@@ -82,7 +82,7 @@ const workshopsData = [
     format: "in-person",
     subject: "kathak",
     description: "Intensive 2-day workshop focusing on advanced Kathak techniques, expressions, and performance skills. Perfect for dancers looking to deepen their practice in a concentrated format.",
-    mentorName: " ShaRSrma",
+    mentorName: "Priya Sharma",
     mentorPhotoURL: "https://randomuser.me/api/portraits/women/45.jpg",
     mentorRating: 4.9,
     pricing: {
@@ -149,7 +149,7 @@ const workshopsData = [
     format: "online",
     subject: "performance",
     description: "Exclusive single-day masterclass focusing on stage presence, advanced choreography, and professional performance techniques. Limited to experienced dancers only.",
-    mentorName: " Sharma",
+    mentorName: "Priya Sharma",
     mentorPhotoURL: "https://randomuser.me/api/portraits/women/45.jpg",
     mentorRating: 4.9,
     pricing: {
@@ -213,7 +213,7 @@ const workshopsData = [
     format: "hybrid",
     subject: "cultural_dance",
     description: "Immersive 4-day workshop exploring the cultural significance and traditional techniques of classical Indian dance forms, combining theory with practical sessions.",
-    mentorName: " Sharma",
+    mentorName: "Priya Sharma",
     mentorPhotoURL: "https://randomuser.me/api/portraits/women/45.jpg",
     mentorRating: 4.9,
     pricing: {
@@ -241,7 +241,7 @@ const workshopsData = [
   }
 ];
 
-function WorkshopsContent() {
+export default function Workshops() {
   const searchParams = useSearchParams();
   
   const [filters, setFilters] = useState({
@@ -689,13 +689,5 @@ function WorkshopsContent() {
         </div>
       </main>
     </>
-  );
-}
-
-export default function Workshops() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <WorkshopsContent />
-    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { calculateTotalPayable, formatPrice } from '../../utils/pricingCalculator';
@@ -168,7 +168,7 @@ const formatSchedule = (weeklySchedule) => {
 //   "updatedAt": "2025-08-06T11:42:08.467058"
 // }
 
-function GroupBatchesContent() {
+export default function GroupBatches() {
   const searchParams = useSearchParams();
   
   const [filters, setFilters] = useState({
@@ -629,13 +629,5 @@ function GroupBatchesContent() {
 
       
     </>
-  );
-}
-
-export default function GroupBatches() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <GroupBatchesContent />
-    </Suspense>
   );
 }

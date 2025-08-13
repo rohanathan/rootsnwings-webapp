@@ -142,15 +142,7 @@ export default function AdminSidebar({ isSidebarOpen, activeTab }) {
               <span>Platform Settings</span>
             </a>
             
-            <a
-              href="/admin/notifications"
-              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
-                activeTab === 10 ? 'bg-primary text-white' : 'text-gray-700'
-              }`}
-            >
-              <i className="fas fa-bell text-lg"></i>
-              <span>Notifications</span>
-            </a>
+
             
             <a
               href="/admin/logs"

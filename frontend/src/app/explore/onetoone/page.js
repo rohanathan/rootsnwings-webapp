@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 
@@ -26,7 +26,7 @@ const isFirstSession = (studentBookings, mentorId) => {
   );
 };
 
-function OneOnOneSessionsContent() {
+export default function OneOnOneSessions() {
   const [selectedSessions, setSelectedSessions] = useState([]);
   const [weekOffset, setWeekOffset] = useState(0);
   const [weekData, setWeekData] = useState([]);
@@ -633,13 +633,5 @@ function OneOnOneSessionsContent() {
       </main>
 
     </>
-  );
-}
-
-export default function OneOnOneSessions() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <OneOnOneSessionsContent />
-    </Suspense>
   );
 }

@@ -402,5 +402,41 @@ def create_one_on_one_class(request: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create one-on-one class: {str(e)}")
 
+@router.get("/debug")
+def debug_classes():
+    """Debug endpoint to see raw class data"""
+    try:
+        # Get all classes without any filtering
+        docs = db.collection("classes").stream()
+        all_classes = []
+        
+        for doc in docs:
+            data = doc.to_dict()
+            data["classId"] = doc.id
+            all_classes.append(data)
+        
+        # Get workshops only
+        workshop_docs = db.collection("classes").where("type", "==", "workshop").stream()
+        workshops = []
+        
+        for doc in workshop_docs:
+            data = doc.to_dict()
+            data["classId"] = doc.id
+            workshops.append(data)
+        
+        return {
+            "total_classes": len(all_classes),
+            "total_workshops": len(workshops),
+            "all_classes": all_classes[:5],  # First 5 for debugging
+            "workshops": workshops[:5],  # First 5 for debugging
+            "categories": list(set([c.get("category") for c in all_classes if c.get("category")])),
+            "subjects": list(set([c.get("subject") for c in all_classes if c.get("subject")])),
+            "formats": list(set([c.get("format") for c in all_classes if c.get("format")])),
+            "age_groups": list(set([c.get("ageGroup") for c in all_classes if c.get("ageGroup")]))
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Debug failed: {str(e)}")
+
 
 

@@ -7,33 +7,138 @@ import React, { useState, useEffect } from "react";
 // This is the main component for the Mentor Profiles page.
 const MentorDirectory = () => {
   // State to manage the filter values
+  const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
   const [ageFilter, setAgeFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [languageFilter, setLanguageFilter] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("");
-  const [priceRange, setPriceRange] = useState(50);
-  const [sortBy, setSortBy] = useState("relevance");
+  const [priceRange, setPriceRange] = useState(100);
+  const [sortBy, setSortBy] = useState("avgRating");
   const [mentors, setMentors] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [totalResults, setTotalResults] = useState(0);
+  
+  // Metadata state
+  const [categories, setCategories] = useState([]);
 
   const [user, setUser] = useState({});
+  const [savedMentors, setSavedMentors] = useState([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
 
-  const fetchBookings = async () => {
+  const fetchMentors = async () => {
+    setLoading(true);
     try {
+      const params = new URLSearchParams();
+      
+      if (searchQuery) params.append('q', searchQuery);
+      if (subjectFilter) params.append('category', subjectFilter);
+      if (locationFilter) params.append('city', locationFilter);
+      if (languageFilter) params.append('language', languageFilter);
+      if (ageFilter) params.append('ageGroup', ageFilter);
+      if (priceRange) params.append('maxRate', priceRange);
+      
+      // Sorting
+      if (sortBy === 'price-low') {
+        params.append('sortBy', 'oneOnOneRate');
+        params.append('sortOrder', 'asc');
+      } else if (sortBy === 'price-high') {
+        params.append('sortBy', 'oneOnOneRate');
+        params.append('sortOrder', 'desc');
+      } else {
+        params.append('sortBy', 'avgRating');
+        params.append('sortOrder', 'desc');
+      }
+      
+      params.append('page', '1');
+      params.append('pageSize', '50');
+      
       const response = await axios.get(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/?page=1&pageSize=50&sortBy=avgRating&sortOrder=desc"
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/?${params.toString()}`
       );
+      
       if (response.data && response.data.mentors) {
         setMentors(response.data.mentors);
+        setTotalResults(response.data.total || 0);
       } else {
         setMentors([]);
+        setTotalResults(0);
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error('Error fetching mentors:', err);
+      setMentors([]);
+      setTotalResults(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/categories"
+      );
+      if (response.data && response.data.categories) {
+        setCategories(response.data.categories);
+      }
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  const fetchSavedMentors = async () => {
+    if (!user.uid) return;
+    
+    setLoadingSaved(true);
+    try {
+      const response = await axios.get(
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=student`
+      );
+      
+      if (response.data && response.data.profile && response.data.profile.savedMentors) {
+        setSavedMentors(response.data.profile.savedMentors);
+      }
+    } catch (err) {
+      console.error('Error fetching saved mentors:', err);
+    } finally {
+      setLoadingSaved(false);
+    }
+  };
+
+  const toggleSavedMentor = async (mentorId) => {
+    if (!user.uid) {
+      // User not logged in - could show a login prompt here
+      console.log('User not logged in');
+      return;
+    }
+
+    try {
+      const isCurrentlySaved = savedMentors.includes(mentorId);
+      const newSavedMentors = isCurrentlySaved 
+        ? savedMentors.filter(id => id !== mentorId)
+        : [...savedMentors, mentorId];
+
+      // Optimistic update
+      setSavedMentors(newSavedMentors);
+
+      // Update backend
+      await axios.put(
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=student`,
+        {
+          savedMentors: newSavedMentors
+        }
+      );
+    } catch (err) {
+      console.error('Error updating saved mentors:', err);
+      // Revert optimistic update on error
+      setSavedMentors(savedMentors);
+    }
   };
 
   useEffect(() => {
-    // Always fetch mentors regardless of login status
-    fetchBookings();
+    // Fetch categories and mentors on initial load
+    fetchCategories();
+    fetchMentors();
     
     // Check if user is logged in for user-specific features
     try {
@@ -49,31 +154,37 @@ const MentorDirectory = () => {
     }
   }, []);
 
-  // Handler for applying filters (currently a placeholder)
+  // Fetch saved mentors when user is loaded
+  useEffect(() => {
+    if (user.uid) {
+      fetchSavedMentors();
+    }
+  }, [user.uid]);
+  
+  // Auto-fetch when filters change (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchMentors();
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery, subjectFilter, ageFilter, locationFilter, languageFilter, priceRange, sortBy]);
+
+  // Handler for applying filters
   const handleApplyFilters = () => {
-    console.log("Applying filters with current state:", {
-      subjectFilter,
-      ageFilter,
-      locationFilter,
-      languageFilter,
-      availabilityFilter,
-      priceRange,
-      sortBy,
-    });
-    // In a real application, this would trigger an API call to fetch filtered data.
+    fetchMentors();
   };
 
   // Handler for clearing all filters
   const handleClearFilters = () => {
+    setSearchQuery("");
     setSubjectFilter("");
     setAgeFilter("");
     setLocationFilter("");
     setLanguageFilter("");
     setAvailabilityFilter("");
-    setPriceRange(50);
-    setSortBy("relevance");
-    console.log("Filters cleared.");
-    // In a real application, this would re-fetch the default mentor list.
+    setPriceRange(100);
+    setSortBy("avgRating");
   };
 
   // Use useEffect to handle side effects if needed, like fetching data on mount or filter changes.
@@ -117,6 +228,24 @@ const MentorDirectory = () => {
         <section className="bg-white shadow-lg  top-16 z-40 border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-5 py-8">
             {/* Filters Grid */}
+            {/* Search Bar */}
+            <div className="mb-6">
+              <div className="relative max-w-2xl mx-auto">
+                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" aria-hidden="true">
+                  🔍
+                </span>
+                <input
+                  type="text"
+                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors text-lg"
+                  placeholder="Search mentors by name, subject, or expertise..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Search mentors"
+                />
+              </div>
+            </div>
+            
+            {/* Filters Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
               {/* Subject Filter */}
               <div>
@@ -134,14 +263,11 @@ const MentorDirectory = () => {
                   onChange={(e) => setSubjectFilter(e.target.value)}
                 >
                   <option value="">All Subjects</option>
-                  <option value="music">Classical Music</option>
-                  <option value="art">Art & Craft</option>
-                  <option value="mindfulness">Mindfulness</option>
-                  <option value="spoken-word">Spoken Word</option>
-                  <option value="philosophy">Philosophy</option>
-                  <option value="coding">Coding</option>
-                  <option value="languages">Languages</option>
-                  <option value="drama">Drama</option>
+                  {categories.map((category) => (
+                    <option key={category.categoryId} value={category.categoryId}>
+                      {category.categoryName} ({category.subjectCount})
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -162,10 +288,9 @@ const MentorDirectory = () => {
                 >
                   <option value="">All Ages</option>
                   <option value="children">Children (5-12)</option>
-                  <option value="teens">Teenagers (13-17)</option>
-                  <option value="young-adults">Young Adults (18-25)</option>
-                  <option value="adults">Adults (26+)</option>
-                  <option value="seniors">Seniors (60+)</option>
+                  <option value="teenagers">Teenagers (13-17)</option>
+                  <option value="adults">Adults (18+)</option>
+                  <option value="all_ages">All Ages Welcome</option>
                 </select>
               </div>
 
@@ -259,7 +384,7 @@ const MentorDirectory = () => {
                     className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                     id="price-slider"
                     min="10"
-                    max="100"
+                    max="150"
                     value={priceRange}
                     onChange={(e) => setPriceRange(e.target.value)}
                     aria-label="Price range slider"
@@ -309,10 +434,9 @@ const MentorDirectory = () => {
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                 >
-                  <option value="relevance">Relevance</option>
+                  <option value="avgRating">Highest Rating</option>
                   <option value="price-low">Price (Low to High)</option>
                   <option value="price-high">Price (High to Low)</option>
-                  <option value="rating">Highest Rating</option>
                   <option value="newest">Newest First</option>
                 </select>
               </div>
@@ -324,11 +448,22 @@ const MentorDirectory = () => {
         <div className="max-w-7xl mx-auto px-5 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-gray-600">
-              Showing{" "}
-              <strong id="results-count" className="text-primary-dark">
-                {mentors.filter(mentor => mentor.status === 'active').length}
-              </strong>{" "}
-              mentors in the UK
+              {loading ? (
+                <span className="text-gray-500">Searching mentors...</span>
+              ) : (
+                <>
+                  Showing{" "}
+                  <strong id="results-count" className="text-primary-dark">
+                    {mentors.filter(mentor => mentor.status === 'active').length}
+                  </strong>{" "}
+                  of <strong className="text-primary-dark">{totalResults}</strong> mentors
+                  {(searchQuery || subjectFilter || locationFilter || languageFilter) && (
+                    <span className="text-gray-500 ml-2">
+                      (filtered results)
+                    </span>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -436,10 +571,16 @@ const MentorDirectory = () => {
                     View Profile
                   </button>
                   <button
-                    className="w-11 h-11 border-2 border-gray-200 hover:border-red-400 hover:text-red-400 rounded-full flex items-center justify-center transition-colors favorite-btn"
-                    aria-label="Add to favorites"
+                    className={`w-11 h-11 border-2 rounded-full flex items-center justify-center transition-colors favorite-btn ${
+                      savedMentors.includes(mentor.uid) 
+                        ? 'border-red-400 text-red-400 bg-red-50' 
+                        : 'border-gray-200 hover:border-red-400 hover:text-red-400'
+                    }`}
+                    aria-label={savedMentors.includes(mentor.uid) ? "Remove from favorites" : "Add to favorites"}
+                    onClick={() => toggleSavedMentor(mentor.uid)}
+                    disabled={loadingSaved}
                   >
-                    ♡
+                    {savedMentors.includes(mentor.uid) ? '♥' : '♡'}
                   </button>
                 </div>
               </div>

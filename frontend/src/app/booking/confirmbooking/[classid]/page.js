@@ -257,7 +257,7 @@ export default function BookingConfirmation() {
   const handleAddToCalendar = () => {
     const startDate = new Date('2025-08-17T14:00:00');
     const endDate = new Date('2025-08-17T15:00:00');
-    const title = '8-Week Weekend Batch - Intermediate Kathak with  Sharma';
+    const title = '8-Week Weekend Batch - Intermediate Kathak with Priya Sharma';
     const location = 'Community Centre, Birmingham B12 8JA';
     const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z&location=${encodeURIComponent(location)}&recur=RRULE:FREQ=WEEKLY;BYDAY=SA,SU;COUNT=16`;
     window.open(calendarUrl, '_blank');

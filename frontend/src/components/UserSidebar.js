@@ -37,7 +37,7 @@ export default function UserSidebar({ isSidebarOpen, activeTab }) {
             <span>My Bookings</span>
           </a>
           <a
-            href="#"
+            href="/user/savedmentors"
             className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
               activeTab === 4 ? "bg-primary text-white" : "text-gray-700"
             }`}
@@ -102,10 +102,10 @@ export default function UserSidebar({ isSidebarOpen, activeTab }) {
 
         {/* </div> */}
 
-        {/* Family Management */}
+        {/*  Management */}
         <div className="border-t border-gray-200 pt-6 mt-6">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Family Management
+            Management
           </h3>
           <div className="space-y-2">
             <a
@@ -126,15 +126,7 @@ export default function UserSidebar({ isSidebarOpen, activeTab }) {
               <i className="fas fa-credit-card text-lg"></i>
               <span>Billing & Payments</span>
             </a>
-            <a
-              href="#"
-              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
-                activeTab === 8 ? "bg-primary text-white" : "text-gray-700"
-              }`}
-            >
-              <i className="fas fa-bell text-lg"></i>
-              <span>Notifications</span>
-            </a>
+
             <a
               href="#"
               className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${

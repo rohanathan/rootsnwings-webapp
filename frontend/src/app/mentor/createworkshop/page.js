@@ -92,7 +92,7 @@ export default function App() {
                 <span className="text-white font-semibold">PR</span>
               </div>
               <div className="hidden md:block text-left">
-                <div className="text-sm font-semibold text-gray-900"> Sharma</div>
+                <div className="text-sm font-semibold text-gray-900">Priya Sharma</div>
                 <div className="text-xs text-gray-500">Kathak Mentor</div>
               </div>
               <i className={`fas fa-chevron-down text-gray-400 text-sm transform transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`}></i>
