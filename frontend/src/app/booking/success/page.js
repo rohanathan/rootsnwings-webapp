@@ -37,28 +37,29 @@ export default function BookingSuccess() {
   useEffect(() => {
     const confirmPaymentAndBooking = async () => {
       try {
-        const paymentIntent = searchParams.get('payment_intent');
-        const bookingId = searchParams.get('booking_id');
+        const sessionId = searchParams.get('session_id');
         
-        if (paymentIntent && bookingId) {
-          // Payment came from Stripe - confirm it
-          const confirmResponse = await axios.post(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/payments/confirm-payment?booking_id=${bookingId}&payment_intent_id=${paymentIntent}`
+        if (sessionId) {
+          // Payment came from Stripe Checkout - process the session
+          const successResponse = await axios.get(
+            `https://rootsnwings-api-944856745086.europe-west2.run.app/payments/success?session_id=${sessionId}`
           );
           
-          if (confirmResponse.data.success) {
-            setBookingDetails(confirmResponse.data.booking);
-            // Clear payment data
-            localStorage.removeItem('payment_data');
+          if (successResponse.data.success) {
+            setBookingDetails(successResponse.data.booking);
+            // Clear stored data since booking is now complete
             localStorage.removeItem('selectedMentorClass');
             localStorage.removeItem('mentor');
           }
         } else {
-          // Direct booking success (no payment) - try to get booking details from localStorage
+          // Direct booking success (free booking) - get from localStorage
           const storedBooking = localStorage.getItem('completedBooking');
           if (storedBooking) {
             setBookingDetails(JSON.parse(storedBooking));
             localStorage.removeItem('completedBooking');
+          } else {
+            // No session_id and no stored booking - redirect to error
+            setError('No booking information found. Please check your bookings page.');
           }
         }
       } catch (error) {

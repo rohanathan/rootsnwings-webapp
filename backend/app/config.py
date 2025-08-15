@@ -10,5 +10,12 @@ class Settings:
     FIRESTORE_LOCATION: str = os.getenv("FIRESTORE_LOCATION", "europe-west2")
     ENV: str = os.getenv("ENVIRONMENT", "development")
     PORT: int = int(os.getenv("PORT", 8080))
+    
+    # Stripe Configuration (already configured in Secret Manager for production)
+    stripe_secret_key: str = os.getenv("STRIPE_SECRET_KEY", "sk_test_...")
+    stripe_publishable_key: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "pk_test_...")
+    
+    # Frontend URL for Stripe redirects (localhost for now, update via env var later)
+    frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 settings = Settings()

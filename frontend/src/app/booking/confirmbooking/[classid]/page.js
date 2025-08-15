@@ -172,7 +172,7 @@ export default function BookingConfirmation() {
     }, 5000);
   };
 
-  // Enhanced payment flow with Stripe integration
+  // Clean Stripe Checkout flow - no booking created until payment succeeds
   const proceedToPayment = async () => {
     if (!isTermsAccepted) {
       alert("Please accept the terms and conditions to proceed.");
@@ -185,85 +185,54 @@ export default function BookingConfirmation() {
       const user = JSON.parse(localStorage.getItem("user"));
       console.log("User data:", user);
 
-      // Step 1: Create pending booking first
-      const bookingResponse = await axios.post(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/",
-        {
-          mentorId: mentor.uid,
-          classId: selectedMentorClass.classId,
-          studentId: user.user.uid,
-          pricing: {
-            finalPrice: Math.round(bookingTotal * 100), // Convert to pence for Stripe
-            ...selectedMentorClass.pricing,
-          },
-        }
-      );
-
-      if (bookingResponse.status !== 200) {
-        throw new Error("Failed to create booking");
-      }
-
-      const booking = bookingResponse.data.booking;
-      console.log("Created booking:", booking);
-
-      // Step 2: If free, confirm immediately
+      // Handle free bookings separately (create booking directly)
       if (bookingTotal === 0) {
-        // For free bookings, confirm immediately
-        const confirmResponse = await axios.post(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/${booking.bookingId}/confirm`,
-          { paymentStatus: "completed" }
+        // For free bookings, create booking directly
+        const bookingResponse = await axios.post(
+          "https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/",
+          {
+            mentorId: mentor.uid,
+            classId: selectedMentorClass.classId,
+            studentId: user.user.uid,
+            bookingStatus: "confirmed",
+            paymentStatus: "paid", // Free = paid
+            personalGoals: null,
+          }
         );
 
-        if (confirmResponse.status === 200) {
+        if (bookingResponse.status === 200) {
           // Store booking details and redirect to success page
           localStorage.setItem(
             "completedBooking",
-            JSON.stringify(confirmResponse.data.booking)
+            JSON.stringify(bookingResponse.data.booking)
           );
           window.location.href = "/booking/success";
         }
         return;
       }
 
-      // Step 3: Create Stripe payment intent for paid bookings
-      const paymentResponse = await axios.post(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/payments/create-intent",
+      // For paid bookings: Create Stripe Checkout Session (no booking created yet)
+      const checkoutResponse = await axios.post(
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/payments/create-checkout-session",
         {
-          amount: Math.round(bookingTotal * 100), // Convert to pence
-          currency: pricingBreakdown?.currency?.toLowerCase() || "gbp",
           classId: selectedMentorClass.classId,
           studentId: user.user.uid,
-          bookingId: booking.bookingId,
+          mentorId: mentor.uid,
+          amount: bookingTotal, // Amount in pounds
+          currency: pricingBreakdown?.currency?.toLowerCase() || "gbp",
+          personalGoals: null, // Can be added later
         }
       );
 
-      if (paymentResponse.status === 200) {
-        const { clientSecret, paymentIntentId } = paymentResponse.data;
-
-        // Validate we have the required data
-        if (!clientSecret || !paymentIntentId) {
-          throw new Error(
-            "Invalid payment response: missing clientSecret or paymentIntentId"
-          );
-        }
-
-        // Step 4: Redirect to payment page with client secret
-        localStorage.setItem(
-          "payment_data",
-          JSON.stringify({
-            client_secret: clientSecret,
-            payment_intent_id: paymentIntentId,
-            booking_id: booking.bookingId,
-            amount: bookingTotal,
-            currency: pricingBreakdown?.currency || "GBP",
-          })
-        );
-
-        // Redirect to payment page
-        window.location.href = `/payment?client_secret=${clientSecret}&booking_id=${booking.bookingId}`;
+      if (checkoutResponse.status === 200) {
+        const { checkout_url } = checkoutResponse.data;
+        
+        // Redirect directly to Stripe's hosted checkout page
+        window.location.href = checkout_url;
       } else {
-        throw new Error("Failed to create payment intent");
+        throw new Error("Failed to create Stripe checkout session");
       }
+      
     } catch (error) {
       console.error("Payment process error:", error);
       setShowErrorAlert(true);

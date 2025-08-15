@@ -231,3 +231,43 @@ def get_all_bookings(limit: int = 100) -> List[SimpleBooking]:
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get all bookings: {str(e)}")
+
+def create_booking_flexible(booking_data: dict) -> dict:
+    """Create a booking with flexible data structure for Stripe payments"""
+    try:
+        # Generate unique booking ID if not provided
+        if "bookingId" not in booking_data:
+            booking_data["bookingId"] = f"booking_{uuid.uuid4().hex[:12]}"
+        
+        booking_id = booking_data["bookingId"]
+        
+        # Get student and class information for required fields
+        if "studentId" in booking_data:
+            student_doc = db.collection("users").document(booking_data["studentId"]).get()
+            if student_doc.exists:
+                student_data = student_doc.to_dict()
+                if "studentName" not in booking_data:
+                    booking_data["studentName"] = student_data.get("displayName", "Unknown Student")
+        
+        if "classId" in booking_data:
+            class_doc = db.collection("classes").document(booking_data["classId"]).get()
+            if class_doc.exists:
+                class_data = class_doc.to_dict()
+                if "className" not in booking_data:
+                    booking_data["className"] = class_data.get("title", "Unknown Class")
+                if "mentorId" not in booking_data:
+                    booking_data["mentorId"] = class_data.get("mentorId")
+                if "mentorName" not in booking_data:
+                    booking_data["mentorName"] = class_data.get("mentorName", "Unknown Mentor")
+        
+        # Set required timestamps
+        if "bookedAt" not in booking_data:
+            booking_data["bookedAt"] = datetime.now().isoformat()
+        
+        # Save to Firestore with complete flexibility
+        db.collection("bookings").document(booking_id).set(booking_data)
+        
+        return booking_data
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create flexible booking: {str(e)}")
