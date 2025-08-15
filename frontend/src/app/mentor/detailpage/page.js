@@ -146,47 +146,47 @@ const MentorDetail = () => {
     }, []);
 
     // Load reviews and fresh mentor data when mentor UID is available
-    // useEffect(() => {
-    //     if (mentorData?.uid) {
-    //         loadMentorReviews(mentorData.uid);
-    //         loadFreshMentorData(mentorData.uid);
-    //     }
-    // }, [mentorData?.uid]);
+    useEffect(() => {
+        if (mentorData?.uid) {
+            loadMentorReviews(mentorData.uid);
+            loadFreshMentorData(mentorData.uid);
+        }
+    }, [mentorData?.uid]);
 
-    // const loadMentorReviews = async (mentorId) => {
-    //     try {
-    //         console.log('Starting to load reviews for mentor:', mentorId);
-    //         setReviewsLoading(true);
-    //         const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/?type=mentor&id=${mentorId}`);
-    //         console.log('Reviews API response:', response.data);
-    //         console.log('Reviews array:', response.data.reviews);
-    //         console.log('Reviews count:', response.data.reviews?.length || 0);
-    //         setReviews(response.data.reviews || []);
-    //     } catch (error) {
-    //         console.error('Failed to load reviews:', error);
-    //         console.error('Error details:', error.response?.data);
-    //         setReviews([]); // Fallback to empty array
-    //     } finally {
-    //         console.log('Reviews loading finished, setting loading to false');
-    //         setReviewsLoading(false);
-    //     }
-    // };
+    const loadMentorReviews = async (mentorId) => {
+        try {
+            console.log('Starting to load reviews for mentor:', mentorId);
+            setReviewsLoading(true);
+            const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/?type=mentor&id=${mentorId}`);
+            console.log('Reviews API response:', response.data);
+            console.log('Reviews array:', response.data.reviews);
+            console.log('Reviews count:', response.data.reviews?.length || 0);
+            setReviews(response.data.reviews || []);
+        } catch (error) {
+            console.error('Failed to load reviews:', error);
+            console.error('Error details:', error.response?.data);
+            setReviews([]); // Fallback to empty array
+        } finally {
+            console.log('Reviews loading finished, setting loading to false');
+            setReviewsLoading(false);
+        }
+    };
 
-    // const loadFreshMentorData = async (mentorId) => {
-    //     try {
-    //         console.log('Fetching mentor data for ID:', mentorId);
-    //         const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${mentorId}`);
-    //         if (response.data.mentor) {
-    //             console.log('Fresh mentor data structure:', response.data.mentor);
-    //             console.log('Qualifications field:', response.data.mentor.qualifications);
-    //             console.log('QualificationsSummary field:', response.data.mentor.qualificationsSummary);
-    //             setMentorData(response.data.mentor);
-    //         }
-    //     } catch (error) {
-    //         console.error('Failed to load fresh mentor data. Error:', error.message);
-    //         console.log('Using fallback data from localStorage/mock');
-    //     }
-    // };
+    const loadFreshMentorData = async (mentorId) => {
+        try {
+            console.log('Fetching mentor data for ID:', mentorId);
+            const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${mentorId}`);
+            if (response.data.mentor) {
+                console.log('Fresh mentor data structure:', response.data.mentor);
+                console.log('Qualifications field:', response.data.mentor.qualifications);
+                console.log('QualificationsSummary field:', response.data.mentor.qualificationsSummary);
+                setMentorData(response.data.mentor);
+            }
+        } catch (error) {
+            console.error('Failed to load fresh mentor data. Error:', error.message);
+            console.log('Using fallback data from localStorage/mock');
+        }
+    };
 
 
  

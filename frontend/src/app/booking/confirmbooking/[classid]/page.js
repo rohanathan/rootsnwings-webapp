@@ -391,27 +391,28 @@ export default function BookingConfirmation() {
   const levelBadge = getLevelBadge(selectedMentorClass.level);
   const ageBadge = getAgeGroupBadge(selectedMentorClass.ageGroup);
 
-  const confirmBooking = async () => {
-    try {
-      const bookingResponse = await axios.post(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/",
-        {
-          mentorId: mentor.uid,
-          classId: selectedMentorClass.classId,
-          studentId: user.uid,
-          paymentStatus: "completed",
-        }
-      );
+  // OLD FUNCTION - NOT USED ANYMORE (replaced by proceedToPayment with Stripe Checkout)
+  // const confirmBooking = async () => {
+  //   try {
+  //     const bookingResponse = await axios.post(
+  //       "https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/",
+  //       {
+  //         mentorId: mentor.uid,
+  //         classId: selectedMentorClass.classId,
+  //         studentId: user.uid,
+  //         paymentStatus: "completed",
+  //       }
+  //     );
 
-      if (bookingResponse.status === 200) {
-        setShowSuccessModal(true);
-      }
-    } catch (error) {
-      console.error("Error confirming booking:", error);
-      setShowErrorAlert(true);
-      alert("There was an error confirming your booking. Please try again.");
-    }
-  };
+  //     if (bookingResponse.status === 200) {
+  //       setShowSuccessModal(true);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error confirming booking:", error);
+  //     setShowErrorAlert(true);
+  //     alert("There was an error confirming your booking. Please try again.");
+  //   }
+  // };
 
   return (
     <>
@@ -901,7 +902,7 @@ export default function BookingConfirmation() {
                 {/* Action Buttons */}
                 <div className="space-y-4 mb-8">
                   <button
-                    onClick={confirmBooking}
+                    onClick={proceedToPayment}
                     disabled={!isTermsAccepted || isProcessing}
                     className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
                     ${

@@ -16,6 +16,14 @@ const Dashboard = () => {
   const [user, setUser] = useState({});
 
   const [bookings, setBookings] = useState([]);
+  const [showAllUpcomingSessions, setShowAllUpcomingSessions] = useState(false);
+  
+  // Review Modal State  
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const profileDropdownRef = useRef(null);
   const profileDropdownBtnRef = useRef(null);
@@ -80,6 +88,61 @@ const Dashboard = () => {
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, [isProfileDropdownOpen]);
+
+  // Review Modal Handlers
+  const openReviewModal = (booking) => {
+    setSelectedBooking(booking);
+    setReviewRating(0);
+    setReviewText('');
+    setShowReviewModal(true);
+  };
+
+  const closeReviewModal = () => {
+    setShowReviewModal(false);
+    setSelectedBooking(null);
+    setReviewRating(0);
+    setReviewText('');
+  };
+
+  const submitReview = async () => {
+    if (reviewRating === 0) {
+      alert('Please select a rating');
+      return;
+    }
+    if (reviewText.trim() === '') {
+      alert('Please write a review');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      await axios.post(
+        'https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/',
+        {
+          classId: selectedBooking.classId,
+          rating: reviewRating,
+          review: reviewText.trim()
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${user.user.accessToken || user.user.idToken}`,
+            'X-Student-ID': user.user.uid
+          }
+        }
+      );
+      
+      alert('Review submitted successfully!');
+      closeReviewModal();
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+      console.error('Error details:', error.response?.data);
+      const errorMessage = error.response?.data?.detail || 'Failed to submit review. Please try again.';
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   // Function to toggle the mobile sidebar
   const toggleSidebar = () => {
@@ -293,19 +356,21 @@ const Dashboard = () => {
                         <h3 className="text-lg font-semibold text-gray-900">
                           Upcoming's Sessions
                         </h3>
-                        <a
-                          href="#"
-                          className="text-primary hover:text-primary-dark text-sm font-medium"
-                        >
-                          View All
-                        </a>
+                        {bookings.length > 3 && (
+                          <button
+                            onClick={() => setShowAllUpcomingSessions(!showAllUpcomingSessions)}
+                            className="text-primary hover:text-primary-dark text-sm font-medium"
+                          >
+                            {showAllUpcomingSessions ? "Show Less" : "View All"}
+                          </button>
+                        )}
                       </div>
 
                       <div className="space-y-4">
                         {bookings.length > 0 ? (
-                          bookings.slice(0, 3).map((booking, index) => (
+                          (showAllUpcomingSessions ? bookings : bookings.slice(0, 3)).map((booking, index) => (
                             <div
-                              key={booking.bookingId}
+                              key={booking.bookingId || `booking-${index}`}
                               className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors"
                             >
                               <div className="flex items-start space-x-4">
@@ -350,12 +415,10 @@ const Dashboard = () => {
                                   </div>
                                 </div>
                                 <button
-                                  onClick={() =>
-                                    (window.location.href = `/user/bookings/${booking.bookingId}`)
-                                  }
+                                  onClick={() => openReviewModal(booking)}
                                   className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors"
                                 >
-                                  View Details
+                                  Post Review
                                 </button>
                               </div>
                             </div>
@@ -628,6 +691,70 @@ const Dashboard = () => {
           )}
         </main>
       </div>
+
+      {/* Review Modal */}
+      {showReviewModal && selectedBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Rate Your Experience</h3>
+              <p className="text-gray-600">{selectedBooking.className}</p>
+              <p className="text-sm text-gray-500">with {selectedBooking.mentorName}</p>
+            </div>
+
+            {/* Star Rating */}
+            <div className="mb-6">
+              <p className="text-sm font-medium text-gray-700 mb-3">Rating *</p>
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setReviewRating(star)}
+                    className={`text-3xl transition-colors ${
+                      star <= reviewRating ? 'text-yellow-400' : 'text-gray-300'
+                    } hover:text-yellow-400`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Review Text */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Your Review *
+              </label>
+              <textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                placeholder="Share your experience with this class..."
+                className="w-full p-3 border border-gray-300 rounded-lg resize-none h-32 focus:ring-2 focus:ring-primary focus:border-transparent"
+                maxLength={1000}
+              />
+              <p className="text-xs text-gray-500 mt-1">{reviewText.length}/1000 characters</p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={closeReviewModal}
+                disabled={isSubmittingReview}
+                className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitReview}
+                disabled={isSubmittingReview || reviewRating === 0 || reviewText.trim() === ''}
+                className="flex-1 py-3 px-4 bg-primary text-white rounded-lg font-semibold hover:bg-primary-dark disabled:opacity-50"
+              >
+                {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
