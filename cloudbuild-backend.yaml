@@ -1,22 +1,23 @@
 steps:
-  # Step 1: Build the Docker Image (SUCCESSFUL)
+  # Step 1: Build the Docker Image
   - name: 'gcr.io/cloud-builders/docker'
     dir: 'backend'
-    args: ['build', '-t', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:latest', '.']
+    args: ['build', '-t', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA', '.']
 
-  # Step 2: Push the Docker Image to Artifact Registry (SUCCESSFUL)
+
+  # Step 2: Push the Docker Image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:latest']
 
-  # Step 3: Deploy the Image to Cloud Run (UPDATED)
-  # We now call gcloud directly, which is simpler and more reliable.
-  - name: 'gcr.io/cloud-builders/gcloud'
+  # Step 3: Deploy the Image to Cloud Run
+  # Using the modern, recommended builder for gcloud
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     args:
       - 'run'
       - 'deploy'
       - 'rootsnwings-api'
       - '--image'
-      - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:latest'
+      - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA'
       - '--region'
       - 'europe-west2'
       - '--service-account'
