@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { calculateTotalPayable, formatPrice } from '../../utils/pricingCalculator';
 
@@ -242,7 +241,6 @@ const workshopsData = [
 ];
 
 export default function Workshops() {
-  const searchParams = useSearchParams();
   
   const [filters, setFilters] = useState({
     level: '',
@@ -268,8 +266,9 @@ export default function Workshops() {
       setLoading(true);
       try {
         // Get mentorId from URL params or localStorage
-        const urlMentorId = searchParams.get('mentorId');
-        const urlType = searchParams.get('type');
+          const urlParams = new URLSearchParams(window.location.search);
+          const urlMentorId = urlParams.get('mentorId');
+          const urlType = urlParams.get('type');
         
         let mentorId = urlMentorId;
         let mentor = null;
@@ -318,7 +317,7 @@ export default function Workshops() {
     };
 
     fetchWorkshopsData();
-  }, [searchParams]);
+  }, []);
   
   // Apply filters to workshops
   const filteredWorkshops = workshops.filter((workshop) => {

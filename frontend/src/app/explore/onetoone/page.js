@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 
 // Helper function to format date strings
@@ -38,17 +37,20 @@ export default function OneOnOneSessions() {
   const [studentBookings, setStudentBookings] = useState([]);
   const [creatingClass, setCreatingClass] = useState(false);
   const [showLimitWarning, setShowLimitWarning] = useState(false);
-  
-  const searchParams = useSearchParams();
-  const mentorId = searchParams.get('mentorId') || 'user_8956af6c6b35'; // Default for testing
+  const [mentorId, setMentorId] = useState(null);
 
   // Load mentor data and availability
   useEffect(() => {
     const loadMentorData = async () => {
       setLoading(true);
       try {
+        // Get mentorId from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlMentorId = urlParams.get('mentorId') || 'user_8956af6c6b35'; // Default for testing
+        setMentorId(urlMentorId);
+        
         // Load mentor details
-        const mentorResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${mentorId}`);
+        const mentorResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${urlMentorId}`);
         if (mentorResponse.data?.mentor) {
           setMentor(mentorResponse.data.mentor);
         }

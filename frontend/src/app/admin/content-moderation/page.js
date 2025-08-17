@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
-import AccountDropDown from "@/components/AccountDropDown";
+import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import { checkAdminAccess } from "@/utils/adminAuth";
 import axios from "axios";
 
@@ -266,15 +266,15 @@ const ContentModerationPage = () => {
             </button>
             <h1 className="text-2xl font-bold text-primary-dark">Content Moderation</h1>
           </div>
-          <AccountDropDown
+          <MentorHeaderAccount
             isProfileDropdownOpen={isProfileDropdownOpen}
             profileDropdownBtnRef={null}
-            toggleProfileDropdown={toggleProfileDropdown}
+            handleProfileDropdownClick={toggleProfileDropdown}
             profileDropdownRef={null}
             user={user}
             mentorDetails={null}
           />
-        </div>
+        </div> 
       </header>
 
       <div className="flex">

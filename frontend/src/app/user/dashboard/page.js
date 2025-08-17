@@ -1,6 +1,5 @@
 "use client";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
-// import AccountDropDown from "@/components/AccountDropDown";
 import UserSidebar from "@/components/UserSidebar";
 import axios from "axios";
 import React, { useState, useEffect, useRef } from "react";

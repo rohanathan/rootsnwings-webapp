@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 
 export default function BookingSuccess() {
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [bookingDetails, setBookingDetails] = useState(null);
   const [error, setError] = useState('');
@@ -37,7 +35,8 @@ export default function BookingSuccess() {
   useEffect(() => {
     const confirmPaymentAndBooking = async () => {
       try {
-        const sessionId = searchParams.get('session_id');
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id');
         
         if (sessionId) {
           // Payment came from Stripe Checkout - process the session
@@ -71,7 +70,7 @@ export default function BookingSuccess() {
     };
 
     confirmPaymentAndBooking();
-  }, [searchParams]);
+  }, []);
 
   // Calculate countdown time on component mount and every second  
   useEffect(() => {

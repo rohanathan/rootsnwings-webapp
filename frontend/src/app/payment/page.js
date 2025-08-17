@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -78,7 +77,6 @@ function PaymentForm({ clientSecret, bookingId }) {
 }
 
 export default function PaymentPage() {
-  const searchParams = useSearchParams();
   const [clientSecret, setClientSecret] = useState('');
   const [bookingId, setBookingId] = useState('');
   const [paymentData, setPaymentData] = useState(null);
@@ -86,8 +84,9 @@ export default function PaymentPage() {
 
   useEffect(() => {
     // Get payment data from URL params or localStorage
-    const clientSecretParam = searchParams.get('client_secret');
-    const bookingIdParam = searchParams.get('booking_id');
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientSecretParam = urlParams.get('client_secret');
+    const bookingIdParam = urlParams.get('booking_id');
     
     if (clientSecretParam && bookingIdParam) {
       setClientSecret(clientSecretParam);
@@ -107,7 +106,7 @@ export default function PaymentPage() {
         window.location.href = '/';
       }
     }
-  }, [searchParams]);
+  }, []); 
 
   if (loading) {
     return (

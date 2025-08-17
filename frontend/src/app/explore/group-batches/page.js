@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { calculateTotalPayable, formatPrice } from '../../utils/pricingCalculator';
 // Helper functions for conditional visual styling
@@ -169,7 +168,6 @@ const formatSchedule = (weeklySchedule) => {
 // }
 
 export default function GroupBatches() {
-  const searchParams = useSearchParams();
   
   const [filters, setFilters] = useState({
     level: '',
@@ -214,8 +212,9 @@ export default function GroupBatches() {
       setLoading(true);
       try {
         // Get mentorId from URL params or localStorage
-        const urlMentorId = searchParams.get('mentorId');
-        const urlType = searchParams.get('type');
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlMentorId = urlParams.get('mentorId');
+        const urlType = urlParams.get('type');
         
         let mentorId = urlMentorId;
         let mentor = null;
@@ -269,7 +268,7 @@ export default function GroupBatches() {
     };
 
     fetchClassesData();
-  }, [searchParams]);
+  }, []);
 
   console.log(mentorData,'mentorData mentorClasses');
   
