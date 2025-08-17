@@ -225,8 +225,9 @@ const Dashboard = () => {
 
 
     const userData = localStorage.getItem("user");
+    const parsedUserData = userData ? JSON.parse(userData) : null;
 
-    if (userData?.user?.userType !== 'mentor') {
+    if (parsedUserData?.user?.userType !== 'mentor') {
       router.push('/');
       return; 
     }

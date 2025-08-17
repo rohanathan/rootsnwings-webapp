@@ -227,10 +227,10 @@ const Messages = () => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef(null);
 
-  const [studentList, setStudentList] = useState([]);
+  const [mentorList, setMentorList] = useState([]);
   const [conversationItems, setConversationItems] = useState([]);
   const [studentMentorMsg, setStudentMentorMsg] = useState([]);
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedMentor, setSelectedMentor] = useState(null);
   const [typedMessage, setTypedMessage] = useState(null);
   const profileDropdownBtnRef = useRef(null);
 
@@ -239,47 +239,39 @@ const Messages = () => {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     setUser(user.user);
-    if (user?.user?.userType !== "mentor") {
+    if (user?.user?.userType === "mentor") {
       window.location.href = "/";
     }
 
-    const fetchMentorClasses = async () => {
-      const mentorId = user?.user?.uid;
+    const fetchMentor = async () => {
       const response = await axios.get(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${mentorId}`
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?studentId=${user?.user?.uid}`
       );
-      const studentPromises = response.data.classes.map(async (classItem) => {
-        const bookingsResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?classId=${classItem.classId}`
-        );
-        const userPromises = bookingsResponse.data.bookings.map(
-          async (booking) => {
-            const userResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${booking.studentId}`
-            );
-            return userResponse.data;
-          }
-        );
-        return Promise.all(userPromises);
-      });
 
-      const students = (await Promise.all(studentPromises)).flat();
-      setStudentList(students);
+      const bookings = response.data.bookings;
+      const studentPromises = bookings.map(async (booking) => {
+        const userResponse = await axios.get(
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${booking.mentorId}`
+        );
+        return userResponse.data;
+      });
+      setMentorList(await Promise.all(studentPromises));
     };
-    fetchMentorClasses();
+
+    fetchMentor();
   }, []);
 
   const fetchStudentMentorMsg = async () => {
     const user = JSON.parse(localStorage.getItem("user"));
     const response = await axios.get(
-      `https://rootsnwings-api-944856745086.europe-west2.run.app/messages/conversation?studentId=${selectedStudent?.fullUser?.uid}&mentorId=${user?.user?.uid}`
+      `https://rootsnwings-api-944856745086.europe-west2.run.app/messages/conversation?studentId=${user?.user?.uid}&mentorId=${selectedMentor?.fullUser?.uid}`
     );
     setStudentMentorMsg(response.data.messages);
   };
 
   useEffect(() => {
     fetchStudentMentorMsg();
-  }, [selectedStudent]);
+  }, [selectedMentor]);
 
   useEffect(() => {
     const generateConversationItems = () => {
@@ -290,14 +282,14 @@ const Messages = () => {
         "Intermediate",
         "Beginner",
       ];
-      const messages = [
-        "Thank you for the session today! I have a question about...",
-        "Hi ma'am, I need to reschedule tomorrow's session...",
-        "Perfect! Looking forward to our session tomorrow. Thank you!",
-        "Got it! I'll practice the footwork and see you on Wednesday.",
-        "I'm looking forward to our next class!",
-        "Could you send me the notes from the last session?",
-      ];
+      // const messages = [
+      //   "Thank you for the session today! I have a question about...",
+      //   "Hi ma'am, I need to reschedule tomorrow's session...",
+      //   "Perfect! Looking forward to our session tomorrow. Thank you!",
+      //   "Got it! I'll practice the footwork and see you on Wednesday.",
+      //   "I'm looking forward to our next class!",
+      //   "Could you send me the notes from the last session?",
+      // ];
       const times = [
         "2m ago",
         "1h ago",
@@ -329,18 +321,17 @@ const Messages = () => {
         "text-teal-800",
       ];
 
-      return studentList?.map((user, index) => {
-        const student = user.user;
-        const initials = `${student.firstName
+      return mentorList?.map((user, index) => {
+        const mentor = user.user;
+        const initials = `${mentor.firstName
           .charAt(0)
-          .toUpperCase()}${student.lastName.charAt(0).toUpperCase()}`;
-        const name = `${student.firstName} ${student.lastName}`;
+          .toUpperCase()}${mentor.lastName.charAt(0).toUpperCase()}`;
+        const name = `${mentor.firstName} ${mentor.lastName}`;
         const status = statuses[Math.floor(Math.random() * statuses.length)];
         const message =
           studentMentorMsg.length > 0
             ? studentMentorMsg[0].message
             : "Start a conversation";
-
         const time = times[Math.floor(Math.random() * times.length)];
         const bgColor = bgColors[index % bgColors.length];
         const statusBg = statusBgs[index % statusBgs.length];
@@ -360,14 +351,14 @@ const Messages = () => {
           borderColor: isUnread ? "border-primary" : "border-transparent",
           unreadBg: isUnread ? "bg-blue-50" : "",
           checked: !isUnread,
-          fullUser: student,
+          fullUser: mentor,
         };
       });
     };
-    if (studentList.length > 0) {
+    if (mentorList.length > 0) {
       setConversationItems(generateConversationItems());
     }
-  }, [studentList]);
+  }, [mentorList]);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -460,23 +451,23 @@ const Messages = () => {
 
   const submitMessage = async () => {
     const user = JSON.parse(localStorage.getItem("user"));
-    const response = await axios.post(
-      `https://rootsnwings-api-944856745086.europe-west2.run.app/messages/`,
-      {
-        senderId: user?.user?.uid,
-        studentId: selectedStudent?.fullUser?.uid,
-        mentorId: user?.user?.uid,
-        parentId: selectedStudent?.fullUser?.parentId,
-        message: typedMessage,
-      }
-    );
 
-    if (response.status === 200 && response.data?.message) {
+    if (typedMessage?.length > 0) {
+      const response = await axios.post(
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/messages/`,
+        {
+          senderId: user?.user?.uid,
+          studentId: user?.user?.uid,
+          mentorId: selectedMentor?.fullUser?.uid,
+          parentId: selectedMentor?.fullUser?.uid,
+          message: typedMessage,
+        }
+      );
+
       setTypedMessage("");
       fetchStudentMentorMsg();
     }
   };
-
   return (
     <div className="bg-background font-sans">
       <style jsx global>{`
@@ -654,7 +645,7 @@ const Messages = () => {
                   <div
                     key={index}
                     onClick={() => {
-                      setSelectedStudent(item);
+                      setSelectedMentor(item);
                     }}
                     className={`p-4 hover:bg-gray-50 cursor-pointer border-l-4 ${item.borderColor} ${item.unreadBg}`}
                   >
@@ -715,8 +706,8 @@ const Messages = () => {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">
-                      {selectedStudent?.fullUser?.firstName}{" "}
-                      {selectedStudent?.fullUser?.lastName}
+                      {selectedMentor?.fullUser?.firstName}{" "}
+                      {selectedMentor?.fullUser?.lastName}
                     </h4>
                     <div className="flex items-center space-x-2 text-xs text-gray-500">
                       <span>Kathak Basics</span>

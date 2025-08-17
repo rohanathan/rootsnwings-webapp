@@ -275,6 +275,14 @@ const OnBoarding = () => {
         // Clear saved progress on successful submission
         localStorage.removeItem("mentorOnboardingForm");
 
+        // Update user data in localStorage with mentor userType
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (user && user.user) {
+          user.user.userType = "mentor";
+          user.user.mentorStatus = "active";
+          localStorage.setItem("user", JSON.stringify(user));
+        }
+
         // Show success alert
         alert(
           "🎉 Profile submitted successfully! You will receive confirmation within 24-48 hours. Redirecting to mentor dashboard..."

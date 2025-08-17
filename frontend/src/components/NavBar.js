@@ -28,7 +28,7 @@ const Navbar = ({ user }) => {
           <ul className="hidden md:flex space-x-8">
             <li>
               <a
-                href="/mentor/dashboard"
+                href={user?.userType === "mentor" ? "/mentor/dashboard" : "/user/dashboard"}
                 className="text-gray-700 hover:text-primary font-medium transition-colors"
               >
                 Home

@@ -322,7 +322,7 @@ const Dashboard = () => {
             <MentorHeaderAccount
               isProfileDropdownOpen={isProfileDropdownOpen}
               profileDropdownBtnRef={profileDropdownBtnRef}
-              toggleProfileDropdown={toggleProfileDropdown}
+              handleProfileDropdownClick={toggleProfileDropdown}
               profileDropdownRef={profileDropdownRef}
               user={user}
               mentorDetails={null}

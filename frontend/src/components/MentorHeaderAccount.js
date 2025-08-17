@@ -6,7 +6,6 @@ export default function MentorHeaderAccount({ isProfileDropdownOpen, handleProfi
         localStorage.removeItem("mentor");
         window.location.href = "/getstarted";
     };
-
     return (
         <div className="relative">
         <button id="profile-dropdown-btn" onClick={handleProfileDropdownClick} className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors">
