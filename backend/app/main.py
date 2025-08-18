@@ -35,14 +35,19 @@ def initialize_firebase():
     try:
         # Check if the app is already initialized to prevent errors.
         if not firebase_admin._apps:
-            if os.getenv('GOOGLE_CLOUD_PROJECT'):
+            
+            # Use K_SERVICE as the primary indicator of a Cloud Run environment.
+            # This is more reliable than GOOGLE_CLOUD_PROJECT if env vars are being overwritten.
+            is_production = os.getenv('K_SERVICE') or os.getenv('GOOGLE_CLOUD_PROJECT')
+
+            if is_production:
                 # --- PRODUCTION PATH (ON CLOUD RUN) ---
-                logger.info("Initializing Firebase SDK for production...")
+                logger.info(f"Production environment detected (K_SERVICE: {os.getenv('K_SERVICE')}). Initializing Firebase SDK automatically...")
                 firebase_admin.initialize_app()
             else:
                 # --- LOCAL DEVELOPMENT PATH ---
-                logger.info("Initializing Firebase SDK for local development...")
-                service_account_path = "secrets/serviceAccountKey.json" # Ensure this path is correct
+                logger.info("Local environment detected. Initializing Firebase SDK with service account key...")
+                service_account_path = "secrets/serviceAccountKey.json"
                 
                 if not os.path.exists(service_account_path):
                     error_msg = f"Service account key not found at {service_account_path}. Please ensure the file exists for local development."
@@ -57,6 +62,9 @@ def initialize_firebase():
     except Exception as e:
         logger.error(f"Failed to initialize Firebase Admin SDK: {str(e)}")
         raise e
+
+# Initialize Firebase Admin SDK at startup
+initialize_firebase()
 # Initialize Firebase Admin SDK 
 initialize_firebase() 
 

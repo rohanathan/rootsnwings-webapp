@@ -8,9 +8,14 @@ export default function BookingSuccess() {
   const [bookingDetails, setBookingDetails] = useState(null);
   const [error, setError] = useState('');
   
-  // Get first class date from stored data
+  // Get first class date from stored data (client-side only)
   const getFirstClassDate = () => {
     try {
+      // Guard against server-side rendering
+      if (typeof window === 'undefined') {
+        return new Date('2025-08-17T14:00:00'); // fallback for SSR
+      }
+      
       const storedClass = JSON.parse(localStorage.getItem('selectedMentorClass') || '{}');
       if (storedClass.schedule?.startDate) {
         const schedule = storedClass.schedule.weeklySchedule?.[0];
@@ -23,13 +28,7 @@ export default function BookingSuccess() {
     return new Date('2025-08-17T14:00:00'); // fallback
   };
   
-  const firstClassDate = getFirstClassDate();
-  const [countdown, setCountdown] = useState({
-    days: '00',
-    hours: '00',
-    minutes: '00',
-    seconds: '00',
-  });
+
 
   // Handle payment confirmation from Stripe redirect
   useEffect(() => {

@@ -44,11 +44,14 @@ const AuthPages = () => {
   
   // Updates the document title based on the active tab
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if(user?.user?.userType === 'student'){
-      window.location.href = '/mentor/dashboard';
-    }else if(user?.user?.userType === 'mentor'){
-      window.location.href = '/mentor/dashboard';
+    // Guard against server-side rendering
+    if (typeof window !== 'undefined') {
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      if(user?.user?.userType === 'student'){
+        window.location.href = '/mentor/dashboard';
+      }else if(user?.user?.userType === 'mentor'){
+        window.location.href = '/mentor/dashboard';
+      }
     }
     
     document.title = activeTab === 'signup' ? 'Sign Up - Roots & Wings' : 'Sign In - Roots & Wings';

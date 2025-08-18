@@ -17,6 +17,11 @@ console.log('API Base URL:', API_BASE_URL);
  */
 const getFirebaseToken = async () => {
   try {
+    // Guard against server-side rendering and missing auth
+    if (!auth || typeof window === 'undefined') {
+      throw new Error('Firebase auth not available (SSR or missing config)');
+    }
+    
     const user = auth.currentUser;
     if (!user) {
       throw new Error('No authenticated user found');
@@ -250,10 +255,10 @@ export const messageAPI = {
 // ===== UTILITY FUNCTIONS =====
 export const apiUtils = {
   // Get current Firebase user
-  getCurrentFirebaseUser: () => auth.currentUser,
+  getCurrentFirebaseUser: () => auth?.currentUser || null,
   
   // Check if user is authenticated
-  isAuthenticated: () => !!auth.currentUser,
+  isAuthenticated: () => !!(auth?.currentUser),
   
   // Get user's auth token
   getToken: getFirebaseToken,
@@ -262,7 +267,7 @@ export const apiUtils = {
   getHeaders: getAuthHeaders,
   
   // Sign out user
-  signOut: () => auth.signOut(),
+  signOut: () => auth?.signOut() || Promise.resolve(),
 };
 
 // Default export with all APIs

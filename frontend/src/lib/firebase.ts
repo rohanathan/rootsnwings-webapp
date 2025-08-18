@@ -17,11 +17,21 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase only once (Next.js hot reload safe)
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// Only initialize Firebase on the client side with valid config
+let app, auth, db, storage;
 
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
+  // Client-side initialization with valid config
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
+} else {
+  // Server-side or missing config - create placeholder objects
+  app = null;
+  auth = null;
+  db = null;
+  storage = null;
+}
 
 export { app, auth, db, storage };
