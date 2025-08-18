@@ -235,7 +235,7 @@ export default function GroupBatches() {
         }
         
         // Build API URL with query parameters
-        let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${mentorId}`;
+        let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${mentorId}`;
         if (urlType) {
           apiUrl += `&type=${urlType}`;
         }

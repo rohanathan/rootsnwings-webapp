@@ -71,7 +71,7 @@ export default function OneOnOneSessions() {
 
         // Load student's previous bookings (for first session detection)
         // TODO: Replace with actual student ID from auth
-        const bookingsResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?studentId=user031`);
+        const bookingsResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=user031`);
         if (bookingsResponse.data) {
           setStudentBookings(bookingsResponse.data.bookings || []);
         }
@@ -254,7 +254,7 @@ export default function OneOnOneSessions() {
       }
 
       // Create one-on-one class
-      const response = await axios.post('https://rootsnwings-api-944856745086.europe-west2.run.app/classes/one-on-one/create', requestPayload);
+      const response = await axios.post('https://rootsnwings-api-944856745086.europe-west2.run.app/classesone-on-one/create', requestPayload);
 
       if (response.data?.classId) {
         // Store class data for booking confirmation page

@@ -63,7 +63,7 @@ const Dashboard = () => {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       await axios.post(
-        'https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/',
+        'https://rootsnwings-api-944856745086.europe-west2.run.app/reviews',
         {
           classId: selectedBooking.classId,
           rating: reviewRating,
@@ -170,14 +170,14 @@ const Dashboard = () => {
           // Fetch user's bookings
           try {
             const bookingsResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?studentId=${userData.user.uid}`
+              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=${userData.user.uid}`
             );
             setBookings(bookingsResponse.data?.bookings || []);
 
             bookingsResponse.data?.bookings.forEach(async (booking) => {
               try {
                 const classResponse = await axios.get(
-                  `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${booking.classId}`
+                  `https://rootsnwings-api-944856745086.europe-west2.run.app/classes${booking.classId}`
                 );
                 setBookingsClasses((prev) => [
                   ...prev,

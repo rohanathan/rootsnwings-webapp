@@ -96,7 +96,7 @@ export default function App() {
 
         // Fetch workshops (type=workshop only)
         const response = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${user.user.uid}&type=workshop`
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${user.user.uid}&type=workshop`
         );
         const workshops = response.data.classes || [];
 
@@ -117,7 +117,7 @@ export default function App() {
           try {
             // Fetch bookings for this workshop
             const bookingsResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?classId=${workshop.classId}`
+              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${workshop.classId}`
             );
             const bookings = bookingsResponse.data.bookings || [];
 
@@ -402,7 +402,7 @@ export default function App() {
                     <div className="flex space-x-3">
                       <button
                         onClick={() =>
-                          (window.location.href = `/mentor/classes/${workshop.classId}`)
+                          (window.location.href = `/mentor/classes${workshop.classId}`)
                         }
                         className="flex-1 py-2 px-4 rounded-lg transition-colors text-sm font-medium bg-primary text-white hover:bg-primary-dark"
                       >

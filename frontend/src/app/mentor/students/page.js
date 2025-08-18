@@ -103,7 +103,7 @@ export default function Students() {
 
         // Step 1: Fetch all mentor's classes
         const classesResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${user.user.uid}`
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${user.user.uid}`
         );
         const mentorClasses = classesResponse.data.classes || [];
 
@@ -121,7 +121,7 @@ export default function Students() {
         for (const classObj of mentorClasses) {
           try {
             const bookingsResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?classId=${classObj.classId}`
+              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`
             );
             const bookings = bookingsResponse.data.bookings || [];
 
@@ -713,10 +713,10 @@ export default function Students() {
                                 onClick={() => {
                                   if (btn.text.includes("Session")) {
                                     // Navigate to class session
-                                    window.location.href = `/mentor/classes/${student.classId}/session`;
+                                    window.location.href = `/mentor/classes${student.classId}/session`;
                                   } else if (btn.text.includes("Workshop")) {
                                     // Navigate to workshop details
-                                    window.location.href = `/mentor/classes/${student.classId}`;
+                                    window.location.href = `/mentor/classes${student.classId}`;
                                   } else if (btn.text.includes("Message")) {
                                     // Open messaging (could be modal or separate page)
                                     alert("Messaging feature coming soon");

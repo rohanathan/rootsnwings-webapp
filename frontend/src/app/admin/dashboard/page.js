@@ -58,7 +58,7 @@ const AdminDashboard = () => {
           }
 
           const classResponse = await axios.get(
-            "https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?status=pending_approval&pageSize=50",
+            "https://rootsnwings-api-944856745086.europe-west2.run.app/classes?status=pending_approval&pageSize=50",
             config
           );
           
@@ -67,7 +67,7 @@ const AdminDashboard = () => {
           }
 
           const allClassesResponse = await axios.get(
-            "https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?pageSize=100",
+            "https://rootsnwings-api-944856745086.europe-west2.run.app/classes?pageSize=100",
             config
           );
           
@@ -230,7 +230,7 @@ const AdminDashboard = () => {
       const status = action === 'approve' ? 'approved' : 'rejected';
       
       await axios.put(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${classId}/`,
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes${classId}/`,
         { status }
       );
       
@@ -465,7 +465,7 @@ const AdminDashboard = () => {
                               </div>
                               <div className="flex items-center space-x-2">
                                 <button 
-                                  onClick={() => window.location.href = `/admin/classes/${classItem.classId}`}
+                                  onClick={() => window.location.href = `/admin/classes${classItem.classId}`}
                                   className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition-colors"
                                 >
                                   <i className="fas fa-edit mr-1"></i>Review

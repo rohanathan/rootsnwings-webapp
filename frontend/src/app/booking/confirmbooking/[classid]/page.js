@@ -66,7 +66,7 @@ export default function BookingConfirmation() {
         // Then fetch live data from API using classId
         if (classId) {
           const classResponse = await axios.get(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${classId}`
+            `https://rootsnwings-api-944856745086.europe-west2.run.app/classes${classId}`
           );
           if (classResponse.data?.class) {
             const classData = classResponse.data.class;
@@ -189,7 +189,7 @@ export default function BookingConfirmation() {
       if (bookingTotal === 0) {
         // For free bookings, create booking directly
         const bookingResponse = await axios.post(
-          "https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/",
+          "https://rootsnwings-api-944856745086.europe-west2.run.app/bookings",
           {
             mentorId: mentor.uid,
             classId: selectedMentorClass.classId,
@@ -395,7 +395,7 @@ export default function BookingConfirmation() {
   // const confirmBooking = async () => {
   //   try {
   //     const bookingResponse = await axios.post(
-  //       "https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/",
+  //       "https://rootsnwings-api-944856745086.europe-west2.run.app/bookings",
   //       {
   //         mentorId: mentor.uid,
   //         classId: selectedMentorClass.classId,

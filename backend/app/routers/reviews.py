@@ -15,7 +15,7 @@ router = APIRouter(
     tags=["Reviews"]
 )
 
-@router.post("/", response_model=ReviewResponse)
+@router.post("", response_model=ReviewResponse)
 def create_review(
     review_request: ReviewRequest,
     request: Request
@@ -48,7 +48,7 @@ def create_review(
     review = create_or_update_review(student_id, review_request)
     return ReviewResponse(review=review)
 
-@router.get("/")
+@router.get("")
 def get_reviews(
     request: Request,
     type: str = Query(..., description="mentor, testimonials, or my-reviews"),

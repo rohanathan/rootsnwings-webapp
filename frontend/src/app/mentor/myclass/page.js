@@ -40,7 +40,7 @@ export default function MyClass() {
 
         // Fetch mentor classes using the same endpoint as dashboard
         const classesResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${uid}`
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${uid}`
         );
         const classes = classesResponse.data.classes || [];
 
@@ -57,7 +57,7 @@ export default function MyClass() {
         for (const classObj of classes) {
           try {
             const bookingsResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?classId=${classObj.classId}`
+              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`
             );
             const bookings = bookingsResponse.data.bookings || [];
 
@@ -559,7 +559,7 @@ export default function MyClass() {
                       <div className="flex flex-wrap gap-3">
                         <button
                           onClick={() =>
-                            (window.location.href = `/mentor/classes/${classItem.classId}`)
+                            (window.location.href = `/mentor/classes${classItem.classId}`)
                           }
                           className="px-4 py-2 rounded-lg transition-colors text-sm font-medium bg-primary text-white hover:bg-primary-dark"
                         >
@@ -701,7 +701,7 @@ export default function MyClass() {
                         </button>
                         <button
                           onClick={() =>
-                            (window.location.href = `/mentor/classes/${classItem.classId}`)
+                            (window.location.href = `/mentor/classes${classItem.classId}`)
                           }
                           className="px-4 py-2 rounded-lg transition-colors text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >

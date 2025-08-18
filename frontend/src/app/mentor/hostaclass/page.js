@@ -415,7 +415,7 @@ const HostClassPage = () => {
 
       // Make API call
       const response = await fetch(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/classes/",
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/classes",
         {
           method: "POST",
           headers: {

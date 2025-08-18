@@ -17,7 +17,7 @@ router = APIRouter(
 # SIMPLIFIED BOOKINGS API - 3 ENDPOINTS ONLY
 # ==========================================
 
-@router.post("/")
+@router.post("")
 def create_booking(booking_request: SimpleBookingRequest):
     """
     Create a booking with complete MongoDB flexibility.
@@ -47,24 +47,24 @@ def update_booking(
     Universal booking updater - handles everything in one endpoint.
     
     Supports all operations:
-    - Basic updates: PUT /bookings/123 with JSON body
-    - Quick actions: PUT /bookings/123?action=confirm
-    - Attendance: PUT /bookings/123?action=mark_attendance with session data
-    - Cancellation: PUT /bookings/123?action=cancel
+    - Basic updates: PUT /bookings123 with JSON body
+    - Quick actions: PUT /bookings123?action=confirm
+    - Attendance: PUT /bookings123?action=mark_attendance with session data
+    - Cancellation: PUT /bookings123?action=cancel
     - Any custom fields: { "mentorNotes": "Great student", "customField": "value" }
     
     Examples:
     
     # Confirm booking (payment received)
-    PUT /bookings/123?action=confirm
+    PUT /bookings123?action=confirm
     Body: { "paymentId": "pay_123", "confirmedAt": "2025-08-12T10:30:00Z" }
     
     # Cancel booking
-    PUT /bookings/123?action=cancel
+    PUT /bookings123?action=cancel
     Body: { "cancelReason": "Student unavailable", "refundAmount": 480 }
     
     # Mark session attendance
-    PUT /bookings/123?action=mark_attendance
+    PUT /bookings123?action=mark_attendance
     Body: { 
       "sessionDate": "2025-08-15", 
       "status": "present", 
@@ -73,7 +73,7 @@ def update_booking(
     }
     
     # Custom update
-    PUT /bookings/123
+    PUT /bookings123
     Body: { "specialRequests": "Need earlier time slot", "priorityLevel": "high" }
     """
     try:
@@ -150,7 +150,7 @@ def update_booking(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update booking: {str(e)}")
 
-@router.get("/")
+@router.get("")
 def get_bookings(
     bookingId: Optional[str] = Query(None, description="Get specific booking by ID"),
     studentId: Optional[str] = Query(None, description="Get bookings for student"),
@@ -224,7 +224,7 @@ def get_bookings(
 
 # ==========================================
 # SIMPLIFIED TO 3 ENDPOINTS TOTAL
-# POST /bookings/ - Create booking
-# GET /bookings/ - Get bookings (supports bookingId filter for single booking)
-# PUT /bookings/{booking_id} - Update everything (confirmation, cancellation, attendance, custom fields)
+# POST /bookings - Create booking
+# GET /bookings - Get bookings (supports bookingId filter for single booking)
+# PUT /bookings{booking_id} - Update everything (confirmation, cancellation, attendance, custom fields)
 # ==========================================

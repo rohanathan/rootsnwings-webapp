@@ -283,7 +283,7 @@ export default function Workshops() {
         }
         
         // Build API URL with query parameters
-        let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?type=workshop`;
+        let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?type=workshop`;
         if (mentorId) {
           apiUrl += `&mentorId=${mentorId}`;
         }

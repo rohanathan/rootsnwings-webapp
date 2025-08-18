@@ -246,11 +246,11 @@ const Messages = () => {
     const fetchMentorClasses = async () => {
       const mentorId = user?.user?.uid;
       const response = await axios.get(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${mentorId}`
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${mentorId}`
       );
       const studentPromises = response.data.classes.map(async (classItem) => {
         const bookingsResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?classId=${classItem.classId}`
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classItem.classId}`
         );
         const userPromises = bookingsResponse.data.bookings.map(
           async (booking) => {
@@ -272,7 +272,7 @@ const Messages = () => {
   const fetchStudentMentorMsg = async () => {
     const user = JSON.parse(localStorage.getItem("user"));
     const response = await axios.get(
-      `https://rootsnwings-api-944856745086.europe-west2.run.app/messages/conversation?studentId=${selectedStudent?.fullUser?.uid}&mentorId=${user?.user?.uid}`
+      `https://rootsnwings-api-944856745086.europe-west2.run.app/messagesconversation?studentId=${selectedStudent?.fullUser?.uid}&mentorId=${user?.user?.uid}`
     );
     setStudentMentorMsg(response.data.messages);
   };
@@ -461,7 +461,7 @@ const Messages = () => {
   const submitMessage = async () => {
     const user = JSON.parse(localStorage.getItem("user"));
     const response = await axios.post(
-      `https://rootsnwings-api-944856745086.europe-west2.run.app/messages/`,
+      `https://rootsnwings-api-944856745086.europe-west2.run.app/messages`,
       {
         senderId: user?.user?.uid,
         studentId: selectedStudent?.fullUser?.uid,

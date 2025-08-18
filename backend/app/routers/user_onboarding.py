@@ -78,7 +78,7 @@ class MentorOnboarding(BaseModel):
     firstsessionfree: Optional[bool] = False
 
 # Endpoints
-@router.post("/")
+@router.post("")
 def complete_onboarding(data: CompleteOnboarding):
     """Complete entire user onboarding in one request"""
     try:

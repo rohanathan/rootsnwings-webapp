@@ -90,7 +90,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchMentorClasses = async (uid) => {
       try {
-        let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?mentorId=${uid}`;
+        let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${uid}`;
         const response = await axios.get(apiUrl);
         const classes = response.data.classes || [];
         
@@ -108,7 +108,7 @@ const Dashboard = () => {
         const updatedClasses = await Promise.all(classes.map(async (classObj) => {
           try {
             // Fetch bookings for this class
-            const bookingsResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings/?classId=${classObj.classId}`);
+            const bookingsResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`);
             const classBookings = bookingsResponse.data.bookings || [];
             allBookings = [...allBookings, ...classBookings];
             
@@ -460,7 +460,7 @@ const Dashboard = () => {
                         </div>
                         <div className="flex space-x-2">
                           <button 
-                            onClick={() => window.location.href = `/mentor/classes/${classObj.classId}`}
+                            onClick={() => window.location.href = `/mentor/classes${classObj.classId}`}
                             className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors"
                           >
                             <i className="fas fa-eye mr-1"></i>
@@ -535,13 +535,13 @@ const Dashboard = () => {
                         </div>
                         <div className="mt-4 flex space-x-3">
                           <button 
-                            onClick={() => window.location.href = `/mentor/classes/${classObj.classId}`}
+                            onClick={() => window.location.href = `/mentor/classes${classObj.classId}`}
                             className="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-dark transition-colors"
                           >
                             Manage Class
                           </button>
                           <button 
-                            onClick={() => window.location.href = `/mentor/classes/${classObj.classId}/students`}
+                            onClick={() => window.location.href = `/mentor/classes${classObj.classId}/students`}
                             className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors"
                           >
                             View Students

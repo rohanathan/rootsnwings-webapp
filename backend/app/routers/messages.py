@@ -8,7 +8,7 @@ router = APIRouter(
     tags=["Messages"]
 )
 
-@router.post("/")
+@router.post("")
 def create_message(message_data: MessageCreate):
     """
     Send a message between student and mentor (optionally including parent).

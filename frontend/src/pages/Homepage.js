@@ -33,7 +33,7 @@ const Homepage = () => {
 
     const fetchWorkshop = async () => {
       const response = await axios.get(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?type=workshop&upcoming=true&pageSize=3"
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/classes?type=workshop&upcoming=true&pageSize=3"
       );
 
       setWorkshop(response.data.classes);
@@ -41,7 +41,7 @@ const Homepage = () => {
 
     const fetchTestimonials = async () => {
        const response = await axios.get(
-         "https://rootsnwings-api-944856745086.europe-west2.run.app/reviews/?type=testimonials&limit=10"
+         "https://rootsnwings-api-944856745086.europe-west2.run.app/reviews?type=testimonials&limit=10"
        );
        setTestimonials(response.data.testimonials);
     };

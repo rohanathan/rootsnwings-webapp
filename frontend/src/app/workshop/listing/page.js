@@ -32,7 +32,7 @@ export default function Home() {
   const fetchWorkshops = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/classes/?type=workshop`);
+      const response = await axios.get(`${API_BASE_URL}/classes?type=workshop`);
       const data = response.data;
       
       // The API returns workshops in data.classes array
