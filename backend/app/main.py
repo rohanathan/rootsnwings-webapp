@@ -10,16 +10,55 @@ from app.routers import availability
 from app.routers import reviews
 from app.routers import metadata
 from app.routers import auth
+from app.routers import firebase_auth  # New Firebase auth system
 from app.routers import user_onboarding
 from app.routers import messages
 from fastapi.staticfiles import StaticFiles  
 import os
+import logging
+import firebase_admin
+from firebase_admin import credentials
+
+# Set up a logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Roots & Wings API",
     description="FastAPI backend for Roots & Wings on GCP",
     version="0.1.0"
 )
+
+# --- Firebase Initialisation ---
+def initialize_firebase():
+    """Initialize Firebase Admin SDK based on the environment."""
+    try:
+        # Check if the app is already initialized to prevent errors.
+        if not firebase_admin._apps:
+            if os.getenv('GOOGLE_CLOUD_PROJECT'):
+                # --- PRODUCTION PATH (ON CLOUD RUN) ---
+                logger.info("Initializing Firebase SDK for production...")
+                firebase_admin.initialize_app()
+            else:
+                # --- LOCAL DEVELOPMENT PATH ---
+                logger.info("Initializing Firebase SDK for local development...")
+                service_account_path = "secrets/serviceAccountKey.json" # Ensure this path is correct
+                
+                if not os.path.exists(service_account_path):
+                    error_msg = f"Service account key not found at {service_account_path}. Please ensure the file exists for local development."
+                    logger.error(error_msg)
+                    raise FileNotFoundError(error_msg)
+                
+                cred = credentials.Certificate(service_account_path)
+                firebase_admin.initialize_app(cred)
+            
+            logger.info("Firebase Admin SDK initialized successfully.")
+            
+    except Exception as e:
+        logger.error(f"Failed to initialize Firebase Admin SDK: {str(e)}")
+        raise e
+# Initialize Firebase Admin SDK 
+initialize_firebase() 
 
 # Configure CORS for frontend integrations
 app.add_middleware(
@@ -31,7 +70,7 @@ app.add_middleware(
         "https://*.vercel.app",   # Vercel deployments
         "https://rootsnwings.com",  # Production domain
         "https://www.rootsnwings.com",  # WWW version
-        # Add more domains as needed
+        "https://frontend-944856745086.europe-west2.run.app"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -39,7 +78,8 @@ app.add_middleware(
 )
 
 # Include modular routes
-app.include_router(auth.router)
+app.include_router(auth.router)  # Keep existing JWT auth system
+app.include_router(firebase_auth.router)  # New Firebase auth system (parallel)
 app.include_router(user_onboarding.router)
 app.include_router(mentors.router)
 app.include_router(classes.router)

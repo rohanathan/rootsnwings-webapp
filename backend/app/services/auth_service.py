@@ -16,20 +16,27 @@ class AuthService:
         Verify Firebase ID token and return decoded token
         """
         try:
+            logger.info(f"AuthService.verify_token - Verifying token, length: {len(token)}")
+            logger.info(f"AuthService.verify_token - Token preview: {token[:50]}...")
+            
             decoded_token = auth.verify_id_token(token)
+            logger.info(f"AuthService.verify_token - Success! UID: {decoded_token.get('uid')}")
             return decoded_token
-        except auth.InvalidIdTokenError:
+        except auth.InvalidIdTokenError as e:
+            logger.error(f"AuthService.verify_token - Invalid token: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication token"
             )
-        except auth.ExpiredIdTokenError:
+        except auth.ExpiredIdTokenError as e:
+            logger.error(f"AuthService.verify_token - Expired token: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication token has expired"
             )
         except Exception as e:
-            logger.error(f"Token verification failed: {str(e)}")
+            logger.error(f"AuthService.verify_token - Unexpected error: {str(e)}")
+            logger.error(f"AuthService.verify_token - Error type: {type(e)}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication failed"

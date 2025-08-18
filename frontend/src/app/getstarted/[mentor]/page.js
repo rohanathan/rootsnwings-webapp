@@ -2,10 +2,22 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import axios from 'axios';
+// Firebase imports
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '../../../lib/firebase';
 
 const AuthPages = () => {
   // State to manage which tab is active: 'signin' or 'signup'
   const [activeTab, setActiveTab] = useState('signup');
+  
+  // Loading states for form submissions
+  const [isSignupLoading, setIsSignupLoading] = useState(false);
+  const [isSigninLoading, setIsSigninLoading] = useState(false);
+  
+  // API URL - use localhost for local testing
+  const API_BASE_URL = process.env.NODE_ENV === 'production' 
+    ? 'https://rootsnwings-api-944856745086.europe-west2.run.app'
+    : 'http://localhost:8000';
   
   // States for password visibility
   const [showSignInPassword, setShowSignInPassword] = useState(false);
@@ -48,9 +60,62 @@ const AuthPages = () => {
     return emailRegex.test(email);
   };
   
-  // Handles form submission for Sign Up
-  const handleSignUpSubmit = (e) => {
+  // Helper function to make authenticated API calls to backend
+  const makeAuthenticatedAPICall = async (endpoint, method = 'GET', data = null) => {
+    try {
+      const user = auth.currentUser;
+      console.log('API Call - Current user:', user?.uid);
+      
+      if (!user) {
+        throw new Error('No authenticated user found');
+      }
+      
+      // Force token refresh to ensure it's valid
+      const token = await user.getIdToken(true);
+      console.log('API Call - Token retrieved, length:', token?.length);
+      console.log('API Call - Token preview:', token?.substring(0, 50) + '...');
+      
+      // For debugging - log the full token (remove this in production)
+      console.log('🔑 FULL TOKEN (for debugging):');
+      console.log(token);
+      
+      const options = {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      };
+      
+      if (data && (method === 'POST' || method === 'PUT')) {
+        options.body = JSON.stringify(data);
+      }
+      
+      console.log(`API Call - ${method} ${API_BASE_URL}/firebase-auth${endpoint}`);
+      console.log('API Call - Headers:', options.headers);
+      
+      const response = await fetch(`${API_BASE_URL}/firebase-auth${endpoint}`, options);
+      console.log('API Call - Response status:', response.status);
+      
+      const responseData = await response.json();
+      console.log('API Call - Response data:', responseData);
+      
+      if (!response.ok) {
+        throw new Error(`API call failed with status ${response.status}: ${responseData.detail || 'Unknown error'}`);
+      }
+      
+      return responseData;
+    } catch (error) {
+      console.error('API call failed:', error);
+      throw error;
+    }
+  };
+  
+  // Handles form submission for Sign Up with Firebase
+  const handleSignUpSubmit = async (e) => {
     e.preventDefault();
+    
+    // Form validation
     const errors = {};
     if (!firstName) errors.firstName = 'First name is required.';
     if (!lastName) errors.lastName = 'Last name is required.';
@@ -61,43 +126,82 @@ const AuthPages = () => {
 
     if (Object.keys(errors).length > 0) {
       setSignupFormErrors(errors);
-      // In a real app, you would display these errors to the user
       console.error('Validation Errors:', errors);
       return;
     }
 
-    // Success state: log data and show alert (as in original)
-    console.log('Signup form submitted successfully.');
-    console.log({ firstName, lastName, signupEmail, signupPassword, company, terms, emailUpdates });
+    setIsSignupLoading(true);
+    setSignupFormErrors({});
 
-
-    
-    // Send registration request to API
-    axios.post('https://rootsnwings-api-944856745086.europe-west2.run.app/auth/register', {
-      firstName,
-      lastName,
-      email: signupEmail,
-      password: signupPassword,
-      company,
-      acceptedTerms: terms,
-      emailUpdates,
-      "userType": "mentor"
-    })
-    .then(response => {
-      console.log('Registration successful:', response.data);
-      localStorage.setItem('user', JSON.stringify(response.data));
-      // alert('Account created successfully!');
-      window.location.href = '/mentor/onboarding';
-    })
-    .catch(error => {
-      console.error('Registration failed:', error);
-      alert('Failed to create account. Please try again.');
-    });
+    try {
+      console.log('Starting Firebase mentor signup process...');
+      
+      // Step 1: Create Firebase user
+      const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
+      const firebaseUser = userCredential.user;
+      
+      console.log('Firebase mentor user created:', firebaseUser.uid);
+      
+      // Step 2: Update Firebase profile with display name
+      const displayName = `${firstName} ${lastName[0].toUpperCase()}`;
+      await updateProfile(firebaseUser, { displayName });
+      
+      // Step 3: Register user profile in backend
+      const backendResponse = await makeAuthenticatedAPICall('/register', 'POST', {
+        firstName,
+        lastName,
+        email: signupEmail,
+        userType: 'mentor', // Set as mentor
+      });
+      
+      console.log('Backend mentor registration successful:', backendResponse);
+      
+      // Step 4: Store user data and redirect based on needsOnboarding
+      const userData = {
+        user: backendResponse,
+        authProvider: 'firebase'
+      };
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      alert('Mentor account created successfully!');
+      
+      // Redirect based on needsOnboarding field
+      if (backendResponse.needsOnboarding) {
+        window.location.href = '/mentor/onboarding';
+      } else {
+        // If onboarding is complete, go to mentor dashboard
+        window.location.href = '/mentor/dashboard';
+      }
+      
+    } catch (error) {
+      console.error('Mentor signup failed:', error);
+      
+      // Handle Firebase-specific errors
+      let errorMessage = 'Failed to create mentor account. Please try again.';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'An account with this email already exists. Please sign in instead.';
+        setSignupFormErrors({ signupEmail: 'Email already in use' });
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+        setSignupFormErrors({ signupPassword: 'Password is too weak' });
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Please enter a valid email address.';
+        setSignupFormErrors({ signupEmail: 'Invalid email address' });
+      } else if (error.message === 'No authenticated user found') {
+        errorMessage = 'Authentication failed. Please try again.';
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsSignupLoading(false);
+    }
   };
 
-  // Handles form submission for Sign In
-  const handleSignInSubmit = (e) => {
+  // Handles form submission for Sign In with Firebase
+  const handleSignInSubmit = async (e) => {
     e.preventDefault();
+    
+    // Form validation
     const errors = {};
     if (!isValidEmail(signinEmail)) errors.signinEmail = 'Please enter a valid email address.';
     if (!signinPassword) errors.signinPassword = 'Password is required.';
@@ -108,28 +212,78 @@ const AuthPages = () => {
       return;
     }
 
-    // Success state: log data and show alert (as in original)
-    console.log('Signin form submitted successfully.');
-    console.log({ signinEmail, signinPassword, rememberMe });
+    setIsSigninLoading(true);
+    setSigninFormErrors({});
 
-
-    // Send login request to API
-    axios.post('https://rootsnwings-api-944856745086.europe-west2.run.app/auth/login', {
-      email: signinEmail,
-      password: signinPassword, 
-      rememberMe: rememberMe
-    })
-    .then(response => {
-      console.log('Login successful:', response.data);
+    try {
+      console.log('Starting Firebase mentor signin process...');
+      
+      // Step 1: Sign in with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, signinEmail, signinPassword);
+      const firebaseUser = userCredential.user;
+      
+      console.log('Firebase mentor signin successful:', firebaseUser.uid);
+      
+      // Small delay to ensure Firebase auth state is fully set
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Step 2: Get user profile from backend
+      const backendResponse = await makeAuthenticatedAPICall('/me', 'GET');
+      
+      console.log('Backend mentor profile retrieved:', backendResponse);
+      
+      // Step 3: Store user data
+      const userData = {
+        user: backendResponse,
+        authProvider: 'firebase'
+      };
+      localStorage.setItem('user', JSON.stringify(userData));
+      
       alert('Successfully logged in!');
-      localStorage.setItem('user', JSON.stringify(response.data));
-      window.location.href = '/mentor/dashboard';
-    })
-    .catch(error => {
-      console.error('Login failed:', error);
-      alert('Failed to log in. Please check your credentials and try again.');
-    });
-
+      
+      // Step 4: Redirect based on user type and onboarding status
+      if (backendResponse.roles?.includes('admin')) {
+        window.location.href = '/admin/dashboard';
+      } else if (backendResponse.needsOnboarding) {
+        // User needs to complete onboarding first
+        if (backendResponse.userType === 'mentor') {
+          window.location.href = '/mentor/onboarding';
+        } else {
+          window.location.href = '/user/onboarding';
+        }
+      } else {
+        // User is fully set up, go to dashboard
+        if (backendResponse.userType === 'mentor') {
+          window.location.href = '/mentor/dashboard';
+        } else {
+          window.location.href = '/user/dashboard';
+        }
+      }
+      
+    } catch (error) {
+      console.error('Mentor signin failed:', error);
+      
+      // Handle Firebase-specific errors
+      let errorMessage = 'Failed to sign in. Please try again.';
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email. Please sign up first.';
+        setSigninFormErrors({ signinEmail: 'Email not found' });
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+        setSigninFormErrors({ signinPassword: 'Incorrect password' });
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Please enter a valid email address.';
+        setSigninFormErrors({ signinEmail: 'Invalid email address' });
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (error.message === 'No authenticated user found') {
+        errorMessage = 'Authentication failed. Please try again.';
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsSigninLoading(false);
+    }
   };
 
   return (
@@ -295,9 +449,18 @@ const AuthPages = () => {
                   {/* Sign In Button */}
                   <button 
                     type="submit" 
-                    className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    disabled={isSigninLoading}
+                    className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
-                    <i className="fas fa-sign-in-alt mr-2"></i>Sign In
+                    {isSigninLoading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin mr-2"></i>Signing In...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-sign-in-alt mr-2"></i>Sign In
+                      </>
+                    )}
                   </button>
                 </form>
 
@@ -511,9 +674,18 @@ const AuthPages = () => {
                   {/* Sign Up Button */}
                   <button 
                     type="submit" 
-                    className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    disabled={isSignupLoading}
+                    className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
-                    <i className="fas fa-user-plus mr-2"></i>Create Account
+                    {isSignupLoading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin mr-2"></i>Creating Mentor Account...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-user-plus mr-2"></i>Create Account
+                      </>
+                    )}
                   </button>
                 </form>
               </div>
