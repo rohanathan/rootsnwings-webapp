@@ -25,14 +25,17 @@ WORKDIR /app
 # Copy the virtual environment from the builder stage
 COPY --from=builder /opt/venv /opt/venv
 
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Copy application code
-COPY . [cite_start]. [cite: 2]
+COPY . .
 
 # Activate the virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Create uploads directory
-[cite_start]RUN mkdir -p uploads/profile-images [cite: 2]
+RUN mkdir -p uploads/profile-images
 
 # Create and switch to a non-root user
 RUN useradd --create-home --shell /bin/bash app && chown -R app:app /app
@@ -41,7 +44,7 @@ USER app
 # Expose port and add health check
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    [cite_start]CMD curl -f http://localhost:8080/health || exit 1 [cite: 3]
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
