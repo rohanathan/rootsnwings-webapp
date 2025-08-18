@@ -7,7 +7,7 @@ steps:
 
   # Step 2: Push the Docker Image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:latest']
+    args: ['push', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA']
 
   # Step 3: Deploy the Image to Cloud Run
   # Using the modern, recommended builder for gcloud
