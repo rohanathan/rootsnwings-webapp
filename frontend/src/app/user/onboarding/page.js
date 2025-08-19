@@ -274,7 +274,7 @@ const UserOnboardingFlow = () => {
 
         // Make API call to /user-onboarding
         const response = await axios.post(
-          "https://rootsnwings-api-944856745086.europe-west2.run.app/user-onboarding/",
+          "https://rootsnwings-api-944856745086.europe-west2.run.app/user-onboarding",
           userOnboardingData
         );
 

@@ -230,7 +230,7 @@ const AdminDashboard = () => {
       const status = action === 'approve' ? 'approved' : 'rejected';
       
       await axios.put(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes${classId}/`,
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${classId}`,
         { status }
       );
       
