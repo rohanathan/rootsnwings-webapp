@@ -3,6 +3,8 @@ import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import UserSidebar from "@/components/UserSidebar";
 import axios from "axios";
 import React, { useState, useEffect, useRef } from "react";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 const Dashboard = () => {
   // State to manage the mobile sidebar's visibility
@@ -12,8 +14,9 @@ const Dashboard = () => {
   // State to manage the active profile view (e.g., 'adult' or 'family')
   const [activeProfile, setActiveProfile] = useState("adult");
 
-  const [user, setUser] = useState({});
-
+  const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState({});
+  const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState([]);
   const [showAllUpcomingSessions, setShowAllUpcomingSessions] = useState(false);
   
@@ -29,18 +32,40 @@ const Dashboard = () => {
 
   const [bookingsClasses, setBookingsClasses] = useState([]);
 
+  // Firebase auth listener
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    setUser(user.user);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setUserProfile({
+          uid: currentUser.uid,
+          displayName: currentUser.displayName,
+          email: currentUser.email,
+          userType: "student" // Assuming this page is only for students
+        });
+        setLoading(false);
+      } else {
+        window.location.href = "/getstarted";
+      }
+    });
 
-    if (user?.user?.userType !== "student") {
-      window.location.href = "/";
-    }
+    return () => unsubscribe();
+  }, []);
+
+  // Load bookings when user is available
+  useEffect(() => {
+    if (!user) return;
 
     const fetchBookings = async () => {
       try {
+        const idToken = await user.getIdToken();
         const bookingsResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=${user.user.uid}`
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=${user.uid}`,
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          }
         );
         setBookings(bookingsResponse.data?.bookings || []);
 
@@ -58,7 +83,7 @@ const Dashboard = () => {
     };
 
     fetchBookings();
-  }, []);
+  }, [user]);
 
   // Effect to handle window resize and close the mobile sidebar on larger screens
   useEffect(() => {
@@ -115,7 +140,7 @@ const Dashboard = () => {
 
     setIsSubmittingReview(true);
     try {
-      const user = JSON.parse(localStorage.getItem("user"));
+      const idToken = await user.getIdToken();
       await axios.post(
         'https://rootsnwings-api-944856745086.europe-west2.run.app/reviews',
         {
@@ -125,8 +150,8 @@ const Dashboard = () => {
         },
         {
           headers: {
-            'Authorization': `Bearer ${user.user.accessToken || user.user.idToken}`,
-            'X-Student-ID': user.user.uid
+            'Authorization': `Bearer ${idToken}`,
+            'X-Student-ID': user.uid
           }
         }
       );
@@ -152,6 +177,18 @@ const Dashboard = () => {
   const toggleProfileDropdown = () => {
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
+
+  // Show loading while Firebase auth is resolving
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   // JSX for the component
   return (
@@ -206,7 +243,7 @@ const Dashboard = () => {
             <MentorHeaderAccount
               isProfileDropdownOpen={isProfileDropdownOpen}
               handleProfileDropdownClick={toggleProfileDropdown}
-              user={user}
+              user={userProfile}
               mentorDetails={null}
             />
           </div>

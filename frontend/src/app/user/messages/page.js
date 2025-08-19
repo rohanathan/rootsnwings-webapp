@@ -3,6 +3,8 @@
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import axios from "axios";
 import { useState, useEffect, useRef } from "react";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 // Using inline SVG for FontAwesome icons as Next.js does not support direct link to CSS in components
 const HomeIcon = () => (
@@ -235,38 +237,71 @@ const Messages = () => {
   const profileDropdownBtnRef = useRef(null);
 
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  // Firebase auth listener
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    setUser(user.user);
-    if (user?.user?.userType === "mentor") {
-      window.location.href = "/";
-    }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setLoading(false);
+      } else {
+        window.location.href = "/getstarted";
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Load mentors when user is available
+  useEffect(() => {
+    if (!user) return;
 
     const fetchMentor = async () => {
-      const response = await axios.get(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=${user?.user?.uid}`
-      );
-
-      const bookings = response.data.bookings;
-      const studentPromises = bookings.map(async (booking) => {
-        const userResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${booking.mentorId}`
+      try {
+        const idToken = await user.getIdToken();
+        const response = await axios.get(
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=${user.uid}`,
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          }
         );
-        return userResponse.data;
-      });
-      setMentorList(await Promise.all(studentPromises));
+
+        const bookings = response.data.bookings;
+        const studentPromises = bookings.map(async (booking) => {
+          const userResponse = await axios.get(
+            `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${booking.mentorId}`
+          );
+          return userResponse.data;
+        });
+        setMentorList(await Promise.all(studentPromises));
+      } catch (error) {
+        console.error("Error fetching mentors:", error);
+      }
     };
 
     fetchMentor();
-  }, []);
+  }, [user]);
 
   const fetchStudentMentorMsg = async () => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const response = await axios.get(
-      `https://rootsnwings-api-944856745086.europe-west2.run.app/messagesconversation?studentId=${user?.user?.uid}&mentorId=${selectedMentor?.fullUser?.uid}`
-    );
-    setStudentMentorMsg(response.data.messages);
+    if (!user || !selectedMentor) return;
+    
+    try {
+      const idToken = await user.getIdToken();
+      const response = await axios.get(
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/messages/conversation?studentId=${user.uid}&mentorId=${selectedMentor?.fullUser?.uid}`,
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+      setStudentMentorMsg(response.data.messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
   };
 
   useEffect(() => {
@@ -450,24 +485,45 @@ const Messages = () => {
   ];
 
   const submitMessage = async () => {
-    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user || !selectedMentor || !typedMessage?.length) return;
 
-    if (typedMessage?.length > 0) {
-      const response = await axios.post(
+    try {
+      const idToken = await user.getIdToken();
+      await axios.post(
         `https://rootsnwings-api-944856745086.europe-west2.run.app/messages`,
         {
-          senderId: user?.user?.uid,
-          studentId: user?.user?.uid,
+          senderId: user.uid,
+          studentId: user.uid,
           mentorId: selectedMentor?.fullUser?.uid,
           parentId: selectedMentor?.fullUser?.uid,
           message: typedMessage,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
         }
       );
 
       setTypedMessage("");
       fetchStudentMentorMsg();
+    } catch (error) {
+      console.error("Error sending message:", error);
     }
   };
+
+  // Show loading while Firebase auth is resolving
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading messages...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-background font-sans">
       <style jsx global>{`
@@ -509,7 +565,12 @@ const Messages = () => {
             profileDropdownBtnRef={profileDropdownBtnRef}
             handleProfileDropdownClick={toggleProfileDropdown}
             profileDropdownRef={profileDropdownRef}
-            user={user}
+            user={{
+              uid: user.uid,
+              displayName: user.displayName,
+              email: user.email,
+              userType: "student"
+            }}
             mentorDetails={null}
           />
         </div>

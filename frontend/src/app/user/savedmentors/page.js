@@ -3,6 +3,8 @@ import UserSidebar from "@/components/UserSidebar";
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 const SavedMentorsPage = () => {
   // State to manage the mobile sidebar's visibility
@@ -10,7 +12,8 @@ const SavedMentorsPage = () => {
   // State to manage the profile dropdown's visibility
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [savedMentorIds, setSavedMentorIds] = useState([]);
   const [savedMentors, setSavedMentors] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -21,19 +24,36 @@ const SavedMentorsPage = () => {
   const profileDropdownBtnRef = useRef(null);
   const filterDropdownRef = useRef(null);
 
+  // Firebase auth listener
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem("user"));
-    if (userData?.user?.userType !== "student") {
-      window.location.href = "/";
-    }
-    setUser(userData.user);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setLoading(false);
+      } else {
+        window.location.href = "/getstarted";
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Load data when user is available
+  useEffect(() => {
+    if (!user) return;
 
     // Fetch saved mentors
     const fetchSavedMentors = async () => {
       try {
+        const idToken = await user.getIdToken();
         // Get saved mentor IDs from student profile
         const profileResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${userData.user.uid}?profile_type=student`
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=student`,
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          }
         );
         
         const mentorIds = profileResponse.data?.profile?.savedMentors || [];
@@ -70,7 +90,7 @@ const SavedMentorsPage = () => {
 
     fetchSavedMentors();
     fetchCategories();
-  }, []);
+  }, [user]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -88,13 +108,21 @@ const SavedMentorsPage = () => {
 
   // Remove mentor from saved list
   const removeSavedMentor = async (mentorId) => {
+    if (!user) return;
+    
     try {
+      const idToken = await user.getIdToken();
       const updatedMentorIds = savedMentorIds.filter(id => id !== mentorId);
       
       // Update backend
       await axios.put(
         `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=student`,
-        { savedMentors: updatedMentorIds }
+        { savedMentors: updatedMentorIds },
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
       );
       
       // Update local state
@@ -126,6 +154,18 @@ const SavedMentorsPage = () => {
     );
   };
 
+  // Show loading while Firebase auth is resolving
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading saved mentors...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex bg-gray-100 min-h-screen">
       {/* UserSidebar Component */}
@@ -133,7 +173,12 @@ const SavedMentorsPage = () => {
         activeTab="saved-mentors"
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
-        user={user}
+        user={{
+          uid: user.uid,
+          displayName: user.displayName,
+          email: user.email,
+          userType: "student"
+        }}
       />
 
       {/* Main Content */}
@@ -145,7 +190,12 @@ const SavedMentorsPage = () => {
           setIsProfileDropdownOpen={setIsProfileDropdownOpen}
           profileDropdownRef={profileDropdownRef}
           profileDropdownBtnRef={profileDropdownBtnRef}
-          user={user}
+          user={{
+            uid: user.uid,
+            displayName: user.displayName,
+            email: user.email,
+            userType: "student"
+          }}
         />
 
         {/* Main content area */}

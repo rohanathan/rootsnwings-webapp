@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import { getSessionsSummary } from "@/app/utils";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 const Dashboard = () => {
   // State to manage the mobile sidebar's visibility
@@ -13,12 +15,12 @@ const Dashboard = () => {
   // State to manage the active profile view (e.g., 'student' or 'family')
   const [activeProfile, setActiveProfile] = useState("student");
 
-  const [user, setUser] = useState({});
-  const [userProfile, setUserProfile] = useState(null);
+  const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState({});
   const [userRoles, setUserRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState([]);
   const [youngLearners, setYoungLearners] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [bookingsClasses, setBookingsClasses] = useState([]);
@@ -61,7 +63,7 @@ const Dashboard = () => {
 
     setIsSubmittingReview(true);
     try {
-      const user = JSON.parse(localStorage.getItem("user"));
+      const idToken = await user.getIdToken();
       await axios.post(
         'https://rootsnwings-api-944856745086.europe-west2.run.app/reviews',
         {
@@ -71,8 +73,8 @@ const Dashboard = () => {
         },
         {
           headers: {
-            'Authorization': `Bearer ${user.user.accessToken || user.user.idToken}`,
-            'X-Student-ID': user.user.uid
+            'Authorization': `Bearer ${idToken}`,
+            'X-Student-ID': user.uid
           }
         }
       );
@@ -89,23 +91,40 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch user data and profile
+  // Firebase auth listener
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user?.user?.userType !== "student") {
-      window.location.href = "/";
-    }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setUserProfile({
+          uid: currentUser.uid,
+          displayName: currentUser.displayName,
+          email: currentUser.email,
+          userType: "student"
+        });
+        setLoading(false);
+      } else {
+        window.location.href = "/getstarted";
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Load user data when Firebase auth is ready
+  useEffect(() => {
+    if (!user) return;
 
     const loadUserData = async () => {
       try {
-        const userData = JSON.parse(localStorage.getItem("user"));
-        if (!userData?.user?.uid) {
+        const idToken = await user.getIdToken();
+        if (!user.uid) {
           setError("User not found. Please log in again.");
           setLoading(false);
           return;
         }
 
-        setUser(userData.user);
+        // User is already set from Firebase auth
 
         // Check if user has completed onboarding by checking localStorage first
         const onboardingCompleted = localStorage.getItem("onboardingCompleted");
@@ -114,7 +133,12 @@ const Dashboard = () => {
         if (onboardingCompleted === "true" && userRolesFromStorage) {
           // User has completed onboarding, use stored roles
           const roles = JSON.parse(userRolesFromStorage);
-          setUserProfile(userData.user); // Use user data from auth
+          setUserProfile({
+            uid: user.uid,
+            displayName: user.displayName,
+            email: user.email,
+            userType: "student"
+          }); // Use user data from Firebase auth
           setUserRoles(roles);
 
           // Set default active profile based on roles
@@ -129,7 +153,12 @@ const Dashboard = () => {
           // Fallback: Try to fetch from API
           try {
             const profileResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/users/me?user_id=${userData.user.uid}`
+              `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${idToken}`,
+                },
+              }
             );
 
             if (profileResponse.data?.user) {
@@ -169,8 +198,14 @@ const Dashboard = () => {
         const fetchBookingsClasses = async () => {
           // Fetch user's bookings
           try {
+            const idToken = await user.getIdToken();
             const bookingsResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=${userData.user.uid}`
+              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=${user.uid}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${idToken}`,
+                },
+              }
             );
             setBookings(bookingsResponse.data?.bookings || []);
 
@@ -203,7 +238,7 @@ const Dashboard = () => {
     };
 
     loadUserData();
-  }, []);
+  }, [user]);
 
   // Load young learners data for parent users
   useEffect(() => {
@@ -211,8 +246,14 @@ const Dashboard = () => {
       if (!userRoles.includes("parent") || !user.uid) return;
 
       try {
+        const idToken = await user.getIdToken();
         const response = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/users/me/profiles/parent?user_id=${user.uid}`
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=parent`,
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          }
         );
 
         if (response.data?.profile?.youngLearners) {
@@ -227,7 +268,7 @@ const Dashboard = () => {
     if (userRoles.length > 0) {
       loadYoungLearners();
     }
-  }, [userRoles, user.uid]);
+  }, [userRoles, user]);
 
   // Effect to handle window resize and close the mobile sidebar on larger screens
   useEffect(() => {
@@ -266,6 +307,18 @@ const Dashboard = () => {
   const toggleProfileDropdown = () => {
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
+
+  // Show loading while Firebase auth is resolving
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading bookings...</p>
+        </div>
+      </div>
+    );
+  }
 
   // JSX for the component
   return (

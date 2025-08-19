@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import axios from "axios";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 const UserOnboardingFlow = () => {
   // State to manage the current step of the onboarding process
@@ -10,6 +12,27 @@ const UserOnboardingFlow = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Firebase auth listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setFormData((prev) => ({
+          ...prev,
+          username: currentUser.displayName || "",
+          email: currentUser.email || "",
+        }));
+        setLoading(false);
+      } else {
+        window.location.href = "/getstarted";
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // {
   //     "userId": "string",
@@ -76,16 +99,6 @@ const UserOnboardingFlow = () => {
 
   // Update the document title based on the current step
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const username = user.user.displayName;
-    const email = user.user.email;
-
-    setFormData((prev) => ({
-      ...prev,
-      username: username,
-      email: email,
-    }));
-
     // Clear error and success when step changes
     setError("");
     setSuccess(false);
@@ -252,8 +265,13 @@ const UserOnboardingFlow = () => {
     if (currentStep === 3) {
       setIsSubmitting(true);
       try {
-        const user = JSON.parse(localStorage.getItem("user"));
-        const userId = user.user.uid;
+        if (!user) {
+          throw new Error("User not authenticated");
+        }
+
+        // Get Firebase ID token for API authentication
+        const idToken = await user.getIdToken();
+        const userId = user.uid;
 
         // Prepare the data payload according to the required format
         const userOnboardingData = {
@@ -275,7 +293,12 @@ const UserOnboardingFlow = () => {
         // Make API call to /user-onboarding
         const response = await axios.post(
           "https://rootsnwings-api-944856745086.europe-west2.run.app/user-onboarding",
-          userOnboardingData
+          userOnboardingData,
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          }
         );
 
         console.log(response, "response response response");
@@ -397,6 +420,18 @@ const UserOnboardingFlow = () => {
 
   // Calculate progress bar width
   const progressBarWidth = `${(currentStep / (totalSteps + 1)) * 100}%`;
+
+  // Show loading while Firebase auth is resolving
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

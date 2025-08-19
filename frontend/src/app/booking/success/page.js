@@ -2,13 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function BookingSuccess() {
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState(null);
   const [bookingDetails, setBookingDetails] = useState(null);
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState({ days: '00', hours: '00', minutes: '00', seconds: '00' });
   const [firstClassDate, setFirstClassDate] = useState(null);
+
+  // Firebase auth listener - only students should access booking pages
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setAuthLoading(false);
+      } else {
+        window.location.href = '/getstarted';
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
   
   // Get first class date from stored data (client-side only)
   const getFirstClassDate = () => {
@@ -32,8 +50,10 @@ export default function BookingSuccess() {
   
 
 
-  // Handle payment confirmation from Stripe redirect
+  // Handle payment confirmation from Stripe redirect - only run when user is authenticated
   useEffect(() => {
+    if (!user || authLoading) return;
+
     const confirmPaymentAndBooking = async () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
@@ -41,8 +61,14 @@ export default function BookingSuccess() {
         
         if (sessionId) {
           // Payment came from Stripe Checkout - process the session
+          const idToken = await user.getIdToken();
           const successResponse = await axios.get(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/payments/success?session_id=${sessionId}`
+            `https://rootsnwings-api-944856745086.europe-west2.run.app/payments/success?session_id=${sessionId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${idToken}`,
+              },
+            }
           );
           
           if (successResponse.data.success) {
@@ -71,7 +97,7 @@ export default function BookingSuccess() {
     };
 
     confirmPaymentAndBooking();
-  }, []);
+  }, [user, authLoading]);
 
   // Initialize first class date from localStorage (client-side only)
   useEffect(() => {
@@ -174,13 +200,15 @@ export default function BookingSuccess() {
     .animation-delay-600 { animation-delay: 0.6s; }
   `;
 
-  // Show loading state while confirming payment
-  if (loading) {
+  // Show loading state while confirming payment or authenticating
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Confirming your booking...</p>
+          <p className="text-gray-600">
+            {authLoading ? "Authenticating..." : "Confirming your booking..."}
+          </p>
         </div>
       </div>
     );

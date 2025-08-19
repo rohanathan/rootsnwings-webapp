@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import axios from "axios";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   calculateTotalPayable,
   formatPrice,
@@ -27,16 +29,26 @@ export default function BookingConfirmation() {
 
   const [selectedMentorClass, setSelectedMentorClass] = useState({});
   const [mentor, setMentor] = useState({});
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
+  // Firebase auth listener - only students should access booking pages
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem("user"));
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setAuthLoading(false);
+      } else {
+        window.location.href = "/getstarted";
+      }
+    });
 
-    if (userData?.user?.userType !== "student") {
-      window.location.href = "/";
-    }
-    
-    setUser(userData?.user);
+    return () => unsubscribe();
+  }, []);
+
+  // Load data when user is available
+  useEffect(() => {
+    if (!user || authLoading) return;
 
 
 
@@ -116,7 +128,7 @@ export default function BookingConfirmation() {
     };
 
     loadClassData();
-  }, [classId]);
+  }, [classId, user, authLoading]);
 
   // Function to simulate a confetti effect (replicated from original JS)
   const createConfetti = () => {
@@ -182,7 +194,12 @@ export default function BookingConfirmation() {
     setIsProcessing(true);
 
     try {
-      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user) {
+        alert("Please log in to complete booking.");
+        return;
+      }
+
+      const idToken = await user.getIdToken();
       console.log("User data:", user);
 
       // Handle free bookings separately (create booking directly)
@@ -193,10 +210,15 @@ export default function BookingConfirmation() {
           {
             mentorId: mentor.uid,
             classId: selectedMentorClass.classId,
-            studentId: user.user.uid,
+            studentId: user.uid,
             bookingStatus: "confirmed",
             paymentStatus: "paid", // Free = paid
             personalGoals: null,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
           }
         );
 
@@ -216,11 +238,16 @@ export default function BookingConfirmation() {
         "https://rootsnwings-api-944856745086.europe-west2.run.app/payments/create-checkout-session",
         {
           classId: selectedMentorClass.classId,
-          studentId: user.user.uid,
+          studentId: user.uid,
           mentorId: mentor.uid,
           amount: bookingTotal, // Amount in pounds
           currency: pricingBreakdown?.currency?.toLowerCase() || "gbp",
           personalGoals: null, // Can be added later
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
         }
       );
 
@@ -502,14 +529,16 @@ export default function BookingConfirmation() {
           </div>
 
           {/* Loading State */}
-          {loading && (
+          {(loading || authLoading) && (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading booking details...</p>
+              <p className="text-gray-600">
+                {authLoading ? "Authenticating..." : "Loading booking details..."}
+              </p>
             </div>
           )}
 
-          {!loading && (
+          {!loading && !authLoading && (
             <div className="grid lg:grid-cols-3 gap-8">
               {/* Left Column: Mentor Snapshot */}
               <div className="lg:col-span-1">

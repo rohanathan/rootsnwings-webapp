@@ -1,5 +1,5 @@
 """
-Authentication endpoints for user registration, login and password management
+Authentication endpoints for user registration, login & password management
 """
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
