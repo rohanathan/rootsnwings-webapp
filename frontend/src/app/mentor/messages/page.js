@@ -3,6 +3,8 @@
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import axios from "axios";
 import { useState, useEffect, useRef } from "react";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 // Using inline SVG for FontAwesome icons as Next.js does not support direct link to CSS in components
 const HomeIcon = () => (
@@ -237,25 +239,39 @@ const Messages = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    setUser(user.user);
-    if (user?.user?.userType !== "mentor") {
-      window.location.href = "/";
-    }
-
-    const fetchMentorClasses = async () => {
-      const mentorId = user?.user?.uid;
+    const fetchMentorClasses = async (currentUser) => {
+      if (!currentUser) return;
+      
+      const idToken = await currentUser.getIdToken();
       const response = await axios.get(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${mentorId}`
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${currentUser.uid}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
       const studentPromises = response.data.classes.map(async (classItem) => {
         const bookingsResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classItem.classId}`
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classItem.classId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
         );
         const userPromises = bookingsResponse.data.bookings.map(
           async (booking) => {
             const userResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${booking.studentId}`
+              `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${booking.studentId}`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${idToken}`,
+                  'Content-Type': 'application/json'
+                }
+              }
             );
             return userResponse.data;
           }
@@ -266,15 +282,38 @@ const Messages = () => {
       const students = (await Promise.all(studentPromises)).flat();
       setStudentList(students);
     };
-    fetchMentorClasses();
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        fetchMentorClasses(currentUser);
+      } else {
+        // Not authenticated, redirect to login
+        window.location.href = '/getstarted';
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const fetchStudentMentorMsg = async () => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const response = await axios.get(
-      `https://rootsnwings-api-944856745086.europe-west2.run.app/messagesconversation?studentId=${selectedStudent?.fullUser?.uid}&mentorId=${user?.user?.uid}`
-    );
-    setStudentMentorMsg(response.data.messages);
+    if (!user || !selectedStudent) return;
+    
+    try {
+      const idToken = await user.getIdToken();
+      const response = await axios.get(
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/messages/conversation?studentId=${selectedStudent?.fullUser?.uid}&mentorId=${user?.uid}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      setStudentMentorMsg(response.data.messages);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
   };
 
   useEffect(() => {
@@ -459,21 +498,33 @@ const Messages = () => {
   ];
 
   const submitMessage = async () => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const response = await axios.post(
-      `https://rootsnwings-api-944856745086.europe-west2.run.app/messages`,
-      {
-        senderId: user?.user?.uid,
-        studentId: selectedStudent?.fullUser?.uid,
-        mentorId: user?.user?.uid,
-        parentId: selectedStudent?.fullUser?.parentId,
-        message: typedMessage,
-      }
-    );
+    if (!user || !selectedStudent || !typedMessage?.trim()) return;
+    
+    try {
+      const idToken = await user.getIdToken();
+      const response = await axios.post(
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/messages`,
+        {
+          senderId: user.uid,
+          studentId: selectedStudent?.fullUser?.uid,
+          mentorId: user.uid,
+          parentId: selectedStudent?.fullUser?.parentId,
+          message: typedMessage,
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-    if (response.status === 200 && response.data?.message) {
-      setTypedMessage("");
-      fetchStudentMentorMsg();
+      if (response.status === 200 && response.data?.message) {
+        setTypedMessage("");
+        fetchStudentMentorMsg();
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
   };
 

@@ -4,6 +4,8 @@ import Head from "next/head";
 import MentorSideBase from "@/components/MentorSideBase";
 import { navItems } from "@/app/utils";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 // Re-creating the Tailwind config for use in the component
 const tailwindConfig = {
@@ -57,7 +59,7 @@ const HostClassPage = () => {
     category: "",
     customCategory: "",
     description: "",
-    mentorId: "user123", // This should come from user context/auth
+    mentorId: "", // Will be set from Firebase user
     level: "",
     ageGroup: "",
     format: "online",
@@ -88,24 +90,27 @@ const HostClassPage = () => {
     },
   });
 
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(null);
   const [mentorDetails, setMentorDetails] = useState({});
 
   const profileDropdownRef = useRef(null);
   const profileDropdownBtnRef = useRef(null);
 
-  // Close dropdown when clicking outside
+  // Firebase auth and setup
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-
-    if(user?.user?.userType !== 'mentor'){
-      window.location.href = '/';
-    }
-    
-    setUser(user.user);
-
-    const mentor = JSON.parse(localStorage.getItem("mentor"));
-    setMentorDetails(mentor);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        // Set mentorId in form data
+        setFormData(prev => ({ ...prev, mentorId: currentUser.uid }));
+        // Get mentor details from localStorage (set by dashboard)
+        const mentor = JSON.parse(localStorage.getItem("mentor") || "{}");
+        setMentorDetails(mentor);
+      } else {
+        // Not authenticated, redirect to login
+        window.location.href = '/getstarted';
+      }
+    });
 
     const handleOutsideClick = (event) => {
       if (
@@ -118,8 +123,12 @@ const HostClassPage = () => {
       }
     };
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [profileDropdownRef, profileDropdownBtnRef]);
+    
+    return () => {
+      unsubscribe();
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
 
   // Close mobile sidebar on resize to desktop
   useEffect(() => {
@@ -369,12 +378,18 @@ const HostClassPage = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!user) {
+      showErrorMessage("Please log in to create a class.");
+      return;
+    }
+    
     setIsSubmitting(true);
 
-    const user = JSON.parse(localStorage.getItem("user"));
-    const uid = user.user.uid;
-
     try {
+      // Get Firebase ID token
+      const idToken = await user.getIdToken();
+      
       // Prepare the API request body
       const requestBody = {
         type: formData.type,
@@ -385,7 +400,7 @@ const HostClassPage = () => {
             ? formData.customCategory
             : formData.category,
         description: formData.description,
-        mentorId: uid,
+        mentorId: user.uid,
         level: formData.level,
         ageGroup: formData.ageGroup,
         format: formData.format,
@@ -413,13 +428,14 @@ const HostClassPage = () => {
 
       console.log("Submitting class data:", requestBody);
 
-      // Make API call
+      // Make API call with Firebase auth
       const response = await fetch(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/classes",
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/classes/create",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`,
           },
           body: JSON.stringify(requestBody),
         }

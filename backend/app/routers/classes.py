@@ -174,7 +174,7 @@ def get_class_by_id(class_id: str):
         raise HTTPException(status_code=404, detail="Class not found")
     return {"class": class_item}
 
-@router.post("")
+@router.post("/create")
 def create_new_class(class_data: dict):
     """
     Create a new class with auto-generated searchMetadata.

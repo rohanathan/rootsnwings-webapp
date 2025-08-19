@@ -6,6 +6,8 @@ import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import MentorSideBase from "@/components/MentorSideBase";
 import { navItems } from "@/app/utils";
 import MentorAvailability from "@/components/MentorAvailability";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function Schedule() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -16,9 +18,9 @@ export default function Schedule() {
     timezone: "Europe/London",
   });
   const [loading, setLoading] = useState(false);
-  const [mentorId, setMentorId] = useState(); // TODO: Get from auth
+  const [mentorId, setMentorId] = useState(null);
   const [message, setMessage] = useState("");
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(null);
   const [mentorDetails, setMentorDetails] = useState({});
 
   const handleMobileMenuClick = () => {
@@ -35,10 +37,19 @@ export default function Schedule() {
 
   // Load mentor availability
   const loadAvailability = async () => {
+    if (!user || !mentorId) return;
+    
     setLoading(true);
     try {
+      const idToken = await user.getIdToken();
       const response = await fetch(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/availability/mentors/${mentorId}`
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/availability/mentors/${mentorId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
       if (response.ok) {
         const data = await response.json();
@@ -61,20 +72,23 @@ export default function Schedule() {
 
   // Save mentor availability
   const saveAvailability = async () => {
+    if (!user || !mentorId) {
+      setMessage("Please log in to save availability.");
+      return;
+    }
+    
     setLoading(true);
     setMessage("");
 
-    const user = JSON.parse(localStorage.getItem("user"));
-    const mentorId = user.user.uid;
-    setMentorId(mentorId);
-
     try {
+      const idToken = await user.getIdToken();
       const response = await fetch(
         `https://rootsnwings-api-944856745086.europe-west2.run.app/availability/mentors/${mentorId}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`,
           },
           body: JSON.stringify(availability),
         }
@@ -172,18 +186,18 @@ export default function Schedule() {
   };
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    setUser(user.user);
-
-    if (user?.user?.userType !== "mentor") {
-      window.location.href = "/";
-    }
-
-    const mentor = JSON.parse(localStorage.getItem("mentor"));
-    setMentorDetails(mentor);
-
-    // Load availability on component mount
-    loadAvailability();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setMentorId(currentUser.uid);
+        // Get mentor details from localStorage (set by dashboard)
+        const mentor = JSON.parse(localStorage.getItem("mentor") || "{}");
+        setMentorDetails(mentor);
+      } else {
+        // Not authenticated, redirect to login
+        window.location.href = '/getstarted';
+      }
+    });
 
     // Logic to close dropdown on outside click
     const handleOutsideClick = (e) => {
@@ -211,10 +225,18 @@ export default function Schedule() {
     window.addEventListener("resize", handleResize);
 
     return () => {
+      unsubscribe();
       document.removeEventListener("click", handleOutsideClick);
       window.removeEventListener("resize", handleResize);
     };
-  }, [mentorId]);
+  }, []);
+
+  // Load availability when user and mentorId are set
+  useEffect(() => {
+    if (user && mentorId) {
+      loadAvailability();
+    }
+  }, [user, mentorId]);
 
   const daysOfWeek = [
     "Monday",

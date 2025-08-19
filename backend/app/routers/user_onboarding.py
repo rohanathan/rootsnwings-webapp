@@ -193,8 +193,7 @@ def complete_mentor_onboarding(data: MentorOnboarding):
             "location": location,
             "roles": user_roles,
             "userType": "mentor",
-            # "mentorStatus": "pending_approval",  # COMMENTED OUT - Auto-approve for testing
-            "mentorStatus": "active",  # AUTO-APPROVE for testing
+            "mentorStatus": "active",  # AUTO-APPROVE mentors
             "profileComplete": True,
             "updatedAt": datetime.utcnow().isoformat()
         })
@@ -265,9 +264,9 @@ def complete_mentor_onboarding(data: MentorOnboarding):
             "backgroundChecked": data.dbsCheck,
             "acceptingNewStudents": accepting_new_students,
             # "status": "pending_approval",  # COMMENTED OUT - Auto-approve for testing
-            "status": "active",  # AUTO-APPROVE for testing
+            "status": "active",  # AUTO-APPROVE mentors
             # "isVerified": False,  # COMMENTED OUT - Auto-approve for testing
-            "isVerified": True,  # AUTO-VERIFY for testing
+            "isVerified": True,  # AUTO-VERIFY mentors
             "stats": {
                 "avgRating": 0,
                 "totalReviews": 0,
@@ -285,8 +284,7 @@ def complete_mentor_onboarding(data: MentorOnboarding):
         
         return {
             "message": "Mentor onboarding completed successfully",
-            # "status": "pending_approval",  # COMMENTED OUT - Auto-approve for testing
-            "status": "active",  # AUTO-APPROVE for testing
+            "status": "active",  # AUTO-APPROVE mentors
             "mentorId": data.userId,
             "acceptingNewStudents": accepting_new_students,
             "userUpdated": True,

@@ -6,12 +6,14 @@ import MentorSideBase from "@/components/MentorSideBase";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import { navItems } from "@/app/utils";
 import axios from "axios";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function Students() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(null);
   const [mentorDetails, setMentorDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,10 +42,12 @@ export default function Students() {
   };
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user?.user?.userType !== "mentor") {
-      window.location.href = "/";
-    }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
+        // Not authenticated, redirect to login
+        window.location.href = '/getstarted';
+      }
+    });
 
     // Logic to close dropdown on outside click
     const handleOutsideClick = (e) => {
@@ -71,6 +75,7 @@ export default function Students() {
     window.addEventListener("resize", handleResize);
 
     return () => {
+      unsubscribe();
       document.removeEventListener("click", handleOutsideClick);
       window.removeEventListener("resize", handleResize);
     };
@@ -78,20 +83,12 @@ export default function Students() {
 
   // Fetch students from mentor's bookings
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchStudents = async (currentUser) => {
+      if (!currentUser) return;
+      
       try {
-        const userData = localStorage.getItem("user");
-        if (!userData) {
-          window.location.href = "/getstarted";
-          return;
-        }
-
-        const user = JSON.parse(userData);
-        setUser(user.user);
-
-        console.log("Full user object:", user);
-        console.log("User UID we are searching for:", user.user.uid);
-
+        setUser(currentUser);
+        
         const mentorData = localStorage.getItem("mentor");
         if (mentorData) {
           const parsedMentorData = JSON.parse(mentorData);
@@ -99,11 +96,19 @@ export default function Students() {
           console.log("Mentor data from localStorage:", parsedMentorData);
         }
 
-        console.log("Fetching students for mentor:", user.user.uid);
+        console.log("Fetching students for mentor:", currentUser.uid);
+        
+        const idToken = await currentUser.getIdToken();
 
         // Step 1: Fetch all mentor's classes
         const classesResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${user.user.uid}`
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${currentUser.uid}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
         );
         const mentorClasses = classesResponse.data.classes || [];
 
@@ -121,7 +126,13 @@ export default function Students() {
         for (const classObj of mentorClasses) {
           try {
             const bookingsResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`
+              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${idToken}`,
+                  'Content-Type': 'application/json'
+                }
+              }
             );
             const bookings = bookingsResponse.data.bookings || [];
 
@@ -153,7 +164,13 @@ export default function Students() {
                   // Try to fetch detailed student profile
                   try {
                     const studentResponse = await axios.get(
-                      `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${booking.studentId}`
+                      `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${booking.studentId}`,
+                      {
+                        headers: {
+                          'Authorization': `Bearer ${idToken}`,
+                          'Content-Type': 'application/json'
+                        }
+                      }
                     );
                     studentProfile = studentResponse.data.user;
                     if (studentProfile) {
@@ -253,7 +270,16 @@ export default function Students() {
       }
     };
 
-    fetchStudents();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        fetchStudents(currentUser);
+      } else {
+        // Not authenticated, redirect to login
+        window.location.href = '/getstarted';
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Helper functions

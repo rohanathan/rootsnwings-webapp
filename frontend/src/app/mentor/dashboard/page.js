@@ -6,6 +6,8 @@ import { calculateTotalHoursTaught, getUpcomingSessionsCount, navItems } from "@
 import axios from "axios";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import { useRouter } from 'next/navigation';
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 // Re-creating the Tailwind config for use in the component
 const tailwindConfig = {
@@ -33,7 +35,11 @@ const Dashboard = () => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef(null);
   const profileDropdownBtnRef = useRef(null);
-  const [user, setUser] = useState({});
+  
+  // Firebase auth state
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   const [mentorDetails, setMentorDetails] = useState({});
   const [mentorClasses, setMentorClasses] = useState([]);
@@ -88,10 +94,15 @@ const Dashboard = () => {
   
 
   useEffect(() => {
-    const fetchMentorClasses = async (uid) => {
+    const fetchMentorClasses = async (uid, idToken) => {
       try {
         let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${uid}`;
-        const response = await axios.get(apiUrl);
+        const response = await axios.get(apiUrl, {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
         const classes = response.data.classes || [];
         
         console.log('Fetched mentor classes:', classes);
@@ -108,7 +119,12 @@ const Dashboard = () => {
         const updatedClasses = await Promise.all(classes.map(async (classObj) => {
           try {
             // Fetch bookings for this class
-            const bookingsResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`);
+            const bookingsResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`, {
+              headers: {
+                'Authorization': `Bearer ${idToken}`,
+                'Content-Type': 'application/json'
+              }
+            });
             const classBookings = bookingsResponse.data.bookings || [];
             allBookings = [...allBookings, ...classBookings];
             
@@ -180,19 +196,25 @@ const Dashboard = () => {
 
 
     // Fetch mentor details from API
-    const fetchMentorDetails = async (user) => {
+    const fetchMentorDetails = async (user, idToken) => {
       console.log(user,'user user user');
       
       try {
-        if (user?.user?.uid) {
+        if (user?.uid) {
           const response = await axios.get(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${user.user.uid}`
+            `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${user.uid}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${idToken}`,
+                'Content-Type': 'application/json'
+              }
+            }
           );
 
           const mentorData = response.data?.mentor;
           setMentorDetails(mentorData);
           localStorage.setItem("mentor", JSON.stringify(mentorData));
-          await fetchMentorClasses(mentorData.uid);
+          await fetchMentorClasses(mentorData.uid, idToken);
           
           // Generate pending tasks based on profile completeness
           const tasks = [];
@@ -219,28 +241,66 @@ const Dashboard = () => {
         setLoading(false);
       } catch (error) {
         console.error("Error fetching mentor details:", error);
+        if (error.response?.status === 401) {
+          // Unauthorized - redirect to login
+          router.push('/getstarted');
+          return;
+        }
+        setAuthError(error);
         setLoading(false);
       }
     };
 
-
-    const userData = localStorage.getItem("user");
-    const parsedUserData = userData ? JSON.parse(userData) : null;
-
-    if (parsedUserData?.user?.userType !== 'mentor') {
-      router.push('/');
-      return; 
-    }
-
-    if (userData) {
-      const user = JSON.parse(userData);
-      if (user && user.user) {
-        setUser(user.user);
-        fetchMentorDetails(user);
+    // Firebase auth state listener
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      try {
+        setUser(currentUser);
+        setAuthLoading(false);
+        
+        if (currentUser) {
+          // Get Firebase ID token
+          const idToken = await currentUser.getIdToken();
+          
+          // Verify user is a mentor by calling Firebase auth endpoint
+          try {
+            const userProfileResponse = await axios.get(
+              'https://rootsnwings-api-944856745086.europe-west2.run.app/firebase-auth/me',
+              {
+                headers: {
+                  'Authorization': `Bearer ${idToken}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            
+            const userProfile = userProfileResponse.data;
+            if (!userProfile.roles.includes('mentor')) {
+              router.push('/');
+              return;
+            }
+            
+            // Fetch mentor details with Firebase auth
+            await fetchMentorDetails(currentUser, idToken);
+            
+          } catch (profileError) {
+            console.error('Error fetching user profile:', profileError);
+            if (profileError.response?.status === 401) {
+              router.push('/getstarted');
+              return;
+            }
+            setAuthError(profileError);
+          }
+        }
+      } catch (error) {
+        console.error('Firebase auth error:', error);
+        setAuthError(error);
+        setAuthLoading(false);
       }
-    } else {
-      console.warn("No user data found in localStorage - user needs to login");
-    }
+    }, (error) => {
+      console.error('Firebase auth listener error:', error);
+      setAuthError(error);
+      setAuthLoading(false);
+    });
 
     const handleResize = () => {
       if (window.innerWidth >= 768) {
@@ -248,8 +308,12 @@ const Dashboard = () => {
       }
     };
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    
+    return () => {
+      unsubscribe();
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [router]);
 
 
   console.log(totalBookings,'totalBookings totalBookings');
@@ -286,6 +350,53 @@ const Dashboard = () => {
   const handleProfileDropdownClick = () => {
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
+
+  // Show loading state while Firebase auth loads
+  if (authLoading || loading) {
+    return (
+      <div className="bg-gray-50 font-sans min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if Firebase auth failed
+  if (authError) {
+    return (
+      <div className="bg-gray-50 font-sans min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">
+            <i className="fas fa-exclamation-triangle"></i>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Error</h2>
+          <p className="text-gray-600 mb-4">Unable to load dashboard. Please try again.</p>
+          <div className="space-x-4">
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            >
+              Retry
+            </button>
+            <button 
+              onClick={() => router.push('/getstarted')}
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if user is not authenticated
+  if (!user) {
+    router.push('/getstarted');
+    return null;
+  }
 
   return (
     <>

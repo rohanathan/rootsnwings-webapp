@@ -274,13 +274,31 @@ def fetch_class_by_id(class_id: str):
         # Ensure mentorName is set (required field for ClassItem validation)
         if not data.get("mentorName") and data.get("mentorId"):
             try:
+                # First try to get from mentors collection
                 from app.services.mentor_service import fetch_mentor_by_id
                 mentor = fetch_mentor_by_id(data["mentorId"])
-                if mentor and hasattr(mentor, 'displayName'):
+                if mentor and hasattr(mentor, 'displayName') and mentor.displayName:
                     data["mentorName"] = mentor.displayName
                 else:
-                    data["mentorName"] = "Unknown Mentor"
-            except:
+                    # Fallback: get displayName from users collection
+                    user_doc = db.collection("users").document(data["mentorId"]).get()
+                    if user_doc.exists:
+                        user_data = user_doc.to_dict()
+                        first_name = user_data.get("firstName", "")
+                        last_name = user_data.get("lastName", "")
+                        display_name = user_data.get("displayName", "")
+                        
+                        if display_name:
+                            data["mentorName"] = display_name
+                        elif first_name:
+                            last_initial = last_name[0].upper() if last_name else ""
+                            data["mentorName"] = f"{first_name} {last_initial}".strip()
+                        else:
+                            data["mentorName"] = "Unknown Mentor"
+                    else:
+                        data["mentorName"] = "Unknown Mentor"
+            except Exception as e:
+                print(f"Error fetching mentor name in fetch_class_by_id: {e}")
                 data["mentorName"] = "Unknown Mentor"
         elif not data.get("mentorName"):
             data["mentorName"] = "Unknown Mentor"
@@ -386,13 +404,31 @@ def clean_data(data: Dict) -> Dict:
     if not data.get("mentorName"):
         if data.get("mentorId"):
             try:
+                # First try to get from mentors collection
                 from app.services.mentor_service import fetch_mentor_by_id
                 mentor = fetch_mentor_by_id(data["mentorId"])
-                if mentor and hasattr(mentor, 'displayName'):
+                if mentor and hasattr(mentor, 'displayName') and mentor.displayName:
                     data["mentorName"] = mentor.displayName
                 else:
-                    data["mentorName"] = "Unknown Mentor"
-            except:
+                    # Fallback: get displayName from users collection
+                    user_doc = db.collection("users").document(data["mentorId"]).get()
+                    if user_doc.exists:
+                        user_data = user_doc.to_dict()
+                        first_name = user_data.get("firstName", "")
+                        last_name = user_data.get("lastName", "")
+                        display_name = user_data.get("displayName", "")
+                        
+                        if display_name:
+                            data["mentorName"] = display_name
+                        elif first_name:
+                            last_initial = last_name[0].upper() if last_name else ""
+                            data["mentorName"] = f"{first_name} {last_initial}".strip()
+                        else:
+                            data["mentorName"] = "Unknown Mentor"
+                    else:
+                        data["mentorName"] = "Unknown Mentor"
+            except Exception as e:
+                print(f"Error fetching mentor name in clean_data: {e}")
                 data["mentorName"] = "Unknown Mentor"
         else:
             data["mentorName"] = "Unknown Mentor"
@@ -562,12 +598,31 @@ def create_class(class_data: Dict) -> str:
         # Ensure mentorName is always set (required field for ClassItem validation)
         if not class_data.get("mentorName") and class_data.get("mentorId"):
             try:
+                # First try to get from mentors collection
+                from app.services.mentor_service import fetch_mentor_by_id
                 mentor = fetch_mentor_by_id(class_data["mentorId"])
-                if mentor and hasattr(mentor, 'displayName'):
+                if mentor and hasattr(mentor, 'displayName') and mentor.displayName:
                     class_data["mentorName"] = mentor.displayName
                 else:
-                    class_data["mentorName"] = "Unknown Mentor"
-            except:
+                    # Fallback: get displayName from users collection
+                    user_doc = db.collection("users").document(class_data["mentorId"]).get()
+                    if user_doc.exists:
+                        user_data = user_doc.to_dict()
+                        first_name = user_data.get("firstName", "")
+                        last_name = user_data.get("lastName", "")
+                        display_name = user_data.get("displayName", "")
+                        
+                        if display_name:
+                            class_data["mentorName"] = display_name
+                        elif first_name:
+                            last_initial = last_name[0].upper() if last_name else ""
+                            class_data["mentorName"] = f"{first_name} {last_initial}".strip()
+                        else:
+                            class_data["mentorName"] = "Unknown Mentor"
+                    else:
+                        class_data["mentorName"] = "Unknown Mentor"
+            except Exception as e:
+                print(f"Error fetching mentor name: {e}")
                 class_data["mentorName"] = "Unknown Mentor"
         elif not class_data.get("mentorName"):
             class_data["mentorName"] = "Unknown Mentor"
@@ -582,28 +637,16 @@ def create_class(class_data: Dict) -> str:
         # Auto-generate searchMetadata
         class_data["searchMetadata"] = generate_search_metadata(class_data)
         
-        # Initialize approval workflow - COMMENTED OUT for testing
-        # class_data["approvalWorkflow"] = {
-        #     "reviewStatus": "pending",
-        #     "adminNotes": "",
-        #     "adminChecks": {
-        #         "scheduleValid": False,
-        #         "pricingValid": False,
-        #         "contentClear": False,
-        #         "mentorQualified": False,
-        #         "capacityReasonable": False
-        #     }
-        # }
-        # AUTO-APPROVE workflow for testing
+        # Initialize approval workflow for admin review
         class_data["approvalWorkflow"] = {
-            "reviewStatus": "approved",
-            "adminNotes": "Auto-approved for testing",
+            "reviewStatus": "pending",
+            "adminNotes": "",
             "adminChecks": {
-                "scheduleValid": True,
-                "pricingValid": True,
-                "contentClear": True,
-                "mentorQualified": True,
-                "capacityReasonable": True
+                "scheduleValid": False,
+                "pricingValid": False,
+                "contentClear": False,
+                "mentorQualified": False,
+                "capacityReasonable": False
             }
         }
         

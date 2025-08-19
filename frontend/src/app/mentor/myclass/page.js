@@ -6,12 +6,14 @@ import MentorSideBase from "@/components/MentorSideBase";
 import { navItems } from "@/app/utils";
 import axios from "axios";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function MyClass() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("active");
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(null);
   const [mentorDetails, setMentorDetails] = useState({});
 
   const [mentorClasses, setMentorClasses] = useState([]);
@@ -23,24 +25,21 @@ export default function MyClass() {
   });
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    setUser(user.user);
-
-    if (user?.user?.userType !== "mentor") {
-      window.location.href = "/";
-    }
-
-    const mentor = JSON.parse(localStorage.getItem("mentor"));
-    setMentorDetails(mentor);
-
-    const fetchClasses = async () => {
+    const fetchClasses = async (currentUser) => {
+      if (!currentUser) return;
+      
       try {
-        const user = JSON.parse(localStorage.getItem("user"));
-        const uid = user.user.uid;
+        const idToken = await currentUser.getIdToken();
 
         // Fetch mentor classes using the same endpoint as dashboard
         const classesResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${uid}`
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${currentUser.uid}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
         );
         const classes = classesResponse.data.classes || [];
 
@@ -57,7 +56,13 @@ export default function MyClass() {
         for (const classObj of classes) {
           try {
             const bookingsResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`
+              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${idToken}`,
+                  'Content-Type': 'application/json'
+                }
+              }
             );
             const bookings = bookingsResponse.data.bookings || [];
 
@@ -117,7 +122,21 @@ export default function MyClass() {
       }
     };
 
-    fetchClasses();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        // Get mentor details from localStorage (set by dashboard)
+        const mentor = JSON.parse(localStorage.getItem("mentor") || "{}");
+        setMentorDetails(mentor);
+        // Fetch classes
+        fetchClasses(currentUser);
+      } else {
+        // Not authenticated, redirect to login
+        window.location.href = '/getstarted';
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleMobileMenuClick = () => {
