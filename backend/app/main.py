@@ -78,7 +78,9 @@ app.add_middleware(
         "https://*.vercel.app",   # Vercel deployments
         "https://rootsnwings.com",  # Production domain
         "https://www.rootsnwings.com",  # WWW version
-        "https://frontend-944856745086.europe-west2.run.app"
+        "https://frontend-944856745086.europe-west2.run.app",  # Cloud Run frontend
+        "https://rootsnwings-frontend-944856745086.europe-west2.run.app",  # Alternative naming
+        "*"  # Allow all origins for debugging (remove in production)
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
