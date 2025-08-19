@@ -24,7 +24,7 @@ steps:
       - '--service-account'
       - 'rootsnwings-firestore-accessor@${PROJECT_ID}.iam.gserviceaccount.com'
       - '--set-secrets=STRIPE_SECRET_KEY=stripe-secret:latest,RESEND_API_KEY=resend-api-key:latest'
-      - '--set-env-vars=FROM_EMAIL=onboarding@resend.dev,FRONTEND_URL=https://frontend-944856745086.europe-west2.run.app,BACKEND_URL=https://rootsnwings-api-944856745086.europe-west2.run.app,ALLOWED_ORIGINS=http://localhost:3000,https://frontend-944856745086.europe-west2.run.app'
+      - '--set-env-vars=FROM_EMAIL=onboarding@resend.dev,FRONTEND_URL=https://frontend-944856745086.europe-west2.run.app,BACKEND_URL=https://rootsnwings-api-944856745086.europe-west2.run.app,ALLOWED_ORIGINS=http://localhost:3000'
 
 # For Logging added
 logsBucket: 'gs://rootsnwings-build-logs-rootsnwings-465610'
