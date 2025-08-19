@@ -46,26 +46,35 @@ export default function OneOnOneSessions() {
       try {
         // Get mentorId from URL params
         const urlParams = new URLSearchParams(window.location.search);
-        const urlMentorId = urlParams.get('mentorId') || 'user_8956af6c6b35'; // Default for testing
+        const urlMentorId = urlParams.get('mentorId') || '1DDIPejAXjhZvvosPAVBDnQAbfS2'; // Use actual mentor ID from your system
+        console.log('Loading mentor data for:', urlMentorId);
         setMentorId(urlMentorId);
         
         // Load mentor details
+        console.log('Fetching mentor details...');
         const mentorResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${urlMentorId}`);
+        console.log('Mentor response:', mentorResponse.data);
         if (mentorResponse.data?.mentor) {
           setMentor(mentorResponse.data.mentor);
+          console.log('Mentor data loaded:', mentorResponse.data.mentor);
         }
 
         // Load mentor availability
         try {
-          const availabilityResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/availability/mentors/${mentorId}`);
+          console.log('Fetching mentor availability...');
+          const availabilityResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/availability/mentors/${urlMentorId}`);
+          console.log('Availability response:', availabilityResponse.data);
           if (availabilityResponse.data) {
             setAvailability(availabilityResponse.data.availability);
+            console.log('Availability set:', availabilityResponse.data.availability);
           }
         } catch (availabilityError) {
+          console.error('Availability error details:', availabilityError.response?.data || availabilityError.message);
           if (availabilityError.response?.status === 404) {
             setError('This mentor has not set their availability yet.');
           } else {
             console.error('Error loading availability:', availabilityError);
+            setError('Failed to load mentor availability');
           }
         }
 
@@ -83,10 +92,8 @@ export default function OneOnOneSessions() {
       }
     };
 
-    if (mentorId) {
-      loadMentorData();
-    }
-  }, [mentorId]);
+    loadMentorData();
+  }, []); // Only run once on component mount
 
   // Generate week data from mentor availability
   useEffect(() => {
@@ -254,7 +261,7 @@ export default function OneOnOneSessions() {
       }
 
       // Create one-on-one class
-      const response = await axios.post('https://rootsnwings-api-944856745086.europe-west2.run.app/classesone-on-one/create', requestPayload);
+      const response = await axios.post('https://rootsnwings-api-944856745086.europe-west2.run.app/classes/one-on-one/create', requestPayload);
 
       if (response.data?.classId) {
         // Store class data for booking confirmation page

@@ -177,7 +177,7 @@ const Dashboard = () => {
             bookingsResponse.data?.bookings.forEach(async (booking) => {
               try {
                 const classResponse = await axios.get(
-                  `https://rootsnwings-api-944856745086.europe-west2.run.app/classes${booking.classId}`
+                  `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${booking.classId}`
                 );
                 setBookingsClasses((prev) => [
                   ...prev,

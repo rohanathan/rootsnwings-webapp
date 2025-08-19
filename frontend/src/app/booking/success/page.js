@@ -7,6 +7,8 @@ export default function BookingSuccess() {
   const [loading, setLoading] = useState(true);
   const [bookingDetails, setBookingDetails] = useState(null);
   const [error, setError] = useState('');
+  const [countdown, setCountdown] = useState({ days: '00', hours: '00', minutes: '00', seconds: '00' });
+  const [firstClassDate, setFirstClassDate] = useState(null);
   
   // Get first class date from stored data (client-side only)
   const getFirstClassDate = () => {
@@ -71,14 +73,20 @@ export default function BookingSuccess() {
     confirmPaymentAndBooking();
   }, []);
 
-  // Calculate countdown time on component mount and every second  
+  // Initialize first class date from localStorage (client-side only)
   useEffect(() => {
+    setFirstClassDate(getFirstClassDate());
+  }, []);
+
+  // Calculate countdown time when firstClassDate is available
+  useEffect(() => {
+    if (!firstClassDate) return;
+
     const calculateCountdown = () => {
       const now = new Date().getTime();
       const distance = firstClassDate.getTime() - now;
 
       if (distance < 0) {
-        clearInterval(timer);
         return { days: '00', hours: '00', minutes: '00', seconds: '00' };
       }
 
@@ -99,8 +107,11 @@ export default function BookingSuccess() {
       setCountdown(calculateCountdown());
     }, 1000);
 
+    // Set initial countdown
+    setCountdown(calculateCountdown());
+
     return () => clearInterval(timer);
-  }, []);
+  }, [firstClassDate]);
 
   // Handler functions for button clicks
   const goToDashboard = () => {
@@ -122,10 +133,10 @@ export default function BookingSuccess() {
     const mentorName = bookingDetails?.mentorName || 'Your Mentor';
     const title = `${className} with ${mentorName}`;
     
-    // Use real first class date or fallback
-    const firstClassDate = getFirstClassDate();
-    const startDate = firstClassDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    const endDate = new Date(firstClassDate.getTime() + 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'; // Add 1 hour
+    // Use firstClassDate from state or fallback
+    const classDate = firstClassDate || new Date('2025-08-17T14:00:00');
+    const startDate = classDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const endDate = new Date(classDate.getTime() + 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'; // Add 1 hour
     
     const location = 'Online Class via Zoom'; // Default to online
     const details = `Your class booking confirmation. Booking ID: ${bookingDetails?.bookingId || 'N/A'}`;

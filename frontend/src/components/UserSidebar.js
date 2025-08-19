@@ -37,7 +37,7 @@ export default function UserSidebar({ isSidebarOpen, activeTab }) {
             <span>My Bookings</span>
           </a>
           <a
-            href="#"
+            href="/user/savedmentors"
             className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ease-in-out hover:bg-primary-light hover:translate-x-1 ${
               activeTab === 4 ? "bg-primary text-white" : "text-gray-700"
             }`}
