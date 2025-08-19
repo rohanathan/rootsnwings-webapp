@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import axios from "axios";
 
 // Updated steps after removing step 3
@@ -37,9 +39,14 @@ const OnBoarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Firebase auth state
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
+
   // Form state matching the API request body structure
   const [formData, setFormData] = useState({
-    userId: "", // This should be set from user context/auth
+    userId: "", // Will be set from Firebase user
     teachingRole: "both",
     subjects: [],
     levels: [],
@@ -75,18 +82,38 @@ const OnBoarding = () => {
     STEPS.find((step) => step.id === currentStep)?.title || "";
   const progressBarWidth = `${(currentStep / totalSteps) * 100}%`;
 
+  // Firebase auth state listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+      if (currentUser) {
+        setFormData(prev => ({ ...prev, userId: currentUser.uid }));
+      }
+    }, (error) => {
+      setAuthError(error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // Load saved progress on component mount
   useEffect(() => {
     const savedData = localStorage.getItem("mentorOnboardingForm");
     if (savedData) {
       try {
         const parsedData = JSON.parse(savedData);
+        // Override userId with current Firebase user
+        if (user) {
+          parsedData.userId = user.uid;
+        }
         setFormData(parsedData);
       } catch (error) {
         console.error("Error loading saved progress:", error);
       }
     }
-  }, []);
+  }, [user]);
 
   // Save progress whenever formData changes
   useEffect(() => {
@@ -210,41 +237,19 @@ const OnBoarding = () => {
 
   // Form submission to API
   const handleSubmit = async () => {
+    if (!user) {
+      alert("❌ Authentication required. Please log in and try again.");
+      return;
+    }
+
     setIsSubmitting(true);
-    const user = JSON.parse(localStorage.getItem("user"));
-    const uid = user.user.uid;
     try {
-      // {
-      //   "userId": "string",
-      //   "teachingRole": "string",
-      //   "subjects": [
-      //     "string"
-      //   ],
-      //   "levels": [
-      //     "string"
-      //   ],
-      //   "ageGroups": [
-      //     "string"
-      //   ],
-      //   "title": "string",
-      //   "aboutYou": "string",
-      //   "teachingModes": [
-      //     "string"
-      //   ],
-      //   "languages": [
-      //     "string"
-      //   ],
-      //   "dbsCheck": true,
-      //   "photo": "string",
-      //   "pricing": {
-      //     "additionalProp1": {}
-      //   },
-      //   "firstsessionfree": false
-      // }
+      // Get Firebase ID token for authentication
+      const idToken = await user.getIdToken();
 
       // Prepare the request body according to the API specification
       const requestBody = {
-        userId: uid, // Replace with actual user ID from auth
+        userId: user.uid, // Firebase UID
         teachingRole: formData.teachingRole,
         subjects: formData.subjects,
         levels: formData.levels,
@@ -263,24 +268,37 @@ const OnBoarding = () => {
         pricing: formData.pricing,
       };
 
-      // Make API call to submit the onboarding data
+      // Make API call to submit the onboarding data with Firebase auth
       const response = await axios.post(
         "https://rootsnwings-api-944856745086.europe-west2.run.app/user-onboarding/mentor",
-        requestBody
+        requestBody,
+        {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
       if (response) {
-        // const result = await response.json();
-
         // Clear saved progress on successful submission
         localStorage.removeItem("mentorOnboardingForm");
 
-        // Update user data in localStorage with mentor userType
-        const user = JSON.parse(localStorage.getItem("user"));
-        if (user && user.user) {
-          user.user.userType = "mentor";
-          user.user.mentorStatus = "active";
-          localStorage.setItem("user", JSON.stringify(user));
+        // Mark onboarding as complete in Firebase backend
+        try {
+          await axios.post(
+            "https://rootsnwings-api-944856745086.europe-west2.run.app/firebase-auth/complete-onboarding",
+            {},
+            {
+              headers: {
+                'Authorization': `Bearer ${idToken}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+        } catch (onboardingError) {
+          console.warn("Failed to mark onboarding complete:", onboardingError);
+          // Continue with success flow even if this fails
         }
 
         // Show success alert
@@ -1026,6 +1044,45 @@ const OnBoarding = () => {
         return null;
     }
   };
+
+  // Show loading state while Firebase auth loads
+  if (loading) {
+    return (
+      <div className="bg-gray-50 font-sans min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if Firebase auth failed
+  if (authError) {
+    return (
+      <div className="bg-gray-50 font-sans min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">
+            <i className="fas fa-exclamation-triangle"></i>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Error</h2>
+          <p className="text-gray-600 mb-4">Please log in and try again.</p>
+          <button 
+            onClick={() => window.location.href = "/getstarted"}
+            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if user is not authenticated
+  if (!user) {
+    window.location.href = "/getstarted";
+    return null;
+  }
 
   return (
     <div className="bg-gray-50 font-sans min-h-screen">
