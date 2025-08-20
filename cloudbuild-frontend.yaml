@@ -44,7 +44,7 @@ steps:
           --build-arg NEXT_PUBLIC_FIREBASE_APP_ID=$$NEXT_PUBLIC_FIREBASE_APP_ID \
           --build-arg NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=$$NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID \
           --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY \
-          -t "europe-west2-docker.pkg.dev/$$PROJECT_ID_LOWER/rootsnwings-repo/rootsnwings-frontend:$$COMMIT_SHA" \
+          -t "europe-west2-docker.pkg.dev/$$PROJECT_ID_LOWER/rootsnwings-repo/rootsnwings-frontend:$COMMIT_SHA" \
           ./frontend
 
   # Step 2: Push the Docker image to Artifact Registry
@@ -54,7 +54,7 @@ steps:
       - '-c'
       - |
         PROJECT_ID_LOWER=$$(echo $PROJECT_ID | tr "[:upper:]" "[:lower:]")
-        docker push "europe-west2-docker.pkg.dev/$$PROJECT_ID_LOWER/rootsnwings-repo/rootsnwings-frontend:$$COMMIT_SHA"
+        docker push "europe-west2-docker.pkg.dev/$$PROJECT_ID_LOWER/rootsnwings-repo/rootsnwings-frontend:$COMMIT_SHA"
 
   # Step 3: Deploy to Cloud Run with secrets
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -64,7 +64,7 @@ steps:
       - |
         PROJECT_ID_LOWER=$$(echo $PROJECT_ID | tr "[:upper:]" "[:lower:]")
         gcloud run deploy frontend \
-          --image=europe-west2-docker.pkg.dev/$$PROJECT_ID_LOWER/rootsnwings-repo/rootsnwings-frontend:$$COMMIT_SHA \
+          --image=europe-west2-docker.pkg.dev/$$PROJECT_ID_LOWER/rootsnwings-repo/rootsnwings-frontend:$COMMIT_SHA \
           --platform=managed \
           --region=europe-west2 \
           --allow-unauthenticated \
