@@ -57,6 +57,7 @@ export default function Home() {
         badges: getBadges(cls),
         skills: getSkills(cls),
         icon: getIcon(cls.subject),
+        classImage: cls.classImage,  // Pass through classImage from API
         capacity: cls.capacity.maxStudents - cls.capacity.currentEnrollment,
         initialCapacity: cls.capacity.maxStudents,
         totalSessions: cls.pricing.totalSessions,
