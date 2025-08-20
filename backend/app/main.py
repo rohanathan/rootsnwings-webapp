@@ -1,7 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from app.routers import mentors
 from app.routers import classes
 from app.routers import search
@@ -28,7 +26,8 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Roots & Wings API",
     description="FastAPI backend for Roots & Wings on GCP",
-    version="0.1.0"
+    version="0.1.0",
+    redirect_slashes=False  # Disable automatic trailing slash redirects
 )
 
 # --- Firebase Initialisation ---
@@ -67,11 +66,6 @@ def initialize_firebase():
 
 # Initialize Firebase Admin SDK at startup
 initialize_firebase()
-
-# Add HTTPS redirect middleware for production
-import os
-if os.getenv('K_SERVICE'):  # Only in Cloud Run production
-    app.add_middleware(HTTPSRedirectMiddleware)
 
 # Configure CORS for frontend integrations
 app.add_middleware(
