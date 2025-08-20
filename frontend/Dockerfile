@@ -2,7 +2,7 @@
 FROM node:18-alpine AS base
 WORKDIR /app
 
-# 2. Builder Stage: Install dependencies and build application
+# 2. Builder Stage: Install dependencies and builds application
 FROM base AS builder
 
 # Accept build arguments from Cloud Build
