@@ -1,4 +1,4 @@
-# 1. Base Image: Use the official Node.js image
+# 1. Base Image Use the official Node.js image
 FROM node:18-alpine AS base
 WORKDIR /app
 
