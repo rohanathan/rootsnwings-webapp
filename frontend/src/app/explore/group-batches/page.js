@@ -501,6 +501,17 @@ export default function GroupBatches() {
                     key={batch.id} 
                     className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 batch-card-animation"
                   >
+                    {/* Class Image */}
+                    {batch.classImage && (
+                      <div className="mb-4">
+                        <img 
+                          src={batch.classImage} 
+                          alt={batch.title}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <h3 className="text-xl font-bold primary-dark mb-2 min-h-[2rem] max-h-[2rem] overflow-hidden text-ellipsis line-clamp-1">{batch.title}</h3>

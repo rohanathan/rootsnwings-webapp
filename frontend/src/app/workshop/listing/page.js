@@ -555,18 +555,28 @@ export default function Home() {
                 style={{ animation: 'fadeIn 0.3s ease-in' }}
               >
                 {/* Workshop Image */}
-                <div className={`h-48 bg-gradient-to-br ${workshop.mentorColor.replace('from-', 'from-')}`} style={{ background: `linear-gradient(to bottom right, ${workshop.mentorColor.split(' ')[0].replace('from-', '#')} 0%, ${workshop.mentorColor.split(' ')[1].replace('to-', '#')} 100%)` }} >
-                  <div className="h-48 flex items-center justify-center relative">
-                    <span className="text-6xl text-white">{workshop.icon}</span>
-                    {workshop.badges.map((badge, index) => (
-                      <div
-                        key={index}
-                        className={`absolute top-4 ${index === 0 ? 'left-4' : 'right-4'} ${badge.color} text-white px-3 py-1 rounded-full text-sm font-bold`}
-                      >
-                        {badge.text}
+                <div className="h-48 relative overflow-hidden">
+                  {workshop.classImage ? (
+                    <img 
+                      src={workshop.classImage} 
+                      alt={workshop.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className={`h-full bg-gradient-to-br ${workshop.mentorColor.replace('from-', 'from-')}`} style={{ background: `linear-gradient(to bottom right, ${workshop.mentorColor.split(' ')[0].replace('from-', '#')} 0%, ${workshop.mentorColor.split(' ')[1].replace('to-', '#')} 100%)` }}>
+                      <div className="h-full flex items-center justify-center relative">
+                        <span className="text-6xl text-white">{workshop.icon}</span>
+                        {workshop.badges.map((badge, index) => (
+                          <div
+                            key={index}
+                            className={`absolute top-4 ${index === 0 ? 'left-4' : 'right-4'} ${badge.color} text-white px-3 py-1 rounded-full text-sm font-bold`}
+                          >
+                            {badge.text}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-6">

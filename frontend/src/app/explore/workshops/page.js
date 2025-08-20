@@ -560,6 +560,17 @@ export default function Workshops() {
                       🎯 Workshop
                     </div>
 
+                    {/* Workshop Image */}
+                    {workshop.classImage && (
+                      <div className="mb-4">
+                        <img 
+                          src={workshop.classImage} 
+                          alt={workshop.title}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+
                     <div className="flex items-start justify-between mb-4 mt-2">
                       <div className="flex-1">
                         <h3 className="text-xl font-bold primary-dark mb-2">{workshop.title}</h3>

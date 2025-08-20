@@ -481,13 +481,21 @@ const MentorDirectory = () => {
               >
                 {/* Mentor Header */}
                 <div className="flex items-start gap-5 mb-5">
-                  <div
-                    className="w-20 h-20 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0"
-                    data-name={mentor.displayName}
-                    aria-label={`${mentor.displayName}'s profile picture`}
-                  >
-                    {getInitials(mentor.displayName)}
-                  </div>
+                  {mentor.photoURL ? (
+                    <img 
+                      src={mentor.photoURL} 
+                      alt={`${mentor.displayName}'s profile picture`}
+                      className="w-20 h-20 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div
+                      className="w-20 h-20 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0"
+                      data-name={mentor.displayName}
+                      aria-label={`${mentor.displayName}'s profile picture`}
+                    >
+                      {getInitials(mentor.displayName)}
+                    </div>
+                  )}
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-primary-dark mb-1">
                       {mentor.displayName}
