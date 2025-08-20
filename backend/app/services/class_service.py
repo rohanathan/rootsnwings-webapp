@@ -433,6 +433,43 @@ def clean_data(data: Dict) -> Dict:
         else:
             data["mentorName"] = "Unknown Mentor"
     
+    # Add subject-based class images if not present
+    if not data.get("classImage"):
+        subject = data.get("subject", "").lower()
+        category = data.get("category", "").lower()
+        
+        # Subject-based images
+        subject_images = {
+            "carnatic_vocal": "https://rafaacademy.in/wp-content/uploads/2025/03/carnatic-vocals.png",
+            "guitar": "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=600&fit=crop", 
+            "piano": "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=800&h=600&fit=crop",
+            "violin": "https://images.unsplash.com/photo-1465821185615-20b3c2fbf41b?w=800&h=600&fit=crop",
+            "dance": "https://images.unsplash.com/photo-1518834107812-67b0b7c58434?w=800&h=600&fit=crop",
+            "yoga": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop",
+            "art": "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=600&fit=crop",
+            "programming": "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=600&fit=crop",
+            "cooking": "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop",
+            "anime_character_drawing":"https://i.pinimg.com/736x/f5/cf/e3/f5cfe3103f2184921d567db80068bdd0.jpg",
+            "bagpipes_playing" : "https://c.files.bbci.co.uk/6288/production/_127342252_paul_burns_reuters.jpg",
+            "ballet_classical" : "https://upload.wikimedia.org/wikipedia/commons/5/52/Edgar_Degas_-_The_Dance_Foyer_at_the_Opera_on_the_rue_Le_Peletier.jpg"
+        }
+        
+        # Category fallback images
+        category_images = {
+            "music": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=600&fit=crop",
+            "arts": "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=600&fit=crop",
+            "fitness": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop",
+            "technology": "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=800&h=600&fit=crop"
+        }
+        
+        # Try subject first, then category, then default
+        if subject in subject_images:
+            data["classImage"] = subject_images[subject]
+        elif category in category_images:
+            data["classImage"] = category_images[category]
+        else:
+            data["classImage"] = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop"  # Default education image
+    
     return data
 
 # ---------- Search Metadata Generation ----------
