@@ -109,7 +109,7 @@ const MentorDetail = () => {
     const [mentorData, setMentorData] = useState({});
     const [reviews, setReviews] = useState([]);
     const [reviewsLoading, setReviewsLoading] = useState(false);
-    const [mentorClasses, setMentorClasses] = useState([]);
+    const [mentorClasses, setMentorClasses] = useState({ classes: [] });
 
     
     useEffect(() => {
