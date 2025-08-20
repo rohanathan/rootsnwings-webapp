@@ -46,7 +46,7 @@ export default function BookingConfirmation() {
     return () => unsubscribe();
   }, []);
 
-  // Load data when user is available
+  // Loadsq data when user is available
   useEffect(() => {
     if (!user || authLoading) return;
 
