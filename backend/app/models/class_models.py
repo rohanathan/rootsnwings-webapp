@@ -67,6 +67,7 @@ class ClassItem(BaseModel):
     mentorName: Optional[str] = "Unknown Mentor"  # Made optional with default
     mentorPhotoURL: Optional[str] = None
     mentorRating: Optional[float] = None
+    classImage: Optional[str] = None  # Subject-based class image
     level: Optional[str] = None
     ageGroup: Optional[str] = None
     format: Optional[str] = None
