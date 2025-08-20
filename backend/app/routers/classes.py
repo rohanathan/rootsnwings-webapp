@@ -16,6 +16,7 @@ router = APIRouter(
     tags=["Classes"]
 )
 
+@router.get("", response_model=ClassListResponse)
 @router.get("/", response_model=ClassListResponse)
 def get_classes(
     # Search & Filter Parameters
