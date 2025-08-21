@@ -43,7 +43,8 @@ def migrate_user_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
         'lastActiveAt',       # Already merged to lastLogin above
         'title',             # Not needed for MVP
         'mentorStatus',       # Move to mentor profile if needed
-        # NOTE: Keep passwordHash - needed for authentication!
+        'passwordHash',       # Using Firebase Auth instead
+        # NOTE: passwordHash removed - using Firebase Auth
     ]
     
     for field in redundant_fields:

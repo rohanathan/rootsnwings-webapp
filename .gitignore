@@ -82,3 +82,6 @@ backend/secrets/*
 
 CLAUDE.md
 .claude/
+E2E_TESTING_PLAN.md
+
+ai/*

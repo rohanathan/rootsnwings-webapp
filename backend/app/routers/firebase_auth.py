@@ -28,8 +28,6 @@ class FirebaseUserRegister(BaseModel):
     userType: str = "student"  # student or mentor
     # No firebase_uid needed - we get it from the token
 
-class FirebaseTokenVerify(BaseModel):
-    id_token: str
 
 class FirebaseUserResponse(BaseModel):
     uid: str
@@ -199,55 +197,6 @@ def register_firebase_user(
             detail="Registration failed"
         )
 
-@router.post("/verify-token", response_model=FirebaseUserResponse)
-def verify_firebase_token(token_data: FirebaseTokenVerify):
-    """
-    Verify Firebase ID token and return user profile.
-    Used by frontend to validate tokens and get user data.
-    """
-    try:
-        # Verify the Firebase ID token
-        decoded_token = AuthService.verify_token(token_data.id_token)
-        firebase_uid = decoded_token.get("uid")
-        
-        # Get user profile from Firestore
-        user_profile = get_firebase_user_from_firestore(firebase_uid)
-        if not user_profile:
-            # User has Firebase account but no Firestore profile
-            # This can happen in race conditions - return minimal info
-            firebase_user = auth.get_user(firebase_uid)
-            return FirebaseUserResponse(
-                uid=firebase_uid,
-                email=firebase_user.email,
-                displayName=firebase_user.display_name or "User",
-                userType="student",  # Default
-                roles=["student"],
-                profileComplete=False,
-                isVerified=firebase_user.email_verified,
-                needsOnboarding=True
-            )
-        
-        needs_onboarding = determine_needs_onboarding(user_profile)
-        
-        return FirebaseUserResponse(
-            uid=user_profile["uid"],
-            email=user_profile["email"],
-            displayName=user_profile["displayName"],
-            userType=user_profile["userType"],
-            roles=user_profile["roles"],
-            profileComplete=user_profile["profileComplete"],
-            isVerified=user_profile["isVerified"],
-            needsOnboarding=needs_onboarding
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Token verification error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token verification failed"
-        )
 
 @router.get("/me", response_model=FirebaseUserResponse)
 def get_current_firebase_user(current_user_uid: str = Depends(AuthService.get_current_user_uid)):
@@ -326,90 +275,4 @@ def complete_onboarding(current_user_uid: str = Depends(AuthService.get_current_
             detail="Failed to complete onboarding"
         )
 
-@router.post("/logout")
-def logout_firebase_user(current_user_uid: str = Depends(AuthService.get_current_user_uid)):
-    """
-    Logout Firebase user.
-    Note: Firebase tokens are stateless, so this is mainly for logging/analytics.
-    The frontend should discard the token.
-    """
-    try:
-        logger.info(f"User {current_user_uid} logged out")
-        return {"message": "Logged out successfully", "uid": current_user_uid}
-    except Exception as e:
-        logger.error(f"Logout error: {str(e)}")
-        return {"message": "Logout completed"}
 
-# Debug/utility endpoints
-@router.post("/debug/verify-token-direct")
-def debug_verify_token_direct(token_data: FirebaseTokenVerify):
-    """
-    Debug endpoint to test Firebase token verification directly
-    """
-    try:
-        logger.info(f"Debug - Received token for verification, length: {len(token_data.id_token)}")
-        logger.info(f"Debug - Token preview: {token_data.id_token[:50]}...")
-        
-        # Try to verify the token with detailed logging
-        decoded_token = auth.verify_id_token(token_data.id_token)
-        logger.info(f"Debug - Token verified successfully! UID: {decoded_token.get('uid')}")
-        logger.info(f"Debug - Token data: {decoded_token}")
-        
-        return {
-            "success": True,
-            "uid": decoded_token.get("uid"),
-            "email": decoded_token.get("email"),
-            "verified": decoded_token.get("email_verified"),
-            "provider": decoded_token.get("firebase", {}).get("sign_in_provider"),
-            "issued_at": decoded_token.get("iat"),
-            "expires_at": decoded_token.get("exp")
-        }
-        
-    except auth.InvalidIdTokenError as e:
-        logger.error(f"Debug - Invalid ID token: {str(e)}")
-        return {"success": False, "error": "Invalid ID token", "details": str(e)}
-    except auth.ExpiredIdTokenError as e:
-        logger.error(f"Debug - Expired ID token: {str(e)}")
-        return {"success": False, "error": "Expired ID token", "details": str(e)}
-    except Exception as e:
-        logger.error(f"Debug - Token verification failed: {str(e)}")
-        return {"success": False, "error": "Token verification failed", "details": str(e)}
-
-@router.get("/debug/user-status/{firebase_uid}")
-def debug_user_status(firebase_uid: str):
-    """
-    Debug endpoint to check user status across Firebase and Firestore.
-    Helpful for troubleshooting registration issues.
-    """
-    try:
-        result = {
-            "firebase_uid": firebase_uid,
-            "firebase_user_exists": False,
-            "firestore_profile_exists": False,
-            "email_verified": False,
-            "profile_complete": False,
-            "needs_onboarding": True
-        }
-        
-        # Check Firebase user
-        try:
-            firebase_user = auth.get_user(firebase_uid)
-            result["firebase_user_exists"] = True
-            result["email_verified"] = firebase_user.email_verified
-            result["firebase_email"] = firebase_user.email
-        except auth.UserNotFoundError:
-            result["firebase_user_exists"] = False
-        
-        # Check Firestore profile
-        firestore_profile = get_firebase_user_from_firestore(firebase_uid)
-        if firestore_profile:
-            result["firestore_profile_exists"] = True
-            result["profile_complete"] = firestore_profile.get("profileComplete", False)
-            result["needs_onboarding"] = not result["profile_complete"]
-            result["user_type"] = firestore_profile.get("userType")
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Debug user status error: {str(e)}")
-        return {"error": str(e), "firebase_uid": firebase_uid}

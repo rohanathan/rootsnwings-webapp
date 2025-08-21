@@ -5,7 +5,7 @@ from app.models.availability_models import (
 )
 from app.services.availability_service import AvailabilityService
 
-router = APIRouter(prefix="/availability", tags=["Availability - Simplified API"])
+router = APIRouter(prefix="/availability", tags=["Availability"])
 availability_service = AvailabilityService()
 
 @router.get("/mentors/{mentor_id}")

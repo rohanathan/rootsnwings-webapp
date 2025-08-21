@@ -10,7 +10,7 @@ from app.services.booking_service import (
 
 router = APIRouter(
     prefix="/bookings",
-    tags=["Bookings - Simplified API"]
+    tags=["Bookings"]
 )
 
 # ==========================================
@@ -20,19 +20,25 @@ router = APIRouter(
 @router.post("")
 def create_booking(booking_request: SimpleBookingRequest):
     """
-    Create a booking with complete MongoDB flexibility.
+    Create new booking - used by booking confirmation flow and admin booking creation.
     
-    Example:
-    {
-      "studentId": "user031",
-      "classId": "class_anime_001", 
-      "personalGoals": "Learn anime character design",
-      "pricing": {
-        "finalPrice": 480,
-        "currency": "GBP"
-      },
-      "anyCustomField": "any value"
-    }
+    FRONTEND USAGE PATTERNS:
+    - Booking Confirmation Page: POST /bookings
+      Creates booking with studentId, classId, personalGoals, parentId (for young learners)
+      
+    - Admin Booking Creation: POST /bookings  
+      Administrative booking creation with full field flexibility
+      
+    - One-on-One Booking: POST /bookings
+      Direct booking creation for immediate mentor-student sessions
+      
+    REQUEST FIELDS USAGE:
+    - studentId, classId: Core relationship fields (always required)
+    - personalGoals: Student's learning objectives (displayed on user booking page)
+    - parentId, youngLearnerName: Family account support for child bookings
+    - Custom pricing, notes: Admin/special booking scenarios
+    
+    RESPONSE: Returns complete booking object for immediate frontend display
     """
     booking = create_simple_booking(booking_request)
     return {"booking": booking}
@@ -152,23 +158,43 @@ def update_booking(
 
 @router.get("")
 def get_bookings(
-    bookingId: Optional[str] = Query(None, description="Get specific booking by ID"),
-    studentId: Optional[str] = Query(None, description="Get bookings for student"),
-    mentorId: Optional[str] = Query(None, description="Get bookings for mentor"), 
-    classId: Optional[str] = Query(None, description="Get bookings for class"),
-    include_attendance: bool = Query(True, description="Include attendance records"),
-    page: int = Query(1, ge=1, description="Page number"),
-    pageSize: int = Query(20, ge=1, le=100, description="Items per page")
+    bookingId: Optional[str] = Query(None, description="Get specific booking by ID - USED BY: Booking detail views and status checks"),
+    studentId: Optional[str] = Query(None, description="Get student's bookings - USED BY: User bookings page (?studentId={uid}), User dashboard enrollment list"),
+    mentorId: Optional[str] = Query(None, description="Get mentor's bookings - USED BY: Mentor dashboard student lists, Mentor class management"), 
+    classId: Optional[str] = Query(None, description="Get class enrollments - USED BY: Mentor class pages (?classId={id}), Admin class enrollment tracking"),
+    include_attendance: bool = Query(True, description="Include attendance data - USED BY: Progress tracking (true), Basic lists (false)"),
+    page: int = Query(1, ge=1, description="Page number - USED BY: User bookings pagination, Admin booking lists"),
+    pageSize: int = Query(20, ge=1, le=100, description="Items per page - USED BY: Dashboard summaries (5-10), Full lists (20-50)")
 ):
     """
-    Universal booking getter - handles single booking and filtered lists.
+    Universal booking retrieval endpoint used across user dashboards, mentor management, and admin interfaces.
     
-    Examples:
-    - GET /bookings?bookingId=booking_123 - Get specific booking
-    - GET /bookings?studentId=user031 - Student's bookings
-    - GET /bookings?mentorId=user026 - Mentor's bookings  
-    - GET /bookings?classId=class_anime_001 - Class bookings
-    - GET /bookings?studentId=user031&include_attendance=false - Without attendance data
+    FRONTEND USAGE PATTERNS:
+    - User Bookings Page: GET /bookings?studentId={uid}&pageSize=20
+      Returns user's enrolled classes (uses: studentName, className, bookingStatus, bookedAt, progress data)
+      
+    - User Dashboard: GET /bookings?studentId={uid}&pageSize=5&include_attendance=false  
+      Returns recent bookings summary (uses: className, bookingStatus for stats widget)
+      
+    - Mentor Dashboard: GET /bookings?classId={id}&pageSize=50
+      Returns class enrollment list (uses: studentId, studentName for "active students" display)
+      
+    - Mentor Class Management: GET /bookings?classId={id}
+      Returns full enrollment with attendance (uses: ALL fields for comprehensive class management)
+      
+    - Admin Booking Management: GET /bookings?mentorId={id} OR ?studentId={id}
+      Returns user's booking history for admin review and support
+      
+    FILTERING BEHAVIOR:
+    - Single booking: bookingId parameter returns individual booking details
+    - Student focus: studentId returns user's personal booking history
+    - Mentor focus: mentorId returns all bookings for mentor's classes
+    - Class focus: classId returns enrollment list for specific class
+    
+    RESPONSE FIELD USAGE:
+    - User interfaces: Student/class names, status, progress, timeline data
+    - Mentor interfaces: Student info, payment status, attendance tracking
+    - Admin interfaces: Complete booking data for support and management
     """
     try:
         # Handle single booking request

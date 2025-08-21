@@ -3,22 +3,34 @@ from typing import List, Optional
 from datetime import datetime
 
 class MentorStats(BaseModel):
-    avgRating: float = 0
-    totalReviews: int = 0
-    totalStudents: int = 0
-    totalSessions: int = 0
-    responseTimeMinutes: int = 999
-    repeatStudentRate: float = 0
+    """
+    Mentor performance metrics used across directory and detail pages.
+    
+    USAGE: Directory cards show avgRating (as stars) and totalReviews count.
+    Detail page shows all stats. Admin dashboard uses for mentor evaluation.
+    """
+    avgRating: float = Field(0, description="Average rating 0-5 - displayed as star rating on all mentor cards and detail page")
+    totalReviews: int = Field(0, description="Number of reviews - shown as '(X reviews)' text on directory cards and detail page")
+    totalStudents: int = Field(0, description="ADMIN/DETAIL ONLY - total students taught, shown on detail page and admin dashboard")
+    totalSessions: int = Field(0, description="ADMIN/DETAIL ONLY - total sessions completed, used for mentor performance tracking")
+    responseTimeMinutes: int = Field(999, description="DETAIL PAGE ONLY - average response time, shown on mentor detail page")
+    repeatStudentRate: float = Field(0, description="ADMIN ONLY - percentage of returning students, used for mentor evaluation")
 
 class Coordinates(BaseModel):
     lat: float
     lng: float
 
 class Pricing(BaseModel):
-    oneOnOneRate: float
-    groupRate: float
-    currency: str = "GBP"
-    firstSessionFree: bool = False
+    """
+    Mentor pricing structure displayed on directory cards and detail page.
+    
+    USAGE: Directory cards show oneOnOneRate OR groupRate with firstSessionFree badge.
+    Detail page shows full pricing breakdown for booking decisions.
+    """
+    oneOnOneRate: float = Field(..., description="Hourly rate for 1-on-1 sessions - primary price shown on directory cards")
+    groupRate: float = Field(..., description="Hourly rate for group sessions - shown on detail page and sometimes directory cards")
+    currency: str = Field("GBP", description="Currency code - used for price display formatting (£, $, etc)")
+    firstSessionFree: bool = Field(False, description="Free trial offer - displayed as green badge on directory cards and homepage")
 
 class AvailabilitySummary(BaseModel):
     timezone: str
@@ -35,33 +47,68 @@ class Qualification(BaseModel):
     certUrl: Optional[str] = None  # Optional certificate/document URL for admin validation
 
 class Mentor(BaseModel):
-    uid: str
-    displayName: str
-    photoURL: Optional[str] = None
-    category: str
-    searchKeywords: Optional[List[str]] = Field(default_factory=list)
-    headline: Optional[str] = None
-    bio: Optional[str] = None
-    languages: Optional[List[str]] = Field(default_factory=list)
-    teachingLevels: Optional[List[str]] = Field(default_factory=list)
-    ageGroups: Optional[List[str]] = Field(default_factory=list)
-    teachingModes: Optional[List[str]] = Field(default_factory=list)
-    subjects: Optional[List[str]] = Field(default_factory=list)
-    city: Optional[str] = None
-    region: Optional[str] = None
-    country: Optional[str] = None
-    postcode: Optional[str] = None
-    coordinates: Optional[Coordinates] = None
-    pricing: Optional[Pricing] = None
-    stats: Optional[MentorStats] = None
-    status: Optional[str] = "active"
-    isVerified: Optional[bool] = False
-    backgroundChecked: Optional[bool] = False
-    acceptingNewStudents: Optional[dict] = None
-    qualifications: Optional[List[Qualification]] = Field(default_factory=list)
-    availabilitySummary: Optional[AvailabilitySummary] = None
-    createdAt: Optional[datetime] = None
-    updatedAt: Optional[datetime] = None
+    """
+    Mentor profile model used across multiple frontend pages.
+    
+    FRONTEND USAGE PATTERNS:
+    - Mentor Directory (/mentor/directory): Uses displayName, photoURL, city, region, teachingModes, 
+      stats.avgRating, stats.totalReviews, subjects, pricing.oneOnOneRate/groupRate, pricing.firstSessionFree
+    - Homepage Featured (/): Uses displayName, headline, city, stats.avgRating, stats.totalReviews, pricing.firstSessionFree
+    - Mentor Detail Page (/mentor/detailpage): Uses ALL fields for comprehensive profile display
+    - Admin Dashboard (/admin/mentors): Uses status, isVerified, displayName, category, subjects, city, 
+      country, stats, pricing, headline for management
+    - Explore/Booking Pages: Uses displayName, photoURL, city for basic mentor info in class contexts
+    - Search/Filtering: Uses searchKeywords, category, subjects, teachingModes, languages for backend filtering
+    """
+    
+    # === CORE IDENTITY FIELDS (Used by ALL pages) ===
+    uid: str = Field(..., description="Unique mentor identifier - used across all pages for identification and routing")
+    displayName: str = Field(..., description="Mentor's public display name - shown on directory cards, detail page header, admin lists")
+    
+    # === VISUAL DISPLAY FIELDS (Used by directory, detail, homepage, booking pages) ===
+    photoURL: Optional[str] = Field(None, description="Profile picture URL - displayed on mentor cards, detail page, directory listing")
+    
+    # === SUBJECT/CATEGORY FIELDS (Used by directory search, detail page, admin management) ===
+    category: str = Field(..., description="Main teaching category - used for search filtering and organization in directory")
+    subjects: Optional[List[str]] = Field(default_factory=list, description="List of subject IDs mentor teaches - displayed as tags on directory cards and used for filtering")
+    searchKeywords: Optional[List[str]] = Field(default_factory=list, description="BACKEND ONLY - search optimization keywords, not displayed to users")
+    
+    # === PROFILE CONTENT FIELDS (Used primarily by detail page, some by homepage) ===
+    headline: Optional[str] = Field(None, description="Brief mentor tagline - shown on homepage featured section and admin overview")
+    bio: Optional[str] = Field(None, description="DETAIL PAGE ONLY - full mentor biography displayed on mentor detail page")
+    
+    # === TEACHING CAPABILITY FIELDS (Used by directory filters and detail page) ===
+    languages: Optional[List[str]] = Field(default_factory=list, description="Languages spoken - used for directory filtering and detail page display")
+    teachingLevels: Optional[List[str]] = Field(default_factory=list, description="DETAIL PAGE ONLY - experience levels taught (beginner, intermediate, advanced)")
+    ageGroups: Optional[List[str]] = Field(default_factory=list, description="DETAIL PAGE ONLY - age groups served (child, teen, adult)")
+    teachingModes: Optional[List[str]] = Field(default_factory=list, description="Teaching modes - displayed as badges on directory cards (online, in-person, hybrid)")
+    
+    # === LOCATION FIELDS (Used by directory cards, detail page, admin, search filtering) ===
+    city: Optional[str] = Field(None, description="City name - prominently displayed on directory cards and homepage for location matching")
+    region: Optional[str] = Field(None, description="Region/state - shown on directory cards and detail page for location context")
+    country: Optional[str] = Field(None, description="Country - used by admin dashboard and detail page")
+    postcode: Optional[str] = Field(None, description="BACKEND ONLY - not displayed to users, used for location-based search")
+    coordinates: Optional[Coordinates] = Field(None, description="BACKEND ONLY - lat/lng for geographic search, not displayed")
+    
+    # === PRICING FIELDS (Used by directory cards, detail page booking section) ===
+    pricing: Optional[Pricing] = Field(None, description="Rate structure - oneOnOneRate shown on directory cards, firstSessionFree displayed as badge")
+    
+    # === STATS/RATINGS FIELDS (Used by directory cards, homepage, detail page, admin dashboard) ===
+    stats: Optional[MentorStats] = Field(None, description="Performance metrics - avgRating and totalReviews shown as stars on all mentor displays")
+    
+    # === ADMIN/STATUS FIELDS (Used primarily by admin dashboard) ===
+    status: Optional[str] = Field("active", description="ADMIN FIELD - mentor approval status, used by admin dashboard for filtering and management")
+    isVerified: Optional[bool] = Field(False, description="Verification status - shown as verified badge on detail page and admin dashboard")
+    backgroundChecked: Optional[bool] = Field(False, description="ADMIN ONLY - background check status, used by admin dashboard")
+    acceptingNewStudents: Optional[dict] = Field(None, description="DETAIL PAGE ONLY - availability for new bookings, shown on detail page")
+    
+    # === DETAIL PAGE SPECIFIC FIELDS ===
+    qualifications: Optional[List[Qualification]] = Field(default_factory=list, description="DETAIL PAGE ONLY - mentor credentials displayed in qualifications section")
+    availabilitySummary: Optional[AvailabilitySummary] = Field(None, description="DETAIL PAGE ONLY - general availability info for booking decisions")
+    
+    # === METADATA FIELDS (Used by backend, rarely displayed) ===
+    createdAt: Optional[datetime] = Field(None, description="BACKEND ONLY - account creation timestamp, not displayed to users")
+    updatedAt: Optional[datetime] = Field(None, description="BACKEND ONLY - last profile update, not displayed to users")
     
     class Config:
         arbitrary_types_allowed = True

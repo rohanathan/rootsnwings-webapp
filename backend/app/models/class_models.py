@@ -3,19 +3,31 @@ from typing import List, Optional, Union
 from datetime import date, datetime
 
 class Schedule(BaseModel):
-    startDate: Optional[Union[date, List[date]]] = None  # Support single date or array of dates
-    endDate: Optional[Union[date, List[date]]] = None    # Support single date or array of dates
-    weeklySchedule: Optional[List[dict]] = Field(default_factory=list)
-    sessionDuration: Optional[int]
+    """
+    Class scheduling information displayed across discovery and management pages.
+    
+    USAGE: Workshop cards show formatted date ranges and session times. 
+    Mentor dashboard shows weekly schedule for "next sessions" display.
+    """
+    startDate: Optional[Union[date, List[date]]] = Field(None, description="Class start date - displayed as 'Aug 16, 2025' on workshop cards and booking confirmation")
+    endDate: Optional[Union[date, List[date]]] = Field(None, description="Class end date - shown as date range 'Aug 16 - Aug 17' on multi-day workshops") 
+    weeklySchedule: Optional[List[dict]] = Field(default_factory=list, description="Weekly time slots - displayed as 'Sat & Sun | 10:00 - 16:00' on cards, 'Tuesday • 09:00' on mentor dashboard")
+    sessionDuration: Optional[int] = Field(None, description="Session length in minutes - displayed as '6h 0m per session' on workshop cards")
 
 class Location(BaseModel):
     type: Optional[str]
     details: Optional[dict]
 
 class Capacity(BaseModel):
-    maxStudents: Optional[int] = None
-    minStudents: Optional[int] = None
-    currentEnrollment: Optional[Union[int, str]] = 0
+    """
+    Class enrollment capacity used for availability display and admin management.
+    
+    USAGE: Discovery pages show 'X spots left' based on maxStudents - currentEnrollment.
+    Admin dashboard displays maxStudents for class size evaluation.
+    """
+    maxStudents: Optional[int] = Field(None, description="Maximum enrollment - shown on discovery cards as capacity indicator, used by admin for class evaluation")
+    minStudents: Optional[int] = Field(None, description="ADMIN ONLY - minimum to run class, used for viability assessment")
+    currentEnrollment: Optional[Union[int, str]] = Field(0, description="Current enrolled count - used to calculate 'X spots left' on workshop cards")
     
     @validator('currentEnrollment', pre=True)
     def convert_current_enrollment(cls, v):
@@ -29,10 +41,16 @@ class Capacity(BaseModel):
         return v
 
 class Pricing(BaseModel):
-    perSessionRate: Optional[float] = None
-    totalSessions: Optional[int] = None
-    subtotal: Optional[Union[float, str]] = None
-    currency: Optional[str] = None
+    """
+    Class pricing structure displayed on discovery pages and booking flows.
+    
+    USAGE: Workshop cards prominently display perSessionRate. Admin dashboard shows 
+    perSessionRate for financial evaluation. Booking uses totalSessions for calculations.
+    """
+    perSessionRate: Optional[float] = Field(None, description="Price per session - prominently displayed as '£120' on workshop cards and admin dashboard")
+    totalSessions: Optional[int] = Field(None, description="Number of sessions - used for booking total calculations and course duration display")
+    subtotal: Optional[Union[float, str]] = Field(None, description="BOOKING ONLY - total course cost calculated from perSessionRate × totalSessions")
+    currency: Optional[str] = Field(None, description="Currency code - used for price formatting (£, $, €)")
     
     @validator('subtotal', pre=True)
     def convert_subtotal(cls, v):
@@ -57,28 +75,65 @@ class Pricing(BaseModel):
         return v
 
 class ClassItem(BaseModel):
-    classId: str
-    type: str
-    title: str
-    subject: str
-    category: str
-    description: Optional[str] = None
-    mentorId: str
-    mentorName: Optional[str] = "Unknown Mentor"  # Made optional with default
-    mentorPhotoURL: Optional[str] = None
-    mentorRating: Optional[float] = None
-    classImage: Optional[str] = None  # Subject-based class image
-    level: Optional[str] = None
-    ageGroup: Optional[str] = None
-    format: Optional[str] = None
-    schedule: Optional[Schedule] = None
-    capacity: Optional[Capacity] = None
-    pricing: Optional[Pricing] = None
-    avgRating: Optional[float] = None
-    totalReviews: Optional[int] = 0
-    createdAt: Optional[str] = None
-    updatedAt: Optional[str] = None
-    status: Optional[str] = None  # Add status field for admin functionality
+    """
+    Class/Workshop model used across multiple frontend pages for course management and booking.
+    
+    FRONTEND USAGE PATTERNS:
+    - Workshop Listing (/explore/workshops): Uses title, description, mentorName, pricing, schedule, 
+      capacity, format, level, ageGroup, classImage for workshop discovery cards
+    - Mentor Dashboard (/mentor/dashboard): Uses title, subject, type, schedule.weeklySchedule for 
+      "upcoming sessions" display and class management
+    - Admin Dashboard (/admin/classes): Uses status, title, subject, category, mentorName, capacity.maxStudents,
+      pricing.perSessionRate, type, createdAt for approval workflow  
+    - Booking Pages (/booking/confirmbooking): Uses title, mentorName, pricing, schedule for booking confirmation
+    - User Dashboard (/user/dashboard): Uses title, basic info for user's enrolled class display
+    - Homepage (/): Uses title, schedule, mentorName, format for featured workshop cards
+    - Group Batches (/explore/group-batches): Uses similar fields as workshops for group class discovery
+    """
+    
+    # === CORE IDENTITY FIELDS (Used by ALL pages) ===
+    classId: str = Field(..., description="Unique class identifier - used across all pages for routing and identification")
+    type: str = Field(..., description="Class type (workshop, group, one-on-one) - displayed on admin dashboard and used for filtering")
+    title: str = Field(..., description="Class title - prominently displayed on all cards, dashboards, and booking pages")
+    
+    # === SUBJECT/CATEGORY FIELDS (Used by discovery pages, admin, mentor dashboard) ===
+    subject: str = Field(..., description="Subject ID - used for filtering and displayed on mentor dashboard, admin interface")
+    category: str = Field(..., description="Subject category - used by admin dashboard and filtering systems")
+    
+    # === CONTENT FIELDS (Used primarily by workshop listing, booking confirmation) ===
+    description: Optional[str] = Field(None, description="DISCOVERY PAGES - full class description shown on workshop cards and booking confirmation")
+    classImage: Optional[str] = Field(None, description="DISCOVERY PAGES - subject-based hero image displayed on workshop/group batch cards")
+    
+    # === MENTOR INFO FIELDS (Used by discovery pages, booking, admin) ===
+    mentorId: str = Field(..., description="Mentor's unique ID - used for mentor filtering and linking to mentor profiles")
+    mentorName: Optional[str] = Field("Unknown Mentor", description="Mentor display name - shown on all class cards, admin dashboard, booking pages")
+    mentorPhotoURL: Optional[str] = Field(None, description="DISCOVERY PAGES - mentor profile photo displayed on workshop cards")
+    mentorRating: Optional[float] = Field(None, description="DISCOVERY PAGES - mentor's rating displayed on workshop cards for credibility")
+    
+    # === CLASS CHARACTERISTICS (Used by discovery pages, admin filtering) ===
+    level: Optional[str] = Field(None, description="DISCOVERY PAGES - difficulty level (beginner/intermediate/advanced) shown as badges on workshop cards")
+    ageGroup: Optional[str] = Field(None, description="DISCOVERY PAGES - target age group (child/teen/adult) displayed on workshop cards and used for filtering")
+    format: Optional[str] = Field(None, description="DISCOVERY PAGES - delivery format (online/in-person/hybrid) prominently displayed with icons on cards")
+    
+    # === SCHEDULING FIELDS (Used by all pages for time/date display) ===
+    schedule: Optional[Schedule] = Field(None, description="Schedule details - startDate/endDate shown on cards, weeklySchedule used for 'next session' displays")
+    
+    # === CAPACITY FIELDS (Used by discovery pages for availability, admin for management) ===
+    capacity: Optional[Capacity] = Field(None, description="Enrollment info - maxStudents used by admin, available spots ('X spots left') shown on discovery cards")
+    
+    # === PRICING FIELDS (Used by discovery pages, booking, admin dashboard) ===
+    pricing: Optional[Pricing] = Field(None, description="Cost structure - perSessionRate displayed prominently on cards, totalSessions used for booking calculations")
+    
+    # === RATING FIELDS (Used by discovery pages for social proof) ===
+    avgRating: Optional[float] = Field(None, description="DISCOVERY PAGES - class rating displayed as stars on workshop cards")
+    totalReviews: Optional[int] = Field(0, description="DISCOVERY PAGES - review count shown as '(X reviews)' on cards")
+    
+    # === ADMIN/STATUS FIELDS (Used primarily by admin dashboard) ===
+    status: Optional[str] = Field(None, description="ADMIN DASHBOARD - approval status (pending/approved/rejected) with color-coded badges and action buttons")
+    
+    # === METADATA FIELDS (Used by admin dashboard, rarely displayed to users) ===
+    createdAt: Optional[str] = Field(None, description="ADMIN DASHBOARD - class creation date shown in admin list for chronological tracking")
+    updatedAt: Optional[str] = Field(None, description="BACKEND ONLY - last modification timestamp, not displayed to users")
 
 class ClassListResponse(BaseModel):
     classes: List[ClassItem]

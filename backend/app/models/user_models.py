@@ -27,13 +27,19 @@ class Location(BaseModel):
     geo: Optional[GeoLocation] = None
 
 class PrivacySettings(BaseModel):
-    showEmail: bool = False
-    showPhone: bool = False
-    showLocation: bool = True
-    showProfileInSearch: bool = True
-    allowDirectMessages: bool = True
-    showOnlineStatus: bool = False
-    shareDataForAnalytics: bool = True
+    """
+    User privacy controls used in profile management and system behavior.
+    
+    USAGE: Privacy settings page allows users to control visibility and data sharing.
+    These settings affect mentor directory visibility, messaging, and data usage.
+    """
+    showEmail: bool = Field(False, description="PROFILE PRIVACY - whether email is visible to other users in profiles and directories")
+    showPhone: bool = Field(False, description="PROFILE PRIVACY - whether phone number is visible to mentors and other users")
+    showLocation: bool = Field(True, description="DIRECTORY VISIBILITY - whether location appears in mentor directory search results")
+    showProfileInSearch: bool = Field(True, description="DIRECTORY VISIBILITY - whether user appears in search results and public directories")
+    allowDirectMessages: bool = Field(True, description="MESSAGING CONTROL - whether other users can send direct messages")
+    showOnlineStatus: bool = Field(False, description="SOCIAL FEATURES - whether online/offline status is visible to others")
+    shareDataForAnalytics: bool = Field(True, description="DATA USAGE - consent for using behavior data for platform analytics and improvements")
 
 class Preferences(BaseModel):
     language: str = "en"
@@ -44,22 +50,46 @@ class Preferences(BaseModel):
 
 # CLEAN USER MODEL - No redundancies
 class UserBase(BaseModel):
-    email: EmailStr
-    displayName: str
-    photoURL: Optional[str] = None
-    phoneNumber: Optional[str] = None
-    roles: List[UserRole] = Field(default_factory=list)  # ✅ Single source of truth for roles
-    location: Optional[Location] = None
-    preferences: Optional[Preferences] = Field(default_factory=Preferences)
-    status: AccountStatus = AccountStatus.ACTIVE  # ✅ Renamed from accountStatus for simplicity
-    profileComplete: bool = False  # ✅ Frontend-controlled completion flag
-    passwordHash: Optional[str] = None  # ✅ Required for authentication
-    # Optional personal info
-    firstName: Optional[str] = None
-    lastName: Optional[str] = None
-    pronouns: Optional[str] = None
-    gender: Optional[str] = None
-    dob: Optional[str] = None  # YYYY-MM-DD format
+    """
+    Core user model used across profile management, dashboards, and admin interfaces.
+    
+    FRONTEND USAGE PATTERNS:
+    - Profile Management (/user/profile): Uses displayName, photoURL, phoneNumber, location, 
+      preferences for core profile editing interface
+    - Student Profile (?profile_type=student): Uses role-specific data with savedMentors, 
+      interests, learningGoals for student-specific functionality
+    - Parent Profile (?profile_type=parent): Uses family management fields with youngLearners 
+      for parent account functionality  
+    - Admin Dashboard (/admin/users): Uses status, roles, email, location for user management
+    - Mentor Directory: Uses student profile for saving favorite mentors functionality
+    - Authentication Flow: Uses email, displayName, roles, profileComplete for auth navigation
+    """
+    
+    # === CORE IDENTITY FIELDS (Used by ALL interfaces) ===
+    email: EmailStr = Field(..., description="User's email address - displayed in admin interfaces and used for authentication/communication")
+    displayName: str = Field(..., description="User's public display name - shown across all interfaces, profile headers, and messaging")
+    
+    # === VISUAL PROFILE FIELDS (Used by profile management and social interfaces) ===
+    photoURL: Optional[str] = Field(None, description="Profile picture URL - displayed on profile pages, messaging interfaces, and social features")
+    phoneNumber: Optional[str] = Field(None, description="Contact number - used in profile management and emergency contact information")
+    
+    # === ROLE & PERMISSION FIELDS (Used by auth flow and admin management) ===
+    roles: List[UserRole] = Field(default_factory=list, description="User roles array - used for authentication navigation, admin filtering, and permission control")
+    status: AccountStatus = Field(AccountStatus.ACTIVE, description="ADMIN INTERFACE - account status with colored badges for user management workflow")
+    profileComplete: bool = Field(False, description="AUTH FLOW - completion flag used for onboarding navigation and profile setup guidance")
+    
+    # === LOCATION FIELDS (Used by profile management and geographic features) ===
+    location: Optional[Location] = Field(None, description="Geographic info - used in profile display and location-based matching/search features")
+    
+    # === SETTINGS & PREFERENCES (Used by profile management and privacy control) ===
+    preferences: Optional[Preferences] = Field(default_factory=Preferences, description="User settings - controls privacy, notifications, language, and app behavior preferences")
+    
+    # === PERSONAL INFORMATION FIELDS (Used by profile management and personalization) ===
+    firstName: Optional[str] = Field(None, description="PROFILE MANAGEMENT - personal name field for formal identification and personalized communication")
+    lastName: Optional[str] = Field(None, description="PROFILE MANAGEMENT - family name field for formal identification and contact purposes")
+    pronouns: Optional[str] = Field(None, description="PROFILE MANAGEMENT - preferred pronouns for inclusive communication and respect")
+    gender: Optional[str] = Field(None, description="PROFILE MANAGEMENT - optional gender identity for personalization and demographic insights")
+    dob: Optional[str] = Field(None, description="PROFILE MANAGEMENT - birth date (YYYY-MM-DD) for age-appropriate content and legal compliance")
 
 class UserCreate(UserBase):
     uid: Optional[str] = None  # Can be provided or generated
@@ -74,7 +104,6 @@ class UserUpdate(BaseModel):
     preferences: Optional[Preferences] = None
     status: Optional[AccountStatus] = None
     profileComplete: Optional[bool] = None
-    passwordHash: Optional[str] = None  # ✅ For password changes
     firstName: Optional[str] = None
     lastName: Optional[str] = None
     pronouns: Optional[str] = None

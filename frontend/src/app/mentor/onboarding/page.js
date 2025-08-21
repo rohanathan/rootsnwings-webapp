@@ -15,14 +15,7 @@ const STEPS = [
   { id: 7, title: "Pricing" },
 ];
 
-const SUBJECTS = [
-  { value: "music", icon: "fas fa-music", name: "Music" },
-  { value: "maths", icon: "fas fa-calculator", name: "Maths" },
-  { value: "art", icon: "fas fa-palette", name: "Art & Craft" },
-  { value: "languages", icon: "fas fa-globe", name: "Languages" },
-  { value: "coding", icon: "fas fa-code", name: "Coding" },
-  { value: "philosophy", icon: "fas fa-brain", name: "Philosophy" },
-];
+// Categories will be fetched from API
 
 const LANGUAGES = [
   { value: "spanish", name: "Spanish" },
@@ -43,6 +36,10 @@ const OnBoarding = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
+
+  // Categories state
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   // Form state matching the API request body structure
   const [formData, setFormData] = useState({
@@ -119,6 +116,48 @@ const OnBoarding = () => {
   useEffect(() => {
     localStorage.setItem("mentorOnboardingForm", JSON.stringify(formData));
   }, [formData]);
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const response = await fetch(
+          "https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/categories"
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setCategories(data.categories || []);
+        } else {
+          console.error("Failed to fetch categories");
+          // Fallback to hardcoded categories
+          setCategories([
+            { categoryId: "music", categoryName: "Music", icon: "fas fa-music" },
+            { categoryId: "maths", categoryName: "Maths", icon: "fas fa-calculator" },
+            { categoryId: "art", categoryName: "Art & Craft", icon: "fas fa-palette" },
+            { categoryId: "languages", categoryName: "Languages", icon: "fas fa-globe" },
+            { categoryId: "coding", categoryName: "Coding", icon: "fas fa-code" },
+            { categoryId: "philosophy", categoryName: "Philosophy", icon: "fas fa-brain" },
+          ]);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        // Fallback to hardcoded categories
+        setCategories([
+          { categoryId: "music", categoryName: "Music", icon: "fas fa-music" },
+          { categoryId: "maths", categoryName: "Maths", icon: "fas fa-calculator" },
+          { categoryId: "art", categoryName: "Art & Craft", icon: "fas fa-palette" },
+          { categoryId: "languages", categoryName: "Languages", icon: "fas fa-globe" },
+          { categoryId: "coding", categoryName: "Coding", icon: "fas fa-code" },
+          { categoryId: "philosophy", categoryName: "Philosophy", icon: "fas fa-brain" },
+        ]);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -449,60 +488,46 @@ const OnBoarding = () => {
                 What would you like to teach?
               </h2>
 
-              {/* Subject Selection */}
+              {/* Category Selection */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Select your subjects
+                  Choose your subject category
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {SUBJECTS.map((subject) => (
-                    <label
-                      key={subject.value}
-                      className="subject-option cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        value={subject.value}
-                        checked={formData.subjects.includes(subject.value)}
-                        onChange={() => handleSubjectSelect(subject.value)}
-                      />
-                      <div
-                        className={`subject-card p-3 border-2 rounded-lg text-center transition-colors ${
-                          formData.subjects.includes(subject.value)
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:border-blue-500"
-                        }`}
+                {loadingCategories ? (
+                  <div className="text-center py-8">
+                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    <p className="text-gray-600">Loading categories...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {categories.map((category) => (
+                      <label
+                        key={category.categoryId}
+                        className="subject-option cursor-pointer"
                       >
-                        <i className={`${subject.icon} text-blue-500 mb-2`}></i>
-                        <div className="text-sm font-medium">
-                          {subject.name}
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          value={category.categoryId}
+                          checked={formData.subjects.includes(category.categoryId)}
+                          onChange={() => handleSubjectSelect(category.categoryId)}
+                        />
+                        <div
+                          className={`subject-card p-3 border-2 rounded-lg text-center transition-colors ${
+                            formData.subjects.includes(category.categoryId)
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-200 hover:border-blue-500"
+                          }`}
+                        >
+                          <i className={`${category.icon} text-blue-500 mb-2`}></i>
+                          <div className="text-sm font-medium">
+                            {category.categoryName}
+                          </div>
                         </div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-
-                {/* Custom Subject Input */}
-                <div className="mt-4">
-                  <form onSubmit={handleAddCustomSubject}>
-                    <div className="flex space-x-3">
-                      <input
-                        type="text"
-                        placeholder="Add another subject..."
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={customSubject}
-                        onChange={(e) => setCustomSubject(e.target.value)}
-                      />
-                      <button
-                        type="submit"
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </form>
-                </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Levels and Age Groups */}
@@ -597,7 +622,7 @@ const OnBoarding = () => {
                   <span role="img" aria-label="pencil">
                     ✏️
                   </span>{" "}
-                  Title of your ad
+                  Headline
                 </label>
                 <textarea
                   id="title"

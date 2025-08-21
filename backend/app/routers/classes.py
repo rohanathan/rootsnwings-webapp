@@ -21,42 +21,67 @@ router = APIRouter(
 def get_classes(
     # Search & Filter Parameters
     q: str = Query(None, description="Search in title, description, subject"),
-    featured: bool = Query(None, description="Get featured classes only"),
-    type: str = Query(None, description="Class type: one-on-one, batch, workshop"),
-    category: str = Query(None, description="Class category"),
-    subject: str = Query(None, description="Subject of the class"),
-    level: str = Query(None, description="Class level: beginner, intermediate, advanced"),
-    ageGroup: str = Query(None, description="Age group: child, teen, adult"),
-    format: str = Query(None, description="Class format: online, in-person, hybrid"),
-    city: str = Query(None, description="City location"),
-    country: str = Query(None, description="Country location"),
-    mentorId: str = Query(None, description="Filter classes by specific mentor ID"),
-    mentorName: str = Query(None, description="Filter classes by mentor name"),
-    minRating: float = Query(None, ge=0, le=5, description="Minimum mentor rating"),
-    maxPrice: float = Query(None, ge=0, description="Maximum price per session"),
-    minPrice: float = Query(None, ge=0, description="Minimum price per session"),
-    upcoming: bool = Query(None, description="Filter upcoming workshops only"),
-    isRecurring: bool = Query(None, description="Filter recurring classes"),
-    hasAvailability: bool = Query(None, description="Filter classes with available spots"),
-    startDateFrom: str = Query(None, description="Classes starting from date (YYYY-MM-DD)"),
-    startDateTo: str = Query(None, description="Classes starting before date (YYYY-MM-DD)"),
-    status: str = Query(None, description="Filter by class status: approved, pending_approval, rejected"),
+    featured: bool = Query(None, description="Get featured classes only - USED BY: Homepage featured workshops (?featured=true&pageSize=3)"),
+    type: str = Query(None, description="Class type filter - USED BY: Workshop listing (?type=workshop), Group batches (?type=group), One-on-one (?type=one-on-one)"),
+    category: str = Query(None, description="Class category filter - USED BY: Discovery page category filtering"),
+    subject: str = Query(None, description="Subject filter - USED BY: Discovery page subject-specific filtering"),
+    level: str = Query(None, description="Class level filter - USED BY: Workshop discovery advanced filtering"),
+    ageGroup: str = Query(None, description="Age group filter - USED BY: Workshop discovery age-based filtering"),
+    format: str = Query(None, description="Class format filter - USED BY: Workshop discovery format filtering (online/in-person/hybrid)"),
+    city: str = Query(None, description="City location filter - USED BY: Location-based class discovery"),
+    country: str = Query(None, description="Country filter - USED BY: Geographic filtering in discovery"),
+    mentorId: str = Query(None, description="Mentor-specific classes - USED BY: Mentor dashboard (?mentorId={uid}), Mentor detail page, Admin mentor review"),
+    mentorName: str = Query(None, description="Filter by mentor name - USED BY: Search functionality"),
+    minRating: float = Query(None, ge=0, le=5, description="Minimum mentor rating filter - USED BY: Quality filtering in discovery"),
+    maxPrice: float = Query(None, ge=0, description="Maximum price filter - USED BY: Price range filtering in discovery"),
+    minPrice: float = Query(None, ge=0, description="Minimum price filter - USED BY: Price range filtering in discovery"),
+    upcoming: bool = Query(None, description="Upcoming workshops only - USED BY: Homepage featured workshops (?upcoming=true)"),
+    isRecurring: bool = Query(None, description="Recurring classes filter - USED BY: Class type filtering"),
+    hasAvailability: bool = Query(None, description="Available spots filter - USED BY: Booking-ready class filtering"),
+    startDateFrom: str = Query(None, description="Date range start - USED BY: Calendar-based class discovery"),
+    startDateTo: str = Query(None, description="Date range end - USED BY: Calendar-based class discovery"),
+    status: str = Query(None, description="Class status filter - USED BY: Admin dashboard (?status=pending_approval), status management"),
     # Pagination & Sorting
-    sortBy: str = Query("createdAt", description="Sort field"),
-    sortOrder: str = Query("desc", description="Sort order: asc or desc"),
-    page: int = Query(1, ge=1, description="Page number"),
-    pageSize: int = Query(20, ge=1, le=100, description="Items per page")
+    sortBy: str = Query("createdAt", description="Sort field - USED BY: Admin dashboard chronological sorting, discovery page sorting"),
+    sortOrder: str = Query("desc", description="Sort order - USED BY: Most recent first in admin, various discovery sorts"),
+    page: int = Query(1, ge=1, description="Page number - USED BY: Admin dashboard pagination, discovery pagination"),
+    pageSize: int = Query(20, ge=1, le=100, description="Items per page - USED BY: Admin lists (50/100), Discovery (20), Homepage (3)")
 ):
     """
-    Unified classes endpoint with search, filtering, and pagination.
+    Primary classes endpoint used across multiple frontend pages with different parameter combinations.
     
-    Examples:
-    - /classes - Get all classes
-    - /classes?featured=true - Get featured classes
-    - /classes?type=workshop&upcoming=true - Get upcoming workshops
-    - /classes?q=guitar&level=beginner - Search beginner guitar classes
-    - /classes?mentorId=user026&status=approved - Get approved classes by specific mentor
-    - /classes?mentorName=Sarah&subject=anime - Find anime classes by mentors named Sarah
+    FRONTEND USAGE PATTERNS:
+    - Workshop Discovery: GET /classes?type=workshop&pageSize=20&hasAvailability=true
+      Returns workshop list for /explore/workshops (uses: title, description, mentorName, pricing, schedule, 
+      capacity, format, level, ageGroup, classImage)
+    
+    - Homepage Featured: GET /classes?type=workshop&upcoming=true&pageSize=3  
+      Returns 3 featured workshops for homepage cards (uses: title, schedule, mentorName, format)
+    
+    - Mentor Dashboard: GET /classes?mentorId={uid}&pageSize=50
+      Returns mentor's own classes (uses: title, subject, type, schedule.weeklySchedule, status)
+    
+    - Admin Dashboard: GET /classes?status=pending_approval&pageSize=50
+      Returns classes needing approval (uses: status, title, subject, category, mentorName, 
+      capacity.maxStudents, pricing.perSessionRate, type, createdAt)
+    
+    - Group Batches: GET /classes?type=group&mentorId={id}
+      Returns group classes for specific mentor (uses: similar fields as workshops)
+    
+    - Mentor Class Management: GET /classes?mentorId={uid} 
+      Returns all mentor's classes for management interface
+    
+    FILTERING NOTES:
+    - Workshop discovery applies type=workshop filter
+    - Admin uses status parameter for approval workflow
+    - Mentor dashboard filters by mentorId for ownership
+    - Homepage uses upcoming=true for current workshops
+    
+    RESPONSE FIELD USAGE:
+    - Discovery pages: Rich content fields + visual elements + pricing + schedule
+    - Admin interface: Status fields + basic info + business metrics
+    - Mentor dashboard: Management-focused fields + scheduling info
+    - Homepage: Minimal fields for featured showcase cards
     """
     
     # Handle featured classes
@@ -165,10 +190,28 @@ def get_classes(
 @router.get("/{class_id}")
 def get_class_by_id(class_id: str):
     """
-    Get detailed information about a specific class.
+    Get individual class details by ID - used by booking flows and detail views.
     
-    Examples:
-    - /classes/class_anime_001 - Get class details
+    FRONTEND USAGE PATTERNS:
+    - Booking Confirmation: GET /classes/{classId}
+      Used to display class details on booking confirmation page (uses: title, mentorName, pricing, schedule)
+    
+    - User Dashboard: GET /classes/{classId} 
+      Used to show details of user's enrolled classes (uses: title, basic class info)
+    
+    - Admin Class Review: GET /classes/{classId}
+      Used for detailed admin review of pending classes (uses: ALL fields for comprehensive evaluation)
+    
+    - Mentor Class Management: GET /classes/{classId}
+      Used by mentors to view/edit their own class details (uses: ALL fields for management)
+    
+    RESPONSE FIELD USAGE:
+    - Booking context: Core class info + pricing + schedule for booking decisions
+    - Admin review: Complete class details including status, capacity, mentor info
+    - User dashboard: Basic class info for enrolled class display
+    - Mentor management: Full class details for editing and management
+    
+    SECURITY NOTE: Returns all class fields - ensure proper access control at application level
     """
     class_item = fetch_class_by_id(class_id)
     if not class_item:

@@ -9,8 +9,7 @@ from app.routers import payments
 from app.routers import availability
 from app.routers import reviews
 from app.routers import metadata
-from app.routers import auth
-from app.routers import firebase_auth  # New Firebase auth system
+from app.routers import firebase_auth
 from app.routers import user_onboarding
 from app.routers import messages
 from fastapi.staticfiles import StaticFiles  
@@ -87,8 +86,7 @@ app.add_middleware(
 )
 
 # Include modular routes
-app.include_router(auth.router)  # Keep existing JWT auth system
-app.include_router(firebase_auth.router)  # New Firebase auth system (parallel)
+app.include_router(firebase_auth.router)
 app.include_router(user_onboarding.router)
 app.include_router(mentors.router)
 app.include_router(classes.router)

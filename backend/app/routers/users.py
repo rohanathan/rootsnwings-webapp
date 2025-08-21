@@ -13,7 +13,7 @@ from app.services.firestore import db
 
 router = APIRouter(
     prefix="/users",
-    tags=["Users - Simplified API"]
+    tags=["Users "]
 )
 
 def is_admin_user(user_id: str = None) -> bool:
@@ -32,17 +32,26 @@ def is_admin_user(user_id: str = None) -> bool:
 @router.post("/")
 def create_user(user_data: Dict[str, Any]):
     """
-    Create a new user with complete flexibility.
+    Create new user account - used by Firebase auth registration and admin user creation.
     
-    MongoDB-style flexible creation - frontend controls everything:
-    {
-        "uid": "firebase_uid",
-        "email": "user@example.com", 
-        "displayName": "John Doe",
-        "roles": ["student"],
-        "preferences": {...},
-        "anyCustomField": "any value"
-    }
+    FRONTEND USAGE PATTERNS:
+    - Firebase Auth Registration: POST /users/
+      Creates user with uid (Firebase UID), email, displayName, roles after Firebase account creation
+      
+    - Admin User Creation: POST /users/
+      Administrative user creation with full profile data and role assignment
+      
+    - Signup Flow Integration: POST /users/
+      User registration with basic profile data, preferences, and role selection
+      
+    REQUEST FIELDS USAGE:
+    - uid, email, displayName: Core identity fields (always provided)
+    - roles: Role assignment for authentication navigation (student, mentor, parent, admin)
+    - preferences: User settings for language, privacy, notifications
+    - location: Geographic data for directory and matching features
+    - Custom fields: Flexible data for future features and integrations
+    
+    RESPONSE: Returns complete user object for immediate authentication flow
     """
     try:
         # Generate UID if not provided
@@ -93,19 +102,42 @@ def create_user(user_data: Dict[str, Any]):
 @router.get("/{user_id}")
 def get_user(
     user_id: str,
-    profile_type: Optional[str] = Query(None, description="Filter by profile type: student, parent, mentor"),
-    include_profiles: bool = Query(True, description="Include role-specific profiles")
+    profile_type: Optional[str] = Query(None, description="Profile type filter - USED BY: Student profile (?profile_type=student), Parent profile (?profile_type=parent)"),
+    include_profiles: bool = Query(True, description="Include role-specific data - USED BY: Profile management (true), Basic info (false)")
 ):
     """
-    Universal user getter - works for self and admin access.
+    Universal user profile retrieval used across profile management, saved mentors, and admin interfaces.
     
-    Examples:
-    - GET /users/user123 - Get complete user profile
-    - GET /users/user123?profile_type=student - Get only student-related data
-    - GET /users/me - Get current user (if user_id = 'me')
-    - GET /users/user123?include_profiles=false - Just core user data
+    FRONTEND USAGE PATTERNS:
+    - Profile Management: GET /users/me
+      Returns complete user profile (uses: displayName, photoURL, email, phoneNumber, location, preferences)
+      
+    - Student Profile Access: GET /users/{uid}?profile_type=student
+      Returns student-specific data (uses: savedMentors, interests, learningGoals for mentor directory functionality)
+      
+    - Parent Profile Access: GET /users/{uid}?profile_type=parent  
+      Returns parent account data (uses: youngLearners for family account management)
+      
+    - Admin User Management: GET /users/{uid}
+      Returns complete user data (uses: status, roles, email, location for admin user management)
+      
+    - Messaging Context: GET /users/{uid}?include_profiles=false
+      Returns basic user info for messaging interfaces (uses: displayName, photoURL for user identification)
+      
+    - Saved Mentors Feature: GET /users/me?profile_type=student
+      Returns student profile with savedMentors array for mentor directory heart icons
+      
+    FILTERING BEHAVIOR:
+    - No profile_type: Returns core user data + all role-specific profiles
+    - profile_type=student: Returns core user + student profile data only
+    - profile_type=parent: Returns core user + parent profile data only
+    - include_profiles=false: Returns only core user fields
     
-    Returns complete user data + role-specific profiles based on user's roles.
+    RESPONSE FIELD USAGE:
+    - Profile management: Core identity fields + settings + personal info
+    - Student features: Student profile fields + saved mentors functionality  
+    - Admin interface: Complete user data for management and support
+    - Messaging: Basic identity fields for user recognition
     """
     try:
         # Handle 'me' as current user placeholder
