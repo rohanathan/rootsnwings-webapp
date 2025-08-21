@@ -48,17 +48,20 @@ def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
         # Apply basic filters to query (one at a time to avoid composite index issues)
         current_query = base_query
         
-        # Apply only type filter to Firestore to avoid composite index issues
+        # Apply safe filters to Firestore, complex ones to Python
         firestore_filters = []
         other_filters = []
         
+        # These filters are safe for Firestore (single field, no composite index needed)
+        safe_firestore_fields = ["type", "category", "subject", "level", "ageGroup", "format", "mentorId", "status"]
+        
         for filter_item in filters:
-            if filter_item[0] == "type":  # Only apply type filter to Firestore
+            if filter_item[0] in safe_firestore_fields:
                 firestore_filters.append(filter_item)
             else:
-                other_filters.append(filter_item)  # Apply mentorId in Python
+                other_filters.append(filter_item)
         
-        # Apply Firestore filters (only type)
+        # Apply Firestore filters 
         print(f"DEBUG: Applying Firestore filters: {firestore_filters}")
         print(f"DEBUG: Python filters: {other_filters}")
         for field, op, value in firestore_filters:
@@ -80,9 +83,13 @@ def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
             # Apply remaining filters in Python
             should_include = True
             
-            # Apply remaining Firestore filters in Python
+            # Apply remaining filters in Python (filters that couldn't be applied in Firestore)
             for field, op, value in filters:
                 field_value = data.get(field)
+                # Handle None values properly
+                if field_value is None:
+                    should_include = False
+                    break
                 if op == "==" and field_value != value:
                     should_include = False
                     break

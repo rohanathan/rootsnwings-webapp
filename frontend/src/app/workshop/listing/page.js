@@ -223,15 +223,157 @@ export default function Home() {
     return iconMap[subject] || '📚';
   };
 
+  // Helper function to convert date filter to actual date range
+  const getDateRange = (dateFilter) => {
+    const now = new Date();
+    const formatDate = (date) => date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    switch(dateFilter) {
+      case 'today':
+        return { 
+          startDateFrom: formatDate(now), 
+          startDateTo: formatDate(now) 
+        };
+      case 'tomorrow':
+        const tomorrow = new Date(now.getTime() + 24*60*60*1000);
+        return { 
+          startDateFrom: formatDate(tomorrow), 
+          startDateTo: formatDate(tomorrow) 
+        };
+      case 'this-week':
+        const weekEnd = new Date(now.getTime() + 7*24*60*60*1000);
+        return { 
+          startDateFrom: formatDate(now), 
+          startDateTo: formatDate(weekEnd) 
+        };
+      case 'next-week':
+        const nextWeekStart = new Date(now.getTime() + 7*24*60*60*1000);
+        const nextWeekEnd = new Date(now.getTime() + 14*24*60*60*1000);
+        return { 
+          startDateFrom: formatDate(nextWeekStart), 
+          startDateTo: formatDate(nextWeekEnd) 
+        };
+      case 'this-month':
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return { 
+          startDateFrom: formatDate(now), 
+          startDateTo: formatDate(monthEnd) 
+        };
+      default:
+        return {};
+    }
+  };
+
+  // Helper function to convert price filter to min/max values
+  const getPriceRange = (priceFilter) => {
+    switch(priceFilter) {
+      case 'free':
+        return { min: 0, max: 0 };
+      case 'under-20':
+        return { min: 0, max: 19.99 };
+      case '20-50':
+        return { min: 20, max: 50 };
+      case 'over-50':
+        return { min: 50.01 };
+      default:
+        return {};
+    }
+  };
+
   // Function to apply filters
-  const applyFilters = () => {
-    // Filters are now applied through API calls or client-side filtering
-    // This function can be enhanced to work with the real data
+  const applyFilters = async () => {
+    try {
+      setLoading(true);
+      
+      // Map frontend filter names to backend parameter names
+      const apiParams = new URLSearchParams({ type: 'workshop' });
+      
+      // Category filter (subject → category in backend)
+      if (filters.subject) {
+        apiParams.set('category', filters.subject);
+      }
+      
+      // Age group filter
+      if (filters.age) {
+        apiParams.set('ageGroup', filters.age);
+      }
+      
+      // Mode filter (mode → format in backend)
+      if (filters.mode) {
+        apiParams.set('format', filters.mode);
+      }
+      
+      // Date filter - convert to actual dates
+      if (filters.date) {
+        const dateRange = getDateRange(filters.date);
+        if (dateRange.startDateFrom) {
+          apiParams.set('startDateFrom', dateRange.startDateFrom);
+        }
+        if (dateRange.startDateTo) {
+          apiParams.set('startDateTo', dateRange.startDateTo);
+        }
+      }
+      
+      // Price filter - convert to min/max
+      if (filters.price) {
+        const priceRange = getPriceRange(filters.price);
+        if (priceRange.min !== undefined) {
+          apiParams.set('minPrice', priceRange.min);
+        }
+        if (priceRange.max !== undefined) {
+          apiParams.set('maxPrice', priceRange.max);
+        }
+      }
+      
+      console.log('Applying filters:', apiParams.toString());
+      
+      const response = await axios.get(`${API_BASE_URL}/classes?${apiParams}`);
+      const data = response.data;
+      
+      // Transform API data same as fetchWorkshops
+      const workshopClasses = data.classes || [];
+      const transformedWorkshops = workshopClasses.map(cls => ({
+        id: cls.classId,
+        title: cls.title,
+        mentor: cls.mentorName || 'TBD',
+        mentorInitial: cls.mentorName?.charAt(0) || 'M',
+        mentorColor: getColorFromSubject(cls.subject),
+        description: cls.description,
+        date: formatDate(cls.schedule),
+        duration: `${cls.schedule.sessionDuration} minutes`,
+        location: cls.format === 'online' ? 'Online' : 'In-person',
+        subject: getSubjectCategory(cls.subject),
+        age: cls.ageGroup,
+        mode: cls.format,
+        price: cls.pricing.perSessionRate === 0 ? 'free' : getPriceCategory(cls.pricing.perSessionRate),
+        dateFilter: getDateFilter(cls.schedule),
+        badges: getBadges(cls),
+        skills: getSkills(cls),
+        icon: getIcon(cls.subject),
+        classImage: cls.classImage,
+        capacity: cls.capacity.maxStudents - cls.capacity.currentEnrollment,
+        initialCapacity: cls.capacity.maxStudents,
+        totalSessions: cls.pricing.totalSessions,
+        level: cls.level,
+        rating: cls.avgRating,
+        pricing: cls.pricing
+      }));
+      
+      setWorkshops(transformedWorkshops);
+      
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      setError('Failed to apply filters. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Function to clear all filters
-  const clearAllFilters = () => {
+  const clearAllFilters = async () => {
     setFilters({ subject: '', age: '', mode: '', date: '', price: '' });
+    // Fetch all workshops without filters
+    await fetchWorkshops();
   };
 
   // Fetch workshops on component mount

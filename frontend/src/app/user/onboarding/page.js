@@ -15,6 +15,10 @@ const UserOnboardingFlow = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Categories state
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
   // Firebase auth listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -32,6 +36,48 @@ const UserOnboardingFlow = () => {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const response = await fetch(
+          "https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/categories"
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setCategories(data.categories || []);
+        } else {
+          console.error("Failed to fetch categories");
+          // Fallback to hardcoded categories
+          setCategories([
+            { categoryId: "music", categoryName: "Music" },
+            { categoryId: "maths", categoryName: "Maths" },
+            { categoryId: "art", categoryName: "Art & Craft" },
+            { categoryId: "languages", categoryName: "Languages" },
+            { categoryId: "coding", categoryName: "Coding" },
+            { categoryId: "philosophy", categoryName: "Philosophy" },
+          ]);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        // Fallback to hardcoded categories
+        setCategories([
+          { categoryId: "music", categoryName: "Music" },
+          { categoryId: "maths", categoryName: "Maths" },
+          { categoryId: "art", categoryName: "Art & Craft" },
+          { categoryId: "languages", categoryName: "Languages" },
+          { categoryId: "coding", categoryName: "Coding" },
+          { categoryId: "philosophy", categoryName: "Philosophy" },
+        ]);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
   }, []);
 
   // {
@@ -78,21 +124,7 @@ const UserOnboardingFlow = () => {
     },
   });
 
-  // Predefined interests for the student profile step
-  const predefinedInterests = [
-    "Math",
-    "Science",
-    "English",
-    "History",
-    "Art",
-    "Music",
-    "Coding",
-    "Robotics",
-    "Public Speaking",
-    "Photography",
-    "Sports",
-    "Cooking",
-  ];
+  // Categories will be fetched from API
 
   // State for managing custom interest input
   const [customInterest, setCustomInterest] = useState("");
@@ -922,43 +954,50 @@ const UserOnboardingFlow = () => {
                           </p>
                         </div>
 
-                        {/* Interests/Subjects */}
+                        {/* Interests/Categories */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-3">
                             <i className="fas fa-heart mr-2 text-primary"></i>
-                            What subjects interest you?{" "}
+                            What subject categories interest you?{" "}
                             <span className="text-red-500">*</span>
                           </label>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {predefinedInterests.map((interest) => (
-                              <button
-                                key={interest}
-                                type="button"
-                                className={`px-4 py-2 rounded-full font-medium transition-all duration-200 ${
-                                  formData.studentProfile.selectedInterests.includes(
-                                    interest
-                                  )
-                                    ? "bg-primary text-white shadow-md"
-                                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
-                                }`}
-                                onClick={() => handleInterestToggle(interest)}
-                              >
-                                {interest}
-                              </button>
-                            ))}
-                            {formData.studentProfile.selectedInterests
-                              .filter((i) => !predefinedInterests.includes(i))
-                              .map((interest) => (
+                          {loadingCategories ? (
+                            <div className="text-center py-8">
+                              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                              <p className="text-gray-600 text-sm">Loading categories...</p>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                              {categories.map((category) => (
                                 <button
-                                  key={interest}
+                                  key={category.categoryId}
                                   type="button"
-                                  className="px-4 py-2 rounded-full font-medium transition-all duration-200 bg-primary text-white shadow-md"
-                                  onClick={() => handleInterestToggle(interest)}
+                                  className={`px-4 py-2 rounded-full font-medium transition-all duration-200 ${
+                                    formData.studentProfile.selectedInterests.includes(
+                                      category.categoryId
+                                    )
+                                      ? "bg-primary text-white shadow-md"
+                                      : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+                                  }`}
+                                  onClick={() => handleInterestToggle(category.categoryId)}
                                 >
-                                  {interest}
+                                  {category.categoryName}
                                 </button>
                               ))}
-                          </div>
+                              {formData.studentProfile.selectedInterests
+                                .filter((i) => !categories.some(cat => cat.categoryId === i))
+                                .map((interest) => (
+                                  <button
+                                    key={interest}
+                                    type="button"
+                                    className="px-4 py-2 rounded-full font-medium transition-all duration-200 bg-primary text-white shadow-md"
+                                    onClick={() => handleInterestToggle(interest)}
+                                  >
+                                    {interest}
+                                  </button>
+                                ))}
+                            </div>
+                          )}
                           <div className="mt-3 flex space-x-2">
                             <input
                               type="text"
@@ -985,7 +1024,7 @@ const UserOnboardingFlow = () => {
                             </button>
                           </div>
                           <p className="text-xs text-gray-500 mt-2">
-                            Select at least 3 interests that excite you
+                            Select at least 3 categories that interest you
                           </p>
                         </div>
 
