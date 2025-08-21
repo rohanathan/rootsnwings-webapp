@@ -21,6 +21,7 @@ export default function Home() {
     date: '',
     price: '',
   });
+  const [searchQuery, setSearchQuery] = useState('');
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -288,6 +289,11 @@ export default function Home() {
       // Map frontend filter names to backend parameter names
       const apiParams = new URLSearchParams({ type: 'workshop' });
       
+      // Search query
+      if (searchQuery.trim()) {
+        apiParams.set('q', searchQuery.trim());
+      }
+      
       // Category filter (subject → category in backend)
       if (filters.subject) {
         apiParams.set('category', filters.subject);
@@ -372,6 +378,7 @@ export default function Home() {
   // Function to clear all filters
   const clearAllFilters = async () => {
     setFilters({ subject: '', age: '', mode: '', date: '', price: '' });
+    setSearchQuery('');
     // Fetch all workshops without filters
     await fetchWorkshops();
   };
@@ -381,10 +388,14 @@ export default function Home() {
     fetchWorkshops();
   }, []);
 
-  // Apply filters when filter state changes
+  // Apply filters when filter state changes (with debouncing for search)
   useEffect(() => {
-    applyFilters();
-  }, [filters]);
+    const timer = setTimeout(() => {
+      applyFilters();
+    }, 300); // 300ms debounce for search
+    
+    return () => clearTimeout(timer);
+  }, [filters, searchQuery]);
 
   const handleFilterChange = (e) => {
     const { id, value } = e.target;
@@ -550,6 +561,22 @@ export default function Home() {
         {/* Filters Bar Component */}
         <section className="bg-white shadow-lg sticky top-16 z-40 border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-5 py-6">
+            {/* Search Bar */}
+            <div className="mb-6">
+              <div className="relative max-w-2xl mx-auto">
+                <input
+                  type="text"
+                  placeholder="Search workshops by title, subject, or mentor..."
+                  className="w-full px-6 py-4 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none bg-white shadow-sm"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                  <span className="text-2xl">🔍</span>
+                </div>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               {/* Subject Filter */}
               <div>
@@ -652,9 +679,13 @@ export default function Home() {
 
             {/* Results Count */}
             <div className="mt-4 text-center text-gray-600">
-              <span id="results-count">Showing {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}</span> •
+              <span id="results-count">
+                Showing {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
+                {searchQuery && ` for "${searchQuery}"`}
+                {(Object.values(filters).some(f => f) || searchQuery) && ' (filtered)'}
+              </span> •
               <button className="text-primary hover:text-primary-dark font-semibold" onClick={clearAllFilters}>
-                Clear all filters
+                Clear all {(Object.values(filters).some(f => f) || searchQuery) ? 'filters' : 'search'}
               </button>
             </div>
           </div>
