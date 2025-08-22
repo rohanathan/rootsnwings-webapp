@@ -73,6 +73,10 @@ backend/app/__pycache__/*
 backend/venv/*
 backend/.env
 
+# AI environment files
+ai/.env
+ai/__pycache__/*
+
 # VS Code settings
 .vscode/
 
@@ -84,4 +88,3 @@ CLAUDE.md
 .claude/
 E2E_TESTING_PLAN.md
 
-ai/*

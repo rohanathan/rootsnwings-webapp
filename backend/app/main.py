@@ -12,6 +12,7 @@ from app.routers import metadata
 from app.routers import firebase_auth
 from app.routers import user_onboarding
 from app.routers import messages
+from app.ai import ai_router
 from fastapi.staticfiles import StaticFiles  
 import os
 import logging
@@ -98,6 +99,7 @@ app.include_router(availability.router)
 app.include_router(reviews.router)
 app.include_router(metadata.router)
 app.include_router(messages.router)
+app.include_router(ai_router.router, prefix="/ai", tags=["ai"])
 
 # Create uploads directory if it does not exist
 uploads_dir = "uploads"

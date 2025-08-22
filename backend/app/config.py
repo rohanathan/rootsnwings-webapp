@@ -17,5 +17,8 @@ class Settings:
     
     # Frontend URL for Stripe redirects (localhost for now, update via env var later)
     frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    
+    # Google AI (Gemini) Configuration
+    google_ai_api_key: str = os.getenv("GOOGLE_AI_API_KEY", "")
 
 settings = Settings()
