@@ -581,8 +581,6 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
                 "top_k": 20,
                 "candidate_count": 1,
                 "stop_sequences": ["STOP!"],
-                "presence_penalty": 0.0,
-                "frequency_penalty": 0.0,
             },
             safety_settings=safety_settings,
             tools=[service_tool, destination_tool]
@@ -630,8 +628,6 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
                                 "top_p": 0.95,
                                 "top_k": 20,
                                 "candidate_count": 1,
-                                "presence_penalty": 0.0,
-                                "frequency_penalty": 0.0,
                             },
                             safety_settings=safety_settings
                         )
