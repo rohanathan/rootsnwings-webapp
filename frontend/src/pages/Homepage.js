@@ -100,16 +100,48 @@ const Homepage = () => {
 
   // Event handler for the search button
   const handleSearch = () => {
+    console.log('🔘 Search button clicked!');
+    console.log('🔍 Search term:', searchTerm);
+    console.log('🎯 Selected category:', selectedCategory);
+    console.log('📍 Selected location:', selectedLocation);
+    
     if (searchTerm.trim()) {
-      console.log(`Searching for: ${searchTerm}`);
-      // In a real application, this would redirect or fetch data
+      console.log('✅ Search term is not empty, processing...');
+      
+      // Build search parameters
+      const searchParams = new URLSearchParams({
+        q: searchTerm.trim(),
+      });
+      
+      // Add category filter if selected
+      if (selectedCategory && selectedCategory !== '🎯 All Categories') {
+        searchParams.append('category', selectedCategory.toLowerCase().replace(' ', '_'));
+        console.log('🎯 Added category filter:', selectedCategory);
+      }
+      
+      // Add location filter if selected
+      if (selectedLocation && selectedLocation !== '📍 All Locations') {
+        searchParams.append('location', selectedLocation);
+        console.log('📍 Added location filter:', selectedLocation);
+      }
+      
+      const searchUrl = `/search?${searchParams.toString()}`;
+      console.log('🚀 Navigating to:', searchUrl);
+      
+      // Navigate to search results page
+      window.location.href = searchUrl;
+    } else {
+      console.log('❌ Search term is empty, nothing to search');
     }
   };
 
   // Event handler for category filter
   const handleCategoryClick = (categoryName) => {
     setSearchTerm(categoryName);
+    setSelectedCategory(categoryName);
     console.log(`Selected category: ${categoryName}`);
+    // Automatically search when category is clicked
+    setTimeout(() => handleSearch(), 100); // Small delay to ensure state is updated
   };
 
   return (
