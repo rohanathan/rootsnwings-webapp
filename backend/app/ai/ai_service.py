@@ -294,6 +294,15 @@ def build_conversation_context(conversation_history):
     
     return context
 
+def safe_json_serialize(obj):
+    """
+    Safely serialize objects to JSON, handling non-serializable types.
+    """
+    try:
+        return json.dumps(obj, indent=2, default=str)
+    except Exception as e:
+        return f"Error serializing object: {str(e)}"
+
 def make_direct_service_call(service_type, **kwargs):
     """
     Make direct service calls instead of HTTP requests to avoid deadlock.
@@ -558,8 +567,10 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
         full_prompt = conversation_context + "\n\nCurrent question: " + user_question
     
     try:
-        response = genai.generate_content(
-            model=MODEL_ID,
+        # Create the model instance
+        model = genai.GenerativeModel(MODEL_ID)
+        
+        response = model.generate_content(
             contents=full_prompt,
             generation_config={
                 "temperature": 0.4,
@@ -610,8 +621,7 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
                         service_result = make_direct_service_call(service_type, **service_args)
                         
                         # Generate response with the service data
-                        api_response = genai.generate_content(
-                            model=MODEL_ID,
+                        api_response = model.generate_content(
                             contents=f"Service Response: {safe_json_serialize(service_result)}\n\nUser Question: {user_question}\n\nPlease provide a helpful response based on the service data. Don't show raw JSON - format it nicely for the user.",
                             generation_config={
                                 "temperature": 0.4,
