@@ -44,9 +44,25 @@ export default function OneOnOneSessions() {
     const loadMentorData = async () => {
       setLoading(true);
       try {
-        // Get mentorId from URL params
+        // Get mentorId from URL params or localStorage
         const urlParams = new URLSearchParams(window.location.search);
-        const urlMentorId = urlParams.get('mentorId') || '1DDIPejAXjhZvvosPAVBDnQAbfS2'; // Use actual mentor ID from your system
+        let urlMentorId = urlParams.get('mentorId');
+        
+        // If no URL param, try to get from localStorage (from mentor detail page)
+        if (!urlMentorId) {
+          const storedMentor = localStorage.getItem('selectedMentor') || localStorage.getItem('mentor');
+          if (storedMentor) {
+            const mentorData = JSON.parse(storedMentor);
+            urlMentorId = mentorData.uid;
+            console.log('Using mentor from localStorage:', urlMentorId);
+          } else {
+            console.error('No mentor ID found in URL or localStorage');
+            setError('No mentor selected. Please go back to mentor directory.');
+            setLoading(false);
+            return;
+          }
+        }
+        
         console.log('Loading mentor data for:', urlMentorId);
         setMentorId(urlMentorId);
         
