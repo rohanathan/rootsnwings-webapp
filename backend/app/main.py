@@ -27,7 +27,7 @@ app = FastAPI(
     title="Roots & Wings API",
     description="FastAPI backend for Roots & Wings on GCP",
     version="0.1.0",
-    redirect_slashes=False  # Disable automatic trailing slash redirects
+    redirect_slashes=False  # Disable auto trailing slash redirects
 )
 
 # --- Firebase Initialisation ---
