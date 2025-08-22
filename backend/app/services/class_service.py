@@ -28,7 +28,13 @@ def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
             filters.append(("category", "==", query.category))
             
         if query.subject:
-            filters.append(("subject", "==", query.subject))
+            # Handle comma-separated subjects
+            subjects = [s.strip() for s in query.subject.split(',')]
+            if len(subjects) == 1:
+                filters.append(("subject", "==", subjects[0]))
+            else:
+                # Multiple subjects - use 'in' operator  
+                filters.append(("subject", "in", subjects))
             
         if query.level:
             filters.append(("level", "==", query.level))

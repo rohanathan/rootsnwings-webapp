@@ -24,7 +24,7 @@ def get_classes(
     featured: bool = Query(None, description="Get featured classes only - USED BY: Homepage featured workshops (?featured=true&pageSize=3)"),
     type: str = Query(None, description="Class type filter - USED BY: Workshop listing (?type=workshop), Group batches (?type=group), One-on-one (?type=one-on-one)"),
     category: str = Query(None, description="Class category filter - USED BY: Discovery page category filtering"),
-    subject: str = Query(None, description="Subject filter - USED BY: Discovery page subject-specific filtering"),
+    subject: str = Query(None, description="Subject filter - USED BY: Discovery page subject-specific filtering. Supports comma-separated values (e.g., 'piano,guitar,sitar')"),
     level: str = Query(None, description="Class level filter - USED BY: Workshop discovery advanced filtering"),
     ageGroup: str = Query(None, description="Age group filter - USED BY: Workshop discovery age-based filtering"),
     format: str = Query(None, description="Class format filter - USED BY: Workshop discovery format filtering (online/in-person/hybrid)"),
