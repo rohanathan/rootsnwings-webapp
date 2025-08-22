@@ -8,25 +8,49 @@ const HeroSection = () => {
   const [selectedLocation, setSelectedLocation] = useState('📍 All Locations');
 
   // Handle search button click or Enter key press
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (searchTerm.trim()) {
-      // Build search parameters
-      const searchParams = new URLSearchParams({
-        q: searchTerm.trim(),
-      });
+      // For simple keyword searches, go directly without AI
+      const isSimpleKeyword = searchTerm.trim().split(' ').length <= 2 && 
+                              !searchTerm.toLowerCase().includes('i want') &&
+                              !searchTerm.toLowerCase().includes('for ');
       
-      // Add category filter if selected
-      if (selectedCategory && selectedCategory !== '🎯 All Categories') {
-        searchParams.append('category', selectedCategory.replace('🎻 ', '').replace('🎨 ', '').replace('🧘 ', '').replace('🗣️ ', '').toLowerCase().replace(' ', '_'));
+      if (isSimpleKeyword) {
+        // Build search parameters for simple queries
+        const searchParams = new URLSearchParams({
+          q: searchTerm.trim(),
+        });
+        
+        // Add category filter if selected
+        if (selectedCategory && selectedCategory !== '🎯 All Categories') {
+          searchParams.append('category', selectedCategory.replace('🎻 ', '').replace('🎨 ', '').replace('🧘 ', '').replace('🗣️ ', '').toLowerCase().replace(' ', '_'));
+        }
+        
+        // Add location filter if selected
+        if (selectedLocation && selectedLocation !== '📍 All Locations') {
+          searchParams.append('location', selectedLocation);
+        }
+        
+        // Navigate to search results page
+        window.location.href = `/search?${searchParams.toString()}`;
+      } else {
+        // For natural language queries, let the search page handle AI enhancement
+        const searchParams = new URLSearchParams({
+          q: searchTerm.trim(),
+        });
+        
+        // Still add manual filters if selected
+        if (selectedCategory && selectedCategory !== '🎯 All Categories') {
+          searchParams.append('category', selectedCategory.replace('🎻 ', '').replace('🎨 ', '').replace('🧘 ', '').replace('🗣️ ', '').toLowerCase().replace(' ', '_'));
+        }
+        
+        if (selectedLocation && selectedLocation !== '📍 All Locations') {
+          searchParams.append('location', selectedLocation);
+        }
+        
+        // Navigate to search results page (AI enhancement happens there)
+        window.location.href = `/search?${searchParams.toString()}`;
       }
-      
-      // Add location filter if selected
-      if (selectedLocation && selectedLocation !== '📍 All Locations') {
-        searchParams.append('location', selectedLocation);
-      }
-      
-      // Navigate to search results page
-      window.location.href = `/search?${searchParams.toString()}`;
     }
   };
 
@@ -69,7 +93,7 @@ const HeroSection = () => {
                 <input
                   type="text"
                   className="w-full pl-12 pr-32 py-4 border-2 border-gray-200 rounded-full text-base focus:border-primary focus:outline-none transition-colors"
-                  placeholder='Try "Tabla" or "Debating for Teens"'
+                  placeholder='Try "piano for kids" or "I want online dance classes"'
                   aria-label="Search for mentors or skills"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
