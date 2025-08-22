@@ -567,8 +567,11 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
         full_prompt = conversation_context + "\n\nCurrent question: " + user_question
     
     try:
-        # Create the model instance
-        model = genai.GenerativeModel(MODEL_ID)
+        # Create the model instance with system instruction
+        model = genai.GenerativeModel(
+            MODEL_ID,
+            system_instruction=enhanced_system_instruction
+        )
         
         response = model.generate_content(
             contents=full_prompt,
@@ -582,7 +585,6 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
                 "frequency_penalty": 0.0,
             },
             safety_settings=safety_settings,
-            system_instruction=enhanced_system_instruction,
             tools=[service_tool, destination_tool]
         )
         
@@ -631,8 +633,7 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
                                 "presence_penalty": 0.0,
                                 "frequency_penalty": 0.0,
                             },
-                            safety_settings=safety_settings,
-                            system_instruction=enhanced_system_instruction
+                            safety_settings=safety_settings
                         )
                         ai_response = api_response.text if api_response and api_response.text else "I received data but couldn't format it properly."
                     else:
