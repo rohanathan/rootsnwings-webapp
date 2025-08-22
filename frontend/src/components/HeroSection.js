@@ -9,13 +9,23 @@ const HeroSection = () => {
 
   // Handle search button click or Enter key press
   const handleSearch = async () => {
+    console.log('🔘 Search button clicked!');
+    console.log('🔍 Search term:', searchTerm);
+    console.log('🎯 Selected category:', selectedCategory);
+    console.log('📍 Selected location:', selectedLocation);
+    
     if (searchTerm.trim()) {
+      console.log('✅ Search term is not empty, processing...');
+      
       // For simple keyword searches, go directly without AI
       const isSimpleKeyword = searchTerm.trim().split(' ').length <= 2 && 
                               !searchTerm.toLowerCase().includes('i want') &&
                               !searchTerm.toLowerCase().includes('for ');
       
+      console.log('🧠 Is simple keyword?', isSimpleKeyword);
+      
       if (isSimpleKeyword) {
+        console.log('🔍 Processing as simple keyword search...');
         // Build search parameters for simple queries
         const searchParams = new URLSearchParams({
           q: searchTerm.trim(),
@@ -23,17 +33,24 @@ const HeroSection = () => {
         
         // Add category filter if selected
         if (selectedCategory && selectedCategory !== '🎯 All Categories') {
-          searchParams.append('category', selectedCategory.replace('🎻 ', '').replace('🎨 ', '').replace('🧘 ', '').replace('🗣️ ', '').toLowerCase().replace(' ', '_'));
+          const cleanCategory = selectedCategory.replace('🎻 ', '').replace('🎨 ', '').replace('🧘 ', '').replace('🗣️ ', '').toLowerCase().replace(' ', '_');
+          searchParams.append('category', cleanCategory);
+          console.log('🎯 Added category filter:', cleanCategory);
         }
         
         // Add location filter if selected
         if (selectedLocation && selectedLocation !== '📍 All Locations') {
           searchParams.append('location', selectedLocation);
+          console.log('📍 Added location filter:', selectedLocation);
         }
         
+        const searchUrl = `/search?${searchParams.toString()}`;
+        console.log('🚀 Navigating to:', searchUrl);
+        
         // Navigate to search results page
-        window.location.href = `/search?${searchParams.toString()}`;
+        window.location.href = searchUrl;
       } else {
+        console.log('🤖 Processing as natural language search...');
         // For natural language queries, let the search page handle AI enhancement
         const searchParams = new URLSearchParams({
           q: searchTerm.trim(),
@@ -41,16 +58,24 @@ const HeroSection = () => {
         
         // Still add manual filters if selected
         if (selectedCategory && selectedCategory !== '🎯 All Categories') {
-          searchParams.append('category', selectedCategory.replace('🎻 ', '').replace('🎨 ', '').replace('🧘 ', '').replace('🗣️ ', '').toLowerCase().replace(' ', '_'));
+          const cleanCategory = selectedCategory.replace('🎻 ', '').replace('🎨 ', '').replace('🧘 ', '').replace('🗣️ ', '').toLowerCase().replace(' ', '_');
+          searchParams.append('category', cleanCategory);
+          console.log('🎯 Added category filter:', cleanCategory);
         }
         
         if (selectedLocation && selectedLocation !== '📍 All Locations') {
           searchParams.append('location', selectedLocation);
+          console.log('📍 Added location filter:', selectedLocation);
         }
         
+        const searchUrl = `/search?${searchParams.toString()}`;
+        console.log('🚀 Navigating to:', searchUrl);
+        
         // Navigate to search results page (AI enhancement happens there)
-        window.location.href = `/search?${searchParams.toString()}`;
+        window.location.href = searchUrl;
       }
+    } else {
+      console.log('❌ Search term is empty, nothing to search');
     }
   };
 

@@ -161,6 +161,7 @@ location: [city name or null]`
   };
 
   const performSearch = async (query, filters = {}) => {
+    console.log('🚀 performSearch called with:', { query, filters });
     setLoading(true);
     setError('');
     
@@ -174,19 +175,25 @@ location: [city name or null]`
       console.log('🔍 Search filters:', filters);
       
       const response = await fetch(`${API_BASE_URL}/search/?${searchParams}`);
+      console.log('📡 Response status:', response.status);
+      
       const data = await response.json();
+      console.log('📊 Response data:', data);
       
       if (response.ok) {
         setSearchResults(data.results || []);
         setTotalResults(data.results?.length || 0);
+        console.log('✅ Search results set:', data.results?.length || 0, 'results');
       } else {
         setError('Search failed. Please try again.');
+        console.log('❌ Search failed with status:', response.status);
       }
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('❌ Search error:', error);
       setError('Unable to perform search. Please check your connection.');
     } finally {
       setLoading(false);
+      console.log('🏁 Search completed, loading set to false');
     }
   };
 
@@ -234,6 +241,21 @@ location: [city name or null]`
               Found {totalResults} results for "{searchQuery}"
             </p>
           )}
+
+          {/* Debug Test Button */}
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800 text-sm mb-2">🔧 Debug: Test Search API</p>
+            <button 
+              onClick={() => {
+                console.log('🔘 Test search button clicked!');
+                console.log('🔍 Current search query:', searchQuery);
+                performSearch('piano', { category: 'music' });
+              }}
+              className="bg-yellow-500 text-white px-4 py-2 rounded text-sm hover:bg-yellow-600"
+            >
+              🧪 Test Search API
+            </button>
+          </div>
 
           {aiEnhanced && enhancementMessage && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
