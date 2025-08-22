@@ -133,9 +133,20 @@ const MentorDetail = () => {
                         ...prevData,
                         classes: response.data.classes
                     }));
+                } else {
+                    // Ensure classes is always an array
+                    setMentorClasses(prevData => ({
+                        ...prevData,
+                        classes: []
+                    }));
                 }
             } catch (error) {
                 console.error('Error fetching mentor classes:', error);
+                // Ensure classes is always an array even on error
+                setMentorClasses(prevData => ({
+                    ...prevData,
+                    classes: []
+                }));
             }
         };
 
@@ -314,7 +325,7 @@ const MentorDetail = () => {
                                             <p className="text-gray-700 leading-relaxed mb-4">
                                                 {isBioExpanded ? mentorData.bio : shortBio}
                                             </p>
-                                            {mentorData.bio.length > 150 && (
+                                            {mentorData.bio?.length > 150 && (
                                                 <button
                                                     id="read-more-btn"
                                                     className="text-primary hover:text-primary-dark font-medium transition-colors"
@@ -468,18 +479,18 @@ const MentorDetail = () => {
                                                 <div className="text-sm text-gray-600 mb-4">Multi-week structured learning programs</div>
                                                 <button 
                                                 
-                                                    disabled={mentorClasses.classes.filter(c => c.type === 'group').length === 0}
+                                                    disabled={(mentorClasses.classes || []).filter(c => c.type === 'group').length === 0}
                                                     onClick={() => {
                                                         // Store mentor data for group classes
                                                         localStorage.setItem('selectedMentor', JSON.stringify(mentorData));
                                                         window.location.href = `/explore/group-batches?mentorId=${mentorData.uid}&type=group`;
                                                     }}
                                                     className={`w-full py-3 rounded-full font-semibold transition-colors ${
-                                                        mentorClasses.classes.filter(c => c.type === 'group').length === 0
+                                                        (mentorClasses.classes || []).filter(c => c.type === 'group').length === 0
                                                         ? 'bg-gray-400 cursor-not-allowed' 
                                                         : 'bg-primary hover:bg-blue-500 text-white'
                                                     }`}
-                                                    title={mentorClasses.classes.filter(c => c.type === 'group').length === 0 ? "No group classes available at the moment" : ""}
+                                                    title={(mentorClasses.classes || []).filter(c => c.type === 'group').length === 0 ? "No group classes available at the moment" : ""}
                                                 >
                                                     Explore Sessions
                                                 </button>
@@ -545,7 +556,7 @@ const MentorDetail = () => {
                                             <div className="mb-6">
                                                 <h4 className="font-semibold text-gray-700 mb-3">Generally Available</h4>
                                                 <div className="flex flex-wrap gap-2">
-                                                    {mentorData.availabilitySummary.generallyAvailable && mentorData.availabilitySummary.generallyAvailable.length > 0 ? (
+                                                    {mentorData.availabilitySummary?.generallyAvailable && mentorData.availabilitySummary.generallyAvailable.length > 0 ? (
                                                         mentorData.availabilitySummary.generallyAvailable.map((day, index) => (
                                                             <span key={index} className="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium">
                                                                 {day}
@@ -561,7 +572,7 @@ const MentorDetail = () => {
                                             <div className="mb-6">
                                                 <h4 className="font-semibold text-gray-700 mb-3">Preferred Hours</h4>
                                                 <div className="flex flex-wrap gap-2">
-                                                    {mentorData.availabilitySummary.preferredHours && mentorData.availabilitySummary.preferredHours.length > 0 ? (
+                                                    {mentorData.availabilitySummary?.preferredHours && mentorData.availabilitySummary.preferredHours.length > 0 ? (
                                                         mentorData.availabilitySummary.preferredHours.map((hour, index) => (
                                                             <span key={index} className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium capitalize">
                                                                 {hour}
