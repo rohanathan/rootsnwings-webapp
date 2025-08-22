@@ -12,7 +12,7 @@ const AuthPages = () => {
 
 
   // State to manage which tab is active: 'signin' or 'signup'
-  const [activeTab, setActiveTab] = useState('signup');
+  const [activeTab, setActiveTab] = useState('signin'); // Default to signin
   
   // Loading states for form submissions
   const [isSignupLoading, setIsSignupLoading] = useState(false);
@@ -46,6 +46,22 @@ const AuthPages = () => {
   const [signupFormErrors, setSignupFormErrors] = useState({});
   const [signinFormErrors, setSigninFormErrors] = useState({});
   
+  // Check URL parameters and set the active tab on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      
+      // Set tab based on URL parameter
+      if (tab === 'signup') {
+        setActiveTab('signup');
+      } else if (tab === 'signin') {
+        setActiveTab('signin');
+      }
+      // If no tab parameter, default is 'signin' as set in useState
+    }
+  }, []);
+
   // Updates the document title based on the active tab
   useEffect(() => {
     document.title = activeTab === 'signup' ? 'Sign Up - Roots & Wings' : 'Sign In - Roots & Wings';

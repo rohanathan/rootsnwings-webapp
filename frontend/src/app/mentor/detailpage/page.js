@@ -120,6 +120,17 @@ const MentorDetail = () => {
             return;
         }
         const initialMentorData = JSON.parse(storedMentor);
+        
+        // Ensure pricing object exists with defaults
+        if (!initialMentorData.pricing) {
+            initialMentorData.pricing = {
+                currency: 'GBP',
+                oneOnOneRate: 0,
+                groupRate: 0,
+                firstSessionFree: false
+            };
+        }
+        
         setMentorData(initialMentorData);
 
         // Get mentor's classes
@@ -357,10 +368,10 @@ const MentorDetail = () => {
                                     {/* Pricing Header */}
                                     <div className="text-center mb-6">
                                         <div className="text-3xl font-bold text-primary-dark mb-2">
-                                            {mentorData.pricing.currency}{mentorData.pricing.oneOnOneRate}
+                                            {mentorData.pricing?.currency || '£'}{mentorData.pricing?.oneOnOneRate || '0'}
                                             <span className="text-lg text-gray-500">/hour</span>
                                         </div>
-                                        {mentorData.pricing.firstSessionFree && (
+                                        {mentorData.pricing?.firstSessionFree && (
                                             <div className="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                                                 ✅ First Session is Free
                                             </div>
@@ -443,7 +454,7 @@ const MentorDetail = () => {
                                                 </ul>
                                             </div>
                                             <div className="bg-primary-light p-6 rounded-xl">
-                                                <div className="text-2xl font-bold text-primary-dark mb-2">{mentorData.pricing.currency}{mentorData.pricing.oneOnOneRate}/session</div>
+                                                <div className="text-2xl font-bold text-primary-dark mb-2">{mentorData.pricing?.currency || '£'}{mentorData.pricing?.oneOnOneRate || '0'}/session</div>
                                                 <div className="text-sm text-gray-600 mb-4">Available slots throughout the week</div>
                                                 <button 
                                                     onClick={() => {
@@ -461,7 +472,7 @@ const MentorDetail = () => {
                                 )}
 
                                 {/* Group Batches */}
-                                {activeTab === 'group-batches' && mentorData.acceptingNewStudents.group && (
+                                {activeTab === 'group-batches' && mentorData.acceptingNewStudents?.group && (
                                     <div id="group-batches" className="tab-pane">
                                         <div className="grid md:grid-cols-2 gap-6">
                                             <div>
@@ -475,7 +486,7 @@ const MentorDetail = () => {
                                                 </ul>
                                             </div>
                                             <div className="bg-primary-light p-6 rounded-xl">
-                                                <div className="text-2xl font-bold text-primary-dark mb-2">{mentorData.pricing.currency}{mentorData.pricing.groupRate}/session</div>
+                                                <div className="text-2xl font-bold text-primary-dark mb-2">{mentorData.pricing?.currency || '£'}{mentorData.pricing?.groupRate || '0'}/session</div>
                                                 <div className="text-sm text-gray-600 mb-4">Multi-week structured learning programs</div>
                                                 <button 
                                                 
@@ -585,11 +596,11 @@ const MentorDetail = () => {
                                             </div>
 
                                             {/* Timezone */}
-                                            {mentorData.availabilitySummary.timezone && (
+                                            {mentorData.availabilitySummary?.timezone && (
                                                 <div className="mb-4">
                                                     <h4 className="font-semibold text-gray-700 mb-2">Timezone</h4>
                                                     <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                                                        {mentorData.availabilitySummary.timezone}
+                                                        {mentorData.availabilitySummary?.timezone}
                                                     </span>
                                                 </div>
                                             )}

@@ -8,7 +8,7 @@ import { auth } from '../../../lib/firebase';
 
 const AuthPages = () => {
   // State to manage which tab is active: 'signin' or 'signup'
-  const [activeTab, setActiveTab] = useState('signup');
+  const [activeTab, setActiveTab] = useState('signup'); // Default to signup for mentors
   
   // Loading states for form submissions
   const [isSignupLoading, setIsSignupLoading] = useState(false);
@@ -42,6 +42,22 @@ const AuthPages = () => {
   const [signupFormErrors, setSignupFormErrors] = useState({});
   const [signinFormErrors, setSigninFormErrors] = useState({});
   
+  // Check URL parameters and set the active tab on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      
+      // Set tab based on URL parameter
+      if (tab === 'signin') {
+        setActiveTab('signin');
+      } else if (tab === 'signup') {
+        setActiveTab('signup');
+      }
+      // If no tab parameter, default is 'signup' as set in useState (good for "Become a Mentor" flow)
+    }
+  }, []);
+
   // Updates the document title based on the active tab
   useEffect(() => {
     // Guard against server-side rendering
