@@ -515,7 +515,7 @@ export default function Home() {
         {/* <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
           <div className="max-w-7xl mx-auto px-5">
             <div className="flex justify-between items-center py-4">
-              <a href="#" className="text-2xl font-bold text-primary-dark">Roots & Wings</a>
+              <a href="/" className="text-2xl font-bold text-primary-dark hover:text-primary transition-colors">Roots & Wings</a>
               <ul className="hidden md:flex space-x-8">
                 <li><a href="#" className="text-gray-700 hover:text-primary font-medium transition-colors">Home</a></li>
                 <li><a href="#" className="text-gray-700 hover:text-primary font-medium transition-colors">Mentors</a></li>

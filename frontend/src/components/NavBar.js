@@ -20,9 +20,9 @@ const Navbar = ({ user }) => {
       <div className="max-w-7xl mx-auto px-5">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
-          <div className="text-2xl font-bold text-primary-dark">
+          <a href="/" className="text-2xl font-bold text-primary-dark hover:text-primary transition-colors">
             Roots & Wings
-          </div>
+          </a>
 
           {/* Desktop Menu */}
           <ul className="hidden md:flex space-x-8">

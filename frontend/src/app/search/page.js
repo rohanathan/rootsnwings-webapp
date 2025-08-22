@@ -229,8 +229,8 @@ matched_subjects: [list of subjects found in metadata]`
 
   const handleViewDetails = (result) => {
     if (result.type === 'mentor') {
-      // Use the same pattern as mentor directory - store in localStorage
-      localStorage.setItem("mentor", JSON.stringify(result));
+      // Store the actual mentor data, not the search result wrapper
+      localStorage.setItem("mentor", JSON.stringify(result.data));
       window.location.href = "/mentor/detailpage";
     } else if (result.type === 'class') {
       // All class types go directly to booking page

@@ -260,7 +260,7 @@ const MentorDetail = () => {
                 <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-sm shadow-lg">
                     <div className="max-w-7xl mx-auto px-5">
                         <div className="flex justify-between items-center py-4">
-                            <a href="#" className="text-2xl font-bold text-primary-dark">Roots & Wings</a>
+                            <a href="/" className="text-2xl font-bold text-primary-dark hover:text-primary transition-colors">Roots & Wings</a>
                             <div className="flex items-center space-x-6">
                                 <a href="/mentor/directory" className="text-gray-600 hover:text-primary transition-colors">← Back to Mentors</a>
                               

@@ -244,7 +244,7 @@ export default function BookingSuccess() {
       <nav className="relative z-20 bg-white/90 backdrop-blur-sm shadow-lg">
         <div className="max-w-7xl mx-auto px-5">
           <div className="flex justify-between items-center py-4">
-            <a href="#" className="text-2xl font-bold text-primary-dark">Roots & Wings</a>
+            <a href="/" className="text-2xl font-bold text-primary-dark hover:text-primary transition-colors">Roots & Wings</a>
             <div className="flex items-center space-x-6">
               <span className="text-green-600 font-semibold">✅ Booking Confirmed</span>
               <a href="#" className="text-gray-600 hover:text-primary transition-colors">Help</a>
