@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Navbar from '../../components/NavBar';
+import Footer from '../../components/Footer';
 
 const SearchResults = () => {
   const [searchResults, setSearchResults] = useState([]);
@@ -11,6 +13,7 @@ const SearchResults = () => {
   const [totalResults, setTotalResults] = useState(0);
   const [aiEnhanced, setAiEnhanced] = useState(false);
   const [enhancementMessage, setEnhancementMessage] = useState('');
+  const [user, setUser] = useState({});
 
   const router = useRouter();
   const API_BASE_URL = 'https://rootsnwings-api-944856745086.europe-west2.run.app';
@@ -55,6 +58,9 @@ const SearchResults = () => {
       if (line.includes('location:')) {
         filters.location = line.split(':')[1]?.trim().replace(/[\[\]]/g, '') || '';
       }
+      if (line.includes('matched_subjects:')) {
+        filters.matched_subjects = line.split(':')[1]?.trim().replace(/[\[\]]/g, '') || '';
+      }
     });
     
     return filters;
@@ -73,12 +79,18 @@ const SearchResults = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          message: `Extract search parameters from this query: "${userQuery}". Return exactly this format:
-search_terms: [main search terms]
-category: [subject category like music, dance, art]  
+          message: `Using available subjects metadata, extract and enhance search parameters from: "${userQuery}". 
+
+Find semantic matches using synonyms and keywords from our subjects database.
+For example: "kite making" should match "kite crafting", "3d printing" should match "additive manufacturing".
+
+Return exactly this format:
+search_terms: [enhanced search terms including synonyms]
+category: [subject category like music, dance, art, stem]  
 age_group: [child, teen, adult, or null]
 format: [online, in-person, hybrid, or null]
-location: [city name or null]`
+location: [city name or null]
+matched_subjects: [list of subjects found in metadata]`
         })
       });
       
@@ -111,7 +123,15 @@ location: [city name or null]`
         });
         
         setAiEnhanced(true);
-        setEnhancementMessage(`AI enhanced: "${userQuery}" → ${Object.keys(searchParams).length - 1} filters applied`);
+        let message = ` AI enhanced your search for "${userQuery}"`;
+        
+        if (enhancedFilters.matched_subjects) {
+          message += ` → Found matches in: ${enhancedFilters.matched_subjects}`;
+        } else {
+          message += ` with ${Object.keys(searchParams).length - 1} smart filters`;
+        }
+        
+        setEnhancementMessage(message);
         
         return searchParams;
       }
@@ -124,8 +144,18 @@ location: [city name or null]`
   };
 
   useEffect(() => {
-    // Get search parameters from URL
+    // Load user from localStorage
     if (typeof window !== 'undefined') {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+
+      // Get search parameters from URL
       const urlParams = new URLSearchParams(window.location.search);
       const query = urlParams.get('q') || '';
       const category = urlParams.get('category') || '';
@@ -217,198 +247,196 @@ location: [city name or null]`
     return location;
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-20">
-        <div className="max-w-6xl mx-auto px-5 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Searching for "{searchQuery}"...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
-      <div className="max-w-6xl mx-auto px-5 py-8">
-        {/* Search Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Search Results
-          </h1>
-          {searchQuery && (
-            <p className="text-gray-600 mb-4">
-              Found {totalResults} results for "{searchQuery}"
-            </p>
-          )}
+    <>
+      <body className="font-sans text-gray-800 bg-white">
+        {/* Navigation Component */}
+        <Navbar user={user} />
 
-          {/* Debug Test Button */}
-          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-yellow-800 text-sm mb-2">🔧 Debug: Test Search API</p>
-            <button 
-              onClick={() => {
-                console.log('🔘 Test search button clicked!');
-                console.log('🔍 Current search query:', searchQuery);
-                performSearch('piano', { category: 'music' });
-              }}
-              className="bg-yellow-500 text-white px-4 py-2 rounded text-sm hover:bg-yellow-600"
-            >
-              🧪 Test Search API
-            </button>
+        {/* Hero Section Component */}
+        <section className="bg-gradient-to-br from-primary-light to-accent-light pt-20 pb-12 mt-16">
+          <div className="max-w-4xl mx-auto px-5 text-center">
+            <h1 className="text-5xl font-bold text-primary-dark mb-4">
+              Search Results
+            </h1>
+            {searchQuery && (
+              <p className="text-lg text-gray-600 leading-relaxed">
+                Found {totalResults} results for "{searchQuery}"
+              </p>
+            )}
           </div>
+        </section>
 
-          {aiEnhanced && enhancementMessage && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        {/* AI Enhancement Message */}
+        {aiEnhanced && enhancementMessage && (
+          <section className="bg-blue-50 border-b border-blue-200">
+            <div className="max-w-6xl mx-auto px-5 py-4">
               <div className="flex items-center gap-2">
                 <span className="text-blue-600">🤖</span>
                 <p className="text-blue-700 text-sm">{enhancementMessage}</p>
               </div>
             </div>
-          )}
-          
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <p className="text-red-700">{error}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Results */}
-        {searchResults.length === 0 && !loading ? (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">🔍</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No results found</h3>
-            <p className="text-gray-600 mb-6">
-              Try adjusting your search terms or browse our categories.
-            </p>
-            <button
-              onClick={() => router.push('/')}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Back to Home
-            </button>
-          </div>
-        ) : (
-          <div className="grid gap-6">
-            {searchResults.map((result) => (
-              <div
-                key={`${result.type}-${result.id}`}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow border border-gray-200"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    {/* Result Type Badge */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        result.type === 'mentor' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {result.type === 'mentor' ? '👨‍🏫 Mentor' : '📚 Class'}
-                      </span>
-                      {result.category && (
-                        <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                          {result.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Title and Description */}
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                      {result.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4 line-clamp-2">
-                      {result.description}
-                    </p>
-
-                    {/* Details Row */}
-                    <div className="flex items-center gap-6 text-sm text-gray-500 mb-4">
-                      {result.rating && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-yellow-400">⭐</span>
-                          <span>{result.rating}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <span>💰</span>
-                        <span>{formatPrice(result.price)}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span>📍</span>
-                        <span>{formatLocation(result.location)}</span>
-                      </div>
-                      {result.type === 'class' && result.data.schedule && (
-                        <div className="flex items-center gap-1">
-                          <span>📅</span>
-                          <span>Starts {new Date(result.data.schedule.startDate).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                      {result.type === 'class' && result.data.capacity && (
-                        <div className="flex items-center gap-1">
-                          <span>👥</span>
-                          <span>{result.data.capacity.currentEnrollment}/{result.data.capacity.maxStudents} spots</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Tags */}
-                    {result.tags && result.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {result.tags.slice(0, 5).map((tag, index) => (
-                          <span
-                            key={index}
-                            className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                        {result.tags.length > 5 && (
-                          <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                            +{result.tags.length - 5} more
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Image and Action */}
-                  <div className="flex flex-col items-end gap-4 ml-6">
-                    {result.imageUrl && (
-                      <img
-                        src={result.imageUrl}
-                        alt={result.title}
-                        className="w-24 h-24 object-cover rounded-lg"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    )}
-                    <button
-                      onClick={() => handleViewDetails(result)}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                    >
-                      {result.type === 'mentor' ? 'View Profile' : 'Book Now'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          </section>
         )}
 
-        {/* Back to search */}
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => router.push('/')}
-            className="text-blue-600 hover:text-blue-700 font-medium"
-          >
-            ← New Search
-          </button>
-        </div>
-      </div>
-    </div>
+        {/* Error Message */}
+        {error && (
+          <section className="bg-red-50 border-b border-red-200">
+            <div className="max-w-6xl mx-auto px-5 py-4">
+              <p className="text-red-700">{error}</p>
+            </div>
+          </section>
+        )}
+
+        {/* Results Section */}
+        <section className="bg-white py-12">
+          <div className="max-w-6xl mx-auto px-5">
+            
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Searching for "{searchQuery}"...</p>
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-6xl mb-4">🔍</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No results found</h3>
+                <p className="text-gray-600 mb-6">
+                  Try adjusting your search terms or browse our categories.
+                </p>
+                <button
+                  onClick={() => router.push('/')}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Back to Home
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-6">
+                {searchResults.map((result) => (
+                  <div
+                    key={`${result.type}-${result.id}`}
+                    className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow border border-gray-200"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        {/* Result Type Badge */}
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            result.type === 'mentor' 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {result.type === 'mentor' ? '👨‍🏫 Mentor' : '📚 Class'}
+                          </span>
+                          {result.category && (
+                            <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                              {result.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Title and Description */}
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                          {result.title}
+                        </h3>
+                        <p className="text-gray-600 mb-4 line-clamp-2">
+                          {result.description}
+                        </p>
+
+                        {/* Details Row */}
+                        <div className="flex items-center gap-6 text-sm text-gray-500 mb-4">
+                          {result.rating && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-yellow-400">⭐</span>
+                              <span>{result.rating}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1">
+                            <span>💰</span>
+                            <span>{formatPrice(result.price)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span>📍</span>
+                            <span>{formatLocation(result.location)}</span>
+                          </div>
+                          {result.type === 'class' && result.data.schedule && (
+                            <div className="flex items-center gap-1">
+                              <span>📅</span>
+                              <span>Starts {new Date(result.data.schedule.startDate).toLocaleDateString()}</span>
+                            </div>
+                          )}
+                          {result.type === 'class' && result.data.capacity && (
+                            <div className="flex items-center gap-1">
+                              <span>👥</span>
+                              <span>{result.data.capacity.currentEnrollment}/{result.data.capacity.maxStudents} spots</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Tags */}
+                        {result.tags && result.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {result.tags.slice(0, 5).map((tag, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                            {result.tags.length > 5 && (
+                              <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                                +{result.tags.length - 5} more
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Image and Action */}
+                      <div className="flex flex-col items-end gap-4 ml-6">
+                        {result.imageUrl && (
+                          <img
+                            src={result.imageUrl}
+                            alt={result.title}
+                            className="w-24 h-24 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        )}
+                        <button
+                          onClick={() => handleViewDetails(result)}
+                          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
+                          {result.type === 'mentor' ? 'View Profile' : 'Book Now'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Back to search */}
+            {!loading && (
+              <div className="mt-12 text-center">
+                <button
+                  onClick={() => router.push('/')}
+                  className="text-blue-600 hover:text-blue-700 font-medium text-lg"
+                >
+                  ← New Search
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Footer Component */}
+        <Footer />
+      </body>
+    </>
   );
 };
 

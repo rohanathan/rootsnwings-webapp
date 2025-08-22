@@ -303,6 +303,101 @@ def safe_json_serialize(obj):
     except Exception as e:
         return f"Error serializing object: {str(e)}"
 
+def get_subjects_with_metadata():
+    """
+    Fetch all subjects with their metadata including synonyms, keywords, and related subjects.
+    Used for AI-powered query expansion and semantic search enhancement.
+    """
+    try:
+        from app.config import db
+        subjects_ref = db.collection('subjects')
+        subjects_data = []
+        
+        print("Fetching subjects metadata for AI enhancement...")
+        
+        for doc in subjects_ref.stream():
+            subject_data = doc.to_dict()
+            
+            # Extract relevant metadata for AI
+            metadata = {
+                'subject': subject_data.get('subject', ''),
+                'subjectId': subject_data.get('subjectId', ''),
+                'category': subject_data.get('category', ''),
+                'synonyms': subject_data.get('synonyms', []),
+                'keywords': subject_data.get('searchMetadata', {}).get('keywords', []),
+                'relatedSubjects': subject_data.get('relatedSubjects', [])
+            }
+            
+            # Only include subjects with useful metadata
+            if metadata['subject'] and (metadata['synonyms'] or metadata['keywords']):
+                subjects_data.append(metadata)
+        
+        print(f"Loaded {len(subjects_data)} subjects with metadata for AI enhancement")
+        return subjects_data
+        
+    except Exception as e:
+        print(f"Error fetching subjects metadata: {str(e)}")
+        return []
+
+def enhance_query_with_metadata(user_query, subjects_metadata):
+    """
+    Enhance user search query using subject metadata to find semantic matches.
+    Returns expanded search terms and matched subjects.
+    """
+    try:
+        user_query_lower = user_query.lower()
+        matched_subjects = []
+        expanded_terms = set([user_query])  # Start with original query
+        
+        print(f"Enhancing query '{user_query}' with metadata...")
+        
+        for subject in subjects_metadata:
+            subject_matched = False
+            
+            # Check if query matches subject name
+            if user_query_lower in subject['subject'].lower():
+                matched_subjects.append(subject)
+                subject_matched = True
+            
+            # Check synonyms
+            for synonym in subject.get('synonyms', []):
+                if user_query_lower in synonym.lower() or synonym.lower() in user_query_lower:
+                    matched_subjects.append(subject)
+                    expanded_terms.add(synonym)
+                    expanded_terms.add(subject['subject'])
+                    subject_matched = True
+                    break
+            
+            # Check keywords
+            if not subject_matched:
+                for keyword in subject.get('keywords', []):
+                    if user_query_lower in keyword.lower() or keyword.lower() in user_query_lower:
+                        matched_subjects.append(subject)
+                        expanded_terms.add(keyword)
+                        expanded_terms.add(subject['subject'])
+                        break
+        
+        # Remove duplicates and convert to list
+        expanded_terms = list(expanded_terms)
+        
+        print(f"Query enhancement result: {len(matched_subjects)} subjects matched, {len(expanded_terms)} expanded terms")
+        
+        return {
+            'original_query': user_query,
+            'expanded_terms': expanded_terms,
+            'matched_subjects': matched_subjects,
+            'enhancement_count': len(matched_subjects)
+        }
+        
+    except Exception as e:
+        print(f"Error enhancing query with metadata: {str(e)}")
+        return {
+            'original_query': user_query,
+            'expanded_terms': [user_query],
+            'matched_subjects': [],
+            'enhancement_count': 0
+        }
+
 def make_direct_service_call(service_type, **kwargs):
     """
     Make direct service calls instead of HTTP requests to avoid deadlock.
@@ -418,6 +513,52 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
         conversation_history = []
     
     user_question = user_message
+    
+    # Check if this is a search query that can benefit from metadata enhancement
+    search_indicators = [
+        'find', 'search', 'look for', 'looking for', 'want to learn', 
+        'teacher', 'mentor', 'class', 'lesson', 'course', 'workshop',
+        'extract search parameters', 'search terms'
+    ]
+    
+    is_search_query = any(indicator in user_message.lower() for indicator in search_indicators)
+    
+    # Enhance search queries with metadata
+    enhanced_message = user_message
+    metadata_context = ""
+    
+    if is_search_query:
+        try:
+            print(f"Detected search query, enhancing with metadata: {user_message}")
+            subjects_metadata = get_subjects_with_metadata()
+            
+            if subjects_metadata:
+                # Create metadata context for AI
+                subjects_summary = []
+                for subject in subjects_metadata[:10]:  # Limit to avoid token overflow
+                    summary = f"- {subject['subject']}"
+                    if subject['synonyms']:
+                        summary += f" (synonyms: {', '.join(subject['synonyms'][:3])})"
+                    if subject['keywords']:
+                        summary += f" (keywords: {', '.join(subject['keywords'][:3])})"
+                    subjects_summary.append(summary)
+                
+                metadata_context = f"\n\nAVAILABLE SUBJECTS WITH METADATA:\n" + "\n".join(subjects_summary)
+                metadata_context += f"\n\nTotal subjects available: {len(subjects_metadata)}"
+                
+                # For specific search parameter extraction requests, enhance the query
+                if 'extract search parameters' in user_message.lower():
+                    enhancement = enhance_query_with_metadata(user_message, subjects_metadata)
+                    if enhancement['enhancement_count'] > 0:
+                        enhanced_message += f"\n\nMETADATA ENHANCEMENT FOUND:"
+                        enhanced_message += f"\n- Matched subjects: {[s['subject'] for s in enhancement['matched_subjects']]}"
+                        enhanced_message += f"\n- Suggested terms: {enhancement['expanded_terms']}"
+                
+                print(f"Enhanced query with {len(subjects_metadata)} subjects metadata")
+        
+        except Exception as e:
+            print(f"Error in metadata enhancement: {str(e)}")
+            # Continue without enhancement if there's an error
     
     # Build conversation context
     conversation_context = build_conversation_context(conversation_history)
@@ -560,6 +701,11 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
     # Simple auth level check
     auth_context = "authenticated user" if is_authenticated else "public user"
     enhanced_system_instruction = system_instruction + f"\n\nNote: Current user is a {auth_context}."
+    
+    # Add metadata context for search enhancement
+    if metadata_context:
+        enhanced_system_instruction += metadata_context
+        enhanced_system_instruction += "\n\nWhen extracting search parameters or helping with search queries, use this metadata to suggest better terms and find semantic matches."
 
     # Prepare the full prompt with context
     full_prompt = user_question
