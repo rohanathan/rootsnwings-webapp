@@ -1,5 +1,4 @@
 import google.generativeai as genai
-from google.generativeai import types
 import requests
 import json
 from datetime import datetime, date
@@ -26,13 +25,14 @@ GOOGLE_AI_API_KEY = settings.google_ai_api_key
 if not GOOGLE_AI_API_KEY:
     raise ValueError("GOOGLE_AI_API_KEY environment variable is required")
 
-client = genai.Client(api_key=GOOGLE_AI_API_KEY)
+# Configure the Google Generative AI API
+genai.configure(api_key=GOOGLE_AI_API_KEY)
  
 safety_settings = [
-    types.SafetySetting(
-        category="HARM_CATEGORY_DANGEROUS_CONTENT",
-        threshold="BLOCK_ONLY_HIGH",
-    ),
+    {
+        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+        "threshold": "BLOCK_ONLY_HIGH",
+    },
 ]
 
 system_instruction = """
@@ -420,10 +420,10 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
         print(f"Destination: {destination}")
         return destination
     
-    get_destination = types.FunctionDeclaration(
-        name="get_destination_function",
-        description="Get the destination that the user wants to go to",
-        parameters={
+    get_destination = {
+        "name": "get_destination_function",
+        "description": "Get the destination that the user wants to go to",
+        "parameters": {
             "type": "OBJECT",
             "properties": {
                 "destination": {
@@ -432,17 +432,17 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
                 },
             },
         },
-    )
+    }
 
-    destination_tool = types.Tool(
-        function_declarations=[get_destination],
-    )
+    destination_tool = {
+        "function_declarations": [get_destination],
+    }
     
 
     # Define the direct service call function declaration
-    make_service_call_declaration = types.FunctionDeclaration(
-        name="make_direct_service_call",
-        description="""Fetch real data from the Roots & Wings platform using direct service calls. Use this when users ask for current information about:
+    make_service_call_declaration = {
+        "name": "make_direct_service_call",
+        "description": """Fetch real data from the Roots & Wings platform using direct service calls. Use this when users ask for current information about:
         
         CLASSES & WORKSHOPS:
         - service_type: "classes" - All classes with full details (title, mentor, pricing, schedule, capacity)
@@ -482,7 +482,7 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
         - service_type: "search", q: "piano" - Search across mentors and classes
         
         Always fetch real data instead of giving generic responses. Use appropriate filters to get relevant results.""",
-        parameters={
+        "parameters": {
             "type": "OBJECT",
             "properties": {
                 "service_type": {
@@ -541,12 +541,12 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
             },
             "required": ["service_type"]
         },
-    )
+    }
 
     # Create the tool with the function declaration
-    service_tool = types.Tool(
-        function_declarations=[make_service_call_declaration],
-    )
+    service_tool = {
+        "function_declarations": [make_service_call_declaration],
+    }
 
     # Simple auth level check
     auth_context = "authenticated user" if is_authenticated else "public user"
@@ -558,22 +558,21 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
         full_prompt = conversation_context + "\n\nCurrent question: " + user_question
     
     try:
-        response = client.models.generate_content(
+        response = genai.generate_content(
             model=MODEL_ID,
             contents=full_prompt,
-            config=types.GenerateContentConfig(
-                tools=[service_tool, destination_tool],
-                temperature=0.4,
-                top_p=0.95,
-                top_k=20,
-                candidate_count=1,
-                seed=5,
-                stop_sequences=["STOP!"],
-                presence_penalty=0.0,
-                frequency_penalty=0.0,
-                safety_settings=safety_settings,
-                system_instruction=enhanced_system_instruction,
-            )
+            generation_config={
+                "temperature": 0.4,
+                "top_p": 0.95,
+                "top_k": 20,
+                "candidate_count": 1,
+                "stop_sequences": ["STOP!"],
+                "presence_penalty": 0.0,
+                "frequency_penalty": 0.0,
+            },
+            safety_settings=safety_settings,
+            system_instruction=enhanced_system_instruction,
+            tools=[service_tool, destination_tool]
         )
         
         # Check if there's a function call (with proper error handling)
@@ -611,20 +610,19 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
                         service_result = make_direct_service_call(service_type, **service_args)
                         
                         # Generate response with the service data
-                        api_response = client.models.generate_content(
+                        api_response = genai.generate_content(
                             model=MODEL_ID,
                             contents=f"Service Response: {safe_json_serialize(service_result)}\n\nUser Question: {user_question}\n\nPlease provide a helpful response based on the service data. Don't show raw JSON - format it nicely for the user.",
-                            config=types.GenerateContentConfig(
-                                temperature=0.4,
-                                top_p=0.95,
-                                top_k=20,
-                                candidate_count=1,
-                                seed=5,
-                                presence_penalty=0.0,
-                                frequency_penalty=0.0,
-                                safety_settings=safety_settings,
-                                system_instruction=enhanced_system_instruction,
-                            )
+                            generation_config={
+                                "temperature": 0.4,
+                                "top_p": 0.95,
+                                "top_k": 20,
+                                "candidate_count": 1,
+                                "presence_penalty": 0.0,
+                                "frequency_penalty": 0.0,
+                            },
+                            safety_settings=safety_settings,
+                            system_instruction=enhanced_system_instruction
                         )
                         ai_response = api_response.text if api_response and api_response.text else "I received data but couldn't format it properly."
                     else:
