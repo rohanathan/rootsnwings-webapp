@@ -10,8 +10,23 @@ const HeroSection = () => {
   // Handle search button click or Enter key press
   const handleSearch = () => {
     if (searchTerm.trim()) {
-      console.log(`Searching for: ${searchTerm}`);
-      // In a real application, this would trigger a search API call or navigation
+      // Build search parameters
+      const searchParams = new URLSearchParams({
+        q: searchTerm.trim(),
+      });
+      
+      // Add category filter if selected
+      if (selectedCategory && selectedCategory !== '🎯 All Categories') {
+        searchParams.append('category', selectedCategory.replace('🎻 ', '').replace('🎨 ', '').replace('🧘 ', '').replace('🗣️ ', '').toLowerCase().replace(' ', '_'));
+      }
+      
+      // Add location filter if selected
+      if (selectedLocation && selectedLocation !== '📍 All Locations') {
+        searchParams.append('location', selectedLocation);
+      }
+      
+      // Navigate to search results page
+      window.location.href = `/search?${searchParams.toString()}`;
     }
   };
 
@@ -19,8 +34,8 @@ const HeroSection = () => {
   const handleCategoryClick = (categoryName) => {
     setSearchTerm(categoryName);
     setSelectedCategory(categoryName);
-    console.log(`Selected category: ${categoryName}`);
-    // In a real application, this would trigger a search or filter update
+    // Automatically search when category is clicked
+    handleSearch();
   };
 
   // Handle dropdown changes
@@ -30,8 +45,7 @@ const HeroSection = () => {
     } else if (filterType === 'location') {
       setSelectedLocation(e.target.value);
     }
-    console.log(`Filter changed: ${e.target.value}`);
-    // In a real app, this would update search results
+    // No automatic search on dropdown change - user needs to click search
   };
 
   return (
