@@ -468,18 +468,18 @@ const MentorDetail = () => {
                                                 <div className="text-sm text-gray-600 mb-4">Multi-week structured learning programs</div>
                                                 <button 
                                                 
-                                                    disabled={mentorClasses.classes.length === 0}
+                                                    disabled={mentorClasses.classes.filter(c => c.type === 'group').length === 0}
                                                     onClick={() => {
                                                         // Store mentor data for group classes
                                                         localStorage.setItem('selectedMentor', JSON.stringify(mentorData));
                                                         window.location.href = `/explore/group-batches?mentorId=${mentorData.uid}&type=group`;
                                                     }}
                                                     className={`w-full py-3 rounded-full font-semibold transition-colors ${
-                                                        mentorClasses.classes.length === 0 
+                                                        mentorClasses.classes.filter(c => c.type === 'group').length === 0
                                                         ? 'bg-gray-400 cursor-not-allowed' 
                                                         : 'bg-primary hover:bg-blue-500 text-white'
                                                     }`}
-                                                    title={mentorClasses.classes.length === 0 ? "No group classes available at the moment" : ""}
+                                                    title={mentorClasses.classes.filter(c => c.type === 'group').length === 0 ? "No group classes available at the moment" : ""}
                                                 >
                                                     Explore Sessions
                                                 </button>
