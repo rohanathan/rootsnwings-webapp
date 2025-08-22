@@ -199,7 +199,9 @@ location: [city name or null]`
 
   const handleViewDetails = (result) => {
     if (result.type === 'mentor') {
-      router.push(`/mentor/detailpage?id=${result.id}`);
+      // Use the same pattern as mentor directory - store in localStorage
+      localStorage.setItem("mentor", JSON.stringify(result));
+      window.location.href = "/mentor/detailpage";
     } else if (result.type === 'class') {
       // All class types go directly to booking page
       router.push(`/booking/confirmbooking/${result.id}`);
