@@ -101,10 +101,10 @@ export default function UserSidebar({ isSidebarOpen, activeTab, userRoles = [] }
 
         {/* </div> */}
 
-        {/* Family Management */}
+        {/* Profile Management */}
         <div className="border-t border-gray-200 pt-6 mt-6">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Family Management
+            Profile Management
           </h3>
           <div className="space-y-2">
             <a
