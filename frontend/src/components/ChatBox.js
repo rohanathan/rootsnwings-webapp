@@ -41,7 +41,7 @@ const ChatbotOverlay = () => {
 
     // Track page view when chat opens
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && typeof window !== 'undefined') {
             const pageContext = getPageContext();
             chatAnalytics.trackPageView(window.location.pathname, pageContext);
         }
@@ -87,11 +87,13 @@ const ChatbotOverlay = () => {
     // Get current page context for AI
     const getPageContext = () => {
         const context = {
-            currentPage: window.location.pathname,
+            currentPage: typeof window !== 'undefined' ? window.location.pathname : '/',
             mentorData: null,
             workshopData: null,
             userData: null
         };
+        
+        if (typeof window === 'undefined') return context;
         
         try {
             // Get mentor data if on mentor detail page
@@ -126,7 +128,7 @@ const ChatbotOverlay = () => {
             setError(null);
             
             // Get user token if available
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
             const token = user?.token;
             
             // Prepare conversation history for context
@@ -176,13 +178,15 @@ const ChatbotOverlay = () => {
 
             // Track successful conversation for analytics
             const responseTime = Date.now() - startTime;
-            chatAnalytics.trackConversation(
-                userMessage, 
-                response.data.response, 
-                pageContext, 
-                responseTime, 
-                false
-            );
+            if (typeof window !== 'undefined') {
+                chatAnalytics.trackConversation(
+                    userMessage, 
+                    response.data.response, 
+                    pageContext, 
+                    responseTime, 
+                    false
+                );
+            }
             
         } catch (error) {
             console.error('AI API Error:', error);
@@ -200,13 +204,15 @@ const ChatbotOverlay = () => {
 
             // Track fallback response for analytics
             const responseTime = Date.now() - startTime;
-            chatAnalytics.trackConversation(
-                userMessage, 
-                fallbackMessage.text, 
-                pageContext, 
-                responseTime, 
-                true
-            );
+            if (typeof window !== 'undefined') {
+                chatAnalytics.trackConversation(
+                    userMessage, 
+                    fallbackMessage.text, 
+                    pageContext, 
+                    responseTime, 
+                    true
+                );
+            }
         } finally {
             setIsLoading(false);
             setIsTyping(false);
@@ -319,8 +325,10 @@ const ChatbotOverlay = () => {
         setInputMessage(message);
         
         // Track quick action usage for analytics
-        const pageContext = getPageContext();
-        chatAnalytics.trackQuickAction(message, pageContext);
+        if (typeof window !== 'undefined') {
+            const pageContext = getPageContext();
+            chatAnalytics.trackQuickAction(message, pageContext);
+        }
         
         // Auto-send quick action messages
         setTimeout(() => {
@@ -556,7 +564,7 @@ const ChatbotOverlay = () => {
                     )}
                     
                     {/* Analytics Dashboard */}
-                    {showAnalytics && (
+                    {showAnalytics && typeof window !== 'undefined' && (
                         <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                             <h4 className="text-sm font-semibold text-blue-800 mb-2">AI Performance Insights</h4>
                             <div className="space-y-2 text-xs">

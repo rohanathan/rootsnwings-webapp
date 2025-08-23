@@ -18,8 +18,10 @@ class ChatAnalytics {
       }
     };
     
-    // Load existing analytics from localStorage
-    this.loadAnalytics();
+    // Only load analytics if we're in the browser
+    if (typeof window !== 'undefined') {
+      this.loadAnalytics();
+    }
   }
 
   // Generate unique session ID
@@ -29,6 +31,8 @@ class ChatAnalytics {
 
   // Load analytics from localStorage
   loadAnalytics() {
+    if (typeof window === 'undefined') return;
+    
     try {
       const saved = localStorage.getItem('chatAnalytics');
       if (saved) {
@@ -43,6 +47,8 @@ class ChatAnalytics {
 
   // Save analytics to localStorage
   saveAnalytics() {
+    if (typeof window === 'undefined') return;
+    
     try {
       localStorage.setItem('chatAnalytics', JSON.stringify(this.analyticsData));
     } catch (error) {
@@ -52,6 +58,8 @@ class ChatAnalytics {
 
   // Track page view
   trackPageView(pagePath, context = {}) {
+    if (typeof window === 'undefined') return;
+    
     const pageView = {
       timestamp: Date.now(),
       page: pagePath,
@@ -69,6 +77,8 @@ class ChatAnalytics {
 
   // Track conversation
   trackConversation(userMessage, aiResponse, context, responseTime, isFallback = false) {
+    if (typeof window === 'undefined') return;
+    
     const conversation = {
       timestamp: Date.now(),
       userMessage: this.anonymizeMessage(userMessage),
@@ -108,6 +118,8 @@ class ChatAnalytics {
 
   // Track quick action usage
   trackQuickAction(action, context) {
+    if (typeof window === 'undefined') return;
+    
     const quickAction = {
       timestamp: Date.now(),
       action: action,
@@ -124,6 +136,8 @@ class ChatAnalytics {
 
   // Track AI error/fallback
   trackAIError(errorType, userMessage, context) {
+    if (typeof window === 'undefined') return;
+    
     const error = {
       timestamp: Date.now(),
       errorType,
@@ -156,6 +170,33 @@ class ChatAnalytics {
 
   // Get analytics summary for AI improvement
   getAnalyticsSummary() {
+    if (typeof window === 'undefined') {
+      return {
+        sessionId: this.sessionId,
+        sessionDuration: 0,
+        totalConversations: 0,
+        totalQuickActions: 0,
+        successRate: 0,
+        averageResponseTime: 0,
+        mostPopularQuickActions: [],
+        intentPatterns: {
+          search: 0,
+          booking: 0,
+          pricing: 0,
+          mentorInfo: 0,
+          workshopInfo: 0,
+          general: 0
+        },
+        contextEffectiveness: {
+          withMentorContext: { total: 0, successful: 0, successRate: 0 },
+          withWorkshopContext: { total: 0, successful: 0, successRate: 0 },
+          withUserContext: { total: 0, successful: 0, successRate: 0 },
+          noContext: { total: 0, successful: 0, successRate: 0 }
+        },
+        pageUsage: []
+      };
+    }
+    
     const totalConversations = this.analyticsData.conversations.length;
     const totalQuickActions = this.analyticsData.quickActions.length;
     
@@ -264,6 +305,8 @@ class ChatAnalytics {
 
   // Send analytics to backend (optional)
   async sendAnalyticsToBackend() {
+    if (typeof window === 'undefined') return;
+    
     try {
       const summary = this.getAnalyticsSummary();
       
