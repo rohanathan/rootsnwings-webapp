@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDate } from "@/app/utils";
-import ChatbotOverlay from "@/components/ChatBox";
+
 import Navbar from "@/components/NavBar";
 import axios from "axios";
 import React, { useState, useEffect } from "react";
@@ -828,9 +828,8 @@ const Homepage = () => {
           </div>
         </footer>
       </div>
-      <ChatbotOverlay />
-    </>
-  );
-};
+            </>
+    );
+  };
 
 export default Homepage;

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
+import { chatAnalytics } from '@/utils/analytics';
 
 const ChatbotOverlay = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -14,6 +16,10 @@ const ChatbotOverlay = () => {
     ]);
     const [inputMessage, setInputMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [conversationHistory, setConversationHistory] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [showAnalytics, setShowAnalytics] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -30,6 +36,14 @@ const ChatbotOverlay = () => {
     useEffect(() => {
         if (isOpen && inputRef.current) {
             inputRef.current.focus();
+        }
+    }, [isOpen]);
+
+    // Track page view when chat opens
+    useEffect(() => {
+        if (isOpen) {
+            const pageContext = getPageContext();
+            chatAnalytics.trackPageView(window.location.pathname, pageContext);
         }
     }, [isOpen]);
 
@@ -58,19 +72,8 @@ const ChatbotOverlay = () => {
         setInputMessage('');
         setIsTyping(true);
 
-        // Simulate bot response with realistic delay
-        setTimeout(() => {
-            const botResponse = getBotResponse(userMessage.text);
-            const botMessage = {
-                id: Date.now() + 1,
-                text: botResponse,
-                sender: 'bot',
-                timestamp: new Date()
-            };
-            
-            setMessages(prev => [...prev, botMessage]);
-            setIsTyping(false);
-        }, 1000 + Math.random() * 1500); // 1-2.5 second delay
+        // Call AI backend
+        callAIBackend(userMessage.text);
     };
 
     // Handle Enter key press
@@ -81,7 +84,136 @@ const ChatbotOverlay = () => {
         }
     };
 
-    // Simple bot response logic
+    // Get current page context for AI
+    const getPageContext = () => {
+        const context = {
+            currentPage: window.location.pathname,
+            mentorData: null,
+            workshopData: null,
+            userData: null
+        };
+        
+        try {
+            // Get mentor data if on mentor detail page
+            const mentor = localStorage.getItem('mentor');
+            if (mentor) {
+                context.mentorData = JSON.parse(mentor);
+            }
+            
+            // Get workshop data if on workshop page
+            const workshop = localStorage.getItem('selectedWorkshop');
+            if (workshop) {
+                context.workshopData = JSON.parse(workshop);
+            }
+            
+            // Get user data if logged in
+            const user = localStorage.getItem('user');
+            if (user) {
+                context.userData = JSON.parse(user);
+            }
+        } catch (error) {
+            console.error('Error parsing context data:', error);
+        }
+        
+        return context;
+    };
+
+    // AI Backend Integration
+    const callAIBackend = async (userMessage) => {
+        const startTime = Date.now();
+        try {
+            setIsLoading(true);
+            setError(null);
+            
+            // Get user token if available
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const token = user?.token;
+            
+            // Prepare conversation history for context
+            const history = conversationHistory.map(msg => ({
+                role: msg.sender === 'user' ? 'user' : 'assistant',
+                content: msg.text
+            }));
+            
+            // Get current page context
+            const pageContext = getPageContext();
+            
+            const response = await axios.post(
+                'https://rootsnwings-api-944856745086.europe-west2.run.app/ai/chat',
+                {
+                    message: userMessage,
+                    conversation_history: history,
+                    context: pageContext
+                },
+                {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : undefined,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            
+            if (response.data.error) {
+                throw new Error(response.data.error);
+            }
+            
+            // Add AI response to messages
+            const botMessage = {
+                id: Date.now() + 1,
+                text: response.data.response,
+                sender: 'bot',
+                timestamp: new Date()
+            };
+            
+            setMessages(prev => [...prev, botMessage]);
+            
+            // Update conversation history
+            setConversationHistory(prev => [
+                ...prev,
+                { role: 'user', content: userMessage },
+                { role: 'assistant', content: response.data.response }
+            ]);
+
+            // Track successful conversation for analytics
+            const responseTime = Date.now() - startTime;
+            chatAnalytics.trackConversation(
+                userMessage, 
+                response.data.response, 
+                pageContext, 
+                responseTime, 
+                false
+            );
+            
+        } catch (error) {
+            console.error('AI API Error:', error);
+            
+            // Fallback response on error
+            const fallbackMessage = {
+                id: Date.now() + 1,
+                text: "I'm having trouble connecting right now. Let me try to help you with what I know: You can search for mentors, explore workshops, or ask me about our services. What would you like to know? 🤔",
+                sender: 'bot',
+                timestamp: new Date()
+            };
+            
+            setMessages(prev => [...prev, fallbackMessage]);
+            setError('AI service temporarily unavailable');
+
+            // Track fallback response for analytics
+            const responseTime = Date.now() - startTime;
+            chatAnalytics.trackConversation(
+                userMessage, 
+                fallbackMessage.text, 
+                pageContext, 
+                responseTime, 
+                true
+            );
+        } finally {
+            setIsLoading(false);
+            setIsTyping(false);
+        }
+    };
+
+    // Fallback bot response logic (kept for error cases)
     const getBotResponse = (userText) => {
         const text = userText.toLowerCase();
         
@@ -141,9 +273,66 @@ const ChatbotOverlay = () => {
         return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
+    // Generate context-aware quick actions
+    const getContextualQuickActions = () => {
+        const actions = [
+            "Find a mentor",
+            "Explore workshops",
+            "How to book?",
+            "Pricing information"
+        ];
+        
+        const pageContext = getPageContext();
+        
+        // Add mentor-specific actions
+        if (pageContext.mentorData) {
+            actions.unshift(
+                `Tell me about ${pageContext.mentorData.displayName}`,
+                `Book session with ${pageContext.mentorData.displayName}`,
+                `Similar mentors to ${pageContext.mentorData.displayName}`
+            );
+        }
+        
+        // Add workshop-specific actions
+        if (pageContext.workshopData) {
+            actions.unshift(
+                `Tell me about ${pageContext.workshopData.title}`,
+                `Book this workshop`,
+                `Similar workshops`
+            );
+        }
+        
+        // Add user-specific actions if logged in
+        if (pageContext.userData?.user) {
+            actions.unshift(
+                "My upcoming sessions",
+                "My saved mentors",
+                "My learning progress"
+            );
+        }
+        
+        return actions.slice(0, 6); // Limit to 6 actions
+    };
+
     // Handle quick action buttons
     const handleQuickAction = (message) => {
         setInputMessage(message);
+        
+        // Track quick action usage for analytics
+        const pageContext = getPageContext();
+        chatAnalytics.trackQuickAction(message, pageContext);
+        
+        // Auto-send quick action messages
+        setTimeout(() => {
+            const userMessage = {
+                id: Date.now(),
+                text: message,
+                sender: 'user',
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, userMessage]);
+            callAIBackend(message);
+        }, 100);
     };
 
     return (
@@ -216,6 +405,13 @@ const ChatbotOverlay = () => {
                             </p>
                         </div>
                         <button
+                            onClick={() => setShowAnalytics(!showAnalytics)}
+                            className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors backdrop-blur-sm mr-2"
+                            title="View Analytics"
+                        >
+                            <i className="fas fa-chart-bar text-white text-sm"></i>
+                        </button>
+                        <button
                             onClick={toggleChat}
                             className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors backdrop-blur-sm"
                         >
@@ -262,8 +458,35 @@ const ChatbotOverlay = () => {
                         </div>
                     ))}
                     
+                    {/* Loading and Error States */}
+                    {isLoading && (
+                        <div className="flex justify-start animate-fade-in">
+                            <div className="flex items-end space-x-2">
+                                <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center border border-blue-200">
+                                    <i className="fas fa-robot text-blue-600 text-xs"></i>
+                                </div>
+                                <div className="bg-white rounded-2xl rounded-bl-md px-4 py-3 border border-blue-200 shadow-sm">
+                                    <div className="flex space-x-1">
+                                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 mx-4">
+                            <div className="flex items-center space-x-2 text-red-700 text-sm">
+                                <i className="fas fa-exclamation-triangle"></i>
+                                <span>{error}</span>
+                            </div>
+                        </div>
+                    )}
+                    
                     {/* Typing Indicator */}
-                    {isTyping && (
+                    {isTyping && !isLoading && (
                         <div className="flex justify-start animate-fade-in">
                             <div className="flex items-end space-x-2">
                                 <div className="w-8 h-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center border border-gray-200">
@@ -317,26 +540,56 @@ const ChatbotOverlay = () => {
                         </button>
                     </div>
                     
-                    {/* Quick Action Buttons (when no message is typed and it's early in conversation) */}
-                    {!inputMessage && messages.length <= 1 && (
+                    {/* Context-Aware Quick Action Buttons */}
+                    {!inputMessage && (
                         <div className="mt-3 flex flex-wrap gap-2 animate-fade-in">
+                            {getContextualQuickActions().map((action, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => handleQuickAction(action)}
+                                    className="px-3 py-2 bg-blue-100 text-blue-700 rounded-full text-xs hover:bg-blue-200 transition-all duration-200 transform hover:scale-105"
+                                >
+                                    {action}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    
+                    {/* Analytics Dashboard */}
+                    {showAnalytics && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <h4 className="text-sm font-semibold text-blue-800 mb-2">AI Performance Insights</h4>
+                            <div className="space-y-2 text-xs">
+                                <div className="flex justify-between">
+                                    <span className="text-blue-700">Success Rate:</span>
+                                    <span className="font-semibold">
+                                        {chatAnalytics.getAnalyticsSummary().successRate}%
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-blue-700">Avg Response:</span>
+                                    <span className="font-semibold">
+                                        {chatAnalytics.getAnalyticsSummary().averageResponseTime}ms
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-blue-700">Conversations:</span>
+                                    <span className="font-semibold">
+                                        {chatAnalytics.getAnalyticsSummary().totalConversations}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-blue-700">Quick Actions:</span>
+                                    <span className="font-semibold">
+                                        {chatAnalytics.getAnalyticsSummary().totalQuickActions}
+                                    </span>
+                                </div>
+                            </div>
                             <button
-                                onClick={() => handleQuickAction("I'm looking for a music mentor")}
-                                className="px-3 py-2 bg-blue-100 text-blue-700 rounded-full text-xs hover:bg-blue-200 transition-all duration-200 transform hover:scale-105"
+                                onClick={() => chatAnalytics.sendAnalyticsToBackend()}
+                                className="w-full mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
                             >
-                                🎵 Find Music Mentor
-                            </button>
-                            <button
-                                onClick={() => handleQuickAction("How do I become a mentor?")}
-                                className="px-3 py-2 bg-green-100 text-green-700 rounded-full text-xs hover:bg-green-200 transition-all duration-200 transform hover:scale-105"
-                            >
-                                🌟 Become a Mentor
-                            </button>
-                            <button
-                                onClick={() => handleQuickAction("What are your prices?")}
-                                className="px-3 py-2 bg-purple-100 text-purple-700 rounded-full text-xs hover:bg-purple-200 transition-all duration-200 transform hover:scale-105"
-                            >
-                                💰 Pricing Info
+                                Send Analytics to Backend
                             </button>
                         </div>
                     )}

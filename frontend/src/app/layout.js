@@ -1,5 +1,6 @@
 // Ensure this path is correct relative to app/layout.js
 import "./globals.css";
+import ChatbotOverlay from "@/components/ChatBox";
 
 export const metadata = {
   title: "Roots & Wings - Find the Right Mentor for Your Journey",
@@ -40,7 +41,10 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans text-gray-800 bg-white">{children}</body>
+      <body className="font-sans text-gray-800 bg-white">
+        {children}
+        <ChatbotOverlay />
+      </body>
     </html>
   );
 }

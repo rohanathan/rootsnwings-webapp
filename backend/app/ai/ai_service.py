@@ -505,7 +505,7 @@ def make_direct_service_call(service_type, **kwargs):
         print(f"Service call failed: {str(e)}")
         return {"error": f"Service call failed: {str(e)}"}
 
-def generate_ai_response(user_message, is_authenticated=False, conversation_history=None):
+def generate_ai_response(user_message, is_authenticated=False, conversation_history=None, context=None):
     """
     Generate AI response for web API (converted from main function)
     """
@@ -562,6 +562,31 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
     
     # Build conversation context
     conversation_context = build_conversation_context(conversation_history)
+    
+    # Add page context awareness
+    page_context = ""
+    if context:
+        page_context = "\n\nCURRENT PAGE CONTEXT:\n"
+        if context.get('currentPage'):
+            page_context += f"- User is on: {context['currentPage']}\n"
+        if context.get('mentorData'):
+            mentor = context['mentorData']
+            page_context += f"- Viewing mentor: {mentor.get('displayName', 'Unknown')}\n"
+            page_context += f"- Subject: {', '.join(mentor.get('subjects', []))}\n"
+            page_context += f"- Location: {mentor.get('city', 'Unknown')}\n"
+            page_context += f"- Rating: {mentor.get('stats', {}).get('avgRating', 'N/A')}\n"
+        if context.get('workshopData'):
+            workshop = context['workshopData']
+            page_context += f"- Viewing workshop: {workshop.get('title', 'Unknown')}\n"
+            page_context += f"- Subject: {workshop.get('subject', 'Unknown')}\n"
+            page_context += f"- Mentor: {workshop.get('mentorName', 'Unknown')}\n"
+            page_context += f"- Price: £{workshop.get('pricing', {}).get('total', 'N/A')}\n"
+        if context.get('userData'):
+            user = context['userData']
+            page_context += f"- User logged in: {user.get('user', {}).get('displayName', 'Unknown')}\n"
+            page_context += f"- User type: {user.get('user', {}).get('userType', 'Unknown')}\n"
+        
+        page_context += "\nUse this context to provide more relevant and personalized responses."
 
     def get_destination_function(destination):
         """
@@ -711,6 +736,8 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
     full_prompt = user_question
     if conversation_context:
         full_prompt = conversation_context + "\n\nCurrent question: " + user_question
+    if page_context:
+        full_prompt = full_prompt + "\n\n" + page_context
     
     try:
         # Create the model instance with system instruction
