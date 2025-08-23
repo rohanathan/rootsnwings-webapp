@@ -78,7 +78,7 @@ const SavedMentorsPage = () => {
       try {
         const idToken = await user.getIdToken();
         const response = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=parent`,
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/young-learners?parent_uid=${user.uid}`,
           {
             headers: {
               Authorization: `Bearer ${idToken}`,
@@ -86,8 +86,8 @@ const SavedMentorsPage = () => {
           }
         );
 
-        if (response.data?.profile?.youngLearners) {
-          setYoungLearners(response.data.profile.youngLearners);
+        if (response.data?.profiles) {
+          setYoungLearners(response.data.profiles);
         }
       } catch (error) {
         console.error("Failed to load young learners:", error);
