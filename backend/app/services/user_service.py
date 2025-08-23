@@ -216,7 +216,7 @@ def create_parent_profile(uid: str, profile_data: ParentProfileCreate) -> Parent
             raise HTTPException(status_code=404, detail="User not found")
         
         # Check if profile already exists
-        existing_profile = db.collection("parents").document(uid).get()
+        existing_profile = db.collection("parent_profiles").document(uid).get()
         if existing_profile.exists:
             raise HTTPException(status_code=400, detail="Parent profile already exists")
         
@@ -230,7 +230,7 @@ def create_parent_profile(uid: str, profile_data: ParentProfileCreate) -> Parent
         })
         
         # Save to Firestore
-        db.collection("parents").document(uid).set(profile_dict)
+        db.collection("parent_profiles").document(uid).set(profile_dict)
         
         # Update user's hasParentProfile flag
         db.collection("users").document(uid).update({
@@ -248,7 +248,7 @@ def create_parent_profile(uid: str, profile_data: ParentProfileCreate) -> Parent
 def get_parent_profile(uid: str) -> Optional[ParentProfile]:
     """Get parent profile"""
     try:
-        doc = db.collection("parents").document(uid).get()
+        doc = db.collection("parent_profiles").document(uid).get()
         if not doc.exists:
             return None
         
@@ -261,7 +261,7 @@ def get_parent_profile(uid: str) -> Optional[ParentProfile]:
 def update_parent_profile_flexible(uid: str, update_data: dict) -> dict:
     """Update parent profile"""
     try:
-        doc_ref = db.collection("parents").document(uid)
+        doc_ref = db.collection("parent_profiles").document(uid)
         doc = doc_ref.get()
         
         if not doc.exists:

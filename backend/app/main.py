@@ -12,6 +12,7 @@ from app.routers import metadata
 from app.routers import firebase_auth
 from app.routers import user_onboarding
 from app.routers import messages
+from app.routers import young_learners
 from app.ai import ai_router
 from fastapi.staticfiles import StaticFiles  
 import os
@@ -99,6 +100,7 @@ app.include_router(availability.router)
 app.include_router(reviews.router)
 app.include_router(metadata.router)
 app.include_router(messages.router)
+app.include_router(young_learners.router)
 app.include_router(ai_router.router, prefix="/ai", tags=["ai"])
 
 # Create uploads directory if it does not exist
@@ -123,6 +125,7 @@ def health_check():
             "availability": "/availability/",
             "qualifications": "/qualifications/",
             "bookings": "/bookings",
-            "reviews": "/reviews"
+            "reviews": "/reviews",
+            "young-learners": "/young-learners/"
         }
     }

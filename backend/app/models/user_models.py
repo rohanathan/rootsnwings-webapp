@@ -210,3 +210,43 @@ class ParentProfileUpdate(BaseModel):
 class ParentProfileResponse(BaseModel):
     success: bool = True
     profile: ParentProfile
+
+# YOUNG LEARNER PROFILE MODEL - Separate collection
+class YoungLearnerProfile(BaseModel):
+    fullName: str
+    dateOfBirth: str  # YYYY-MM-DD format
+    parentUid: str
+    gender: Optional[str] = None
+    interests: List[str] = Field(default_factory=list)
+    learningGoals: str = ""
+    learningStyle: Optional[str] = None
+    specialNeeds: Optional[str] = ""
+    createdAt: datetime
+    updatedAt: datetime
+
+class YoungLearnerProfileCreate(BaseModel):
+    fullName: str
+    dateOfBirth: str
+    parentUid: str
+    gender: Optional[str] = None
+    interests: List[str] = Field(default_factory=list)
+    learningGoals: str = ""
+    learningStyle: Optional[str] = None
+    specialNeeds: Optional[str] = ""
+
+class YoungLearnerProfileUpdate(BaseModel):
+    fullName: Optional[str] = None
+    dateOfBirth: Optional[str] = None
+    gender: Optional[str] = None
+    interests: Optional[List[str]] = None
+    learningGoals: Optional[str] = None
+    learningStyle: Optional[str] = None
+    specialNeeds: Optional[str] = None
+
+class YoungLearnerProfileResponse(BaseModel):
+    success: bool = True
+    profile: YoungLearnerProfile
+
+class YoungLearnerListResponse(BaseModel):
+    success: bool = True
+    profiles: List[YoungLearnerProfile]

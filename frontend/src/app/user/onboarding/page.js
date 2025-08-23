@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import axios from "axios";
 import { auth } from "@/lib/firebase";
@@ -8,7 +8,6 @@ import { onAuthStateChanged } from "firebase/auth";
 const UserOnboardingFlow = () => {
   // State to manage the current step of the onboarding process
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 4; // Total number of steps in the flow
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -124,6 +123,21 @@ const UserOnboardingFlow = () => {
     },
   });
 
+  // Calculate total steps based on selected roles
+  const totalSteps = (() => {
+    let steps = 2; // Always have steps 1 and 2
+    
+    if (formData.selectedRoles.includes("student") || formData.selectedRoles.includes("learner")) {
+      steps++;
+    }
+    
+    if (formData.selectedRoles.includes("parent")) {
+      steps++;
+    }
+    
+    return steps;
+  })();
+
   // Categories will be fetched from API
 
   // State for managing custom interest input
@@ -138,8 +152,8 @@ const UserOnboardingFlow = () => {
     const stepTitles = {
       1: "Welcome",
       2: "Roles",
-      3: "Student Profile",
-      4: "Parent Profile",
+      3: (formData.selectedRoles.includes("student") || formData.selectedRoles.includes("learner")) ? "Student Profile" : "Next Step",
+      4: formData.selectedRoles.includes("parent") ? "Parent Profile" : "Complete",
       5: "Summary", // The final summary step
     };
     const title = stepTitles[currentStep] || "Complete Your Profile";
@@ -273,8 +287,10 @@ const UserOnboardingFlow = () => {
       alert("Please select at least one role to continue.");
       return;
     }
+    // Only validate student profile if student role is selected
     if (
       currentStep === 3 &&
+      (formData.selectedRoles.includes("student") || formData.selectedRoles.includes("learner")) &&
       (!formData.studentProfile.learningGoals ||
         formData.studentProfile.selectedInterests.length < 3)
     ) {
@@ -283,8 +299,11 @@ const UserOnboardingFlow = () => {
       );
       return;
     }
+    
+    // Only validate parent profile if parent role is selected
     if (
       currentStep === 4 &&
+      formData.selectedRoles.includes("parent") &&
       (!formData.parentProfile.emergencyContactName ||
         !formData.parentProfile.emergencyContactPhone ||
         !formData.parentProfile.preferredContactMethod)
@@ -293,68 +312,13 @@ const UserOnboardingFlow = () => {
       return;
     }
 
-    // If we're on step 3 and validation passes, post data to API
+    // If we're on step 3 and validation passes, just move to next step
+    // Don't call API here - wait for final submission
     if (currentStep === 3) {
-      setIsSubmitting(true);
-      try {
-        if (!user) {
-          throw new Error("User not authenticated");
-        }
-
-        // Get Firebase ID token for API authentication
-        const idToken = await user.getIdToken();
-        const userId = user.uid;
-
-        // Prepare the data payload according to the required format
-        const userOnboardingData = {
-          userId: userId,
-          phone: formData.phoneNumber,
-          city: formData.city,
-          region: formData.region,
-          country: formData.country,
-          postcode: formData.postcode,
-          roles: formData.selectedRoles,
-          learningGoals: formData.studentProfile.learningGoals,
-          interests: formData.studentProfile.selectedInterests,
-          learningStyle: formData.studentProfile.learningStyle,
-          emergencyContactName: formData.parentProfile.emergencyContactName,
-          emergencyContactPhone: formData.parentProfile.emergencyContactPhone,
-          preferredContactMethod: formData.parentProfile.preferredContactMethod,
-        };
-
-        // Make API call to /user-onboarding
-        const response = await axios.post(
-          "https://rootsnwings-api-944856745086.europe-west2.run.app/user-onboarding",
-          userOnboardingData,
-          {
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-          }
-        );
-
-        console.log(response, "response response response");
-
-        if (response.status === 200 || response.status === 201) {
-          console.log(
-            "User onboarding data saved successfully:",
-            response.data
-          );
-          setSuccess(true);
-          // Move to next step on success after a short delay
-          const nextStep = getNextStep();
-          if (nextStep) {
-            setTimeout(() => {
-              setCurrentStep(nextStep);
-            }, 1500); // 1.5 second delay to show success message
-          }
-        }
-      } catch (error) {
-        console.error("Error saving user onboarding data:", error);
-        setError("There was an error saving your data. Please try again.");
-        return;
-      } finally {
-        setIsSubmitting(false);
+      const nextStep = getNextStep();
+      if (nextStep) {
+        console.log("Moving to next step:", formData);
+        setCurrentStep(nextStep);
       }
     } else {
       // For other steps, just move to next step
@@ -363,10 +327,73 @@ const UserOnboardingFlow = () => {
         console.log("Moving to next step:", formData);
         setCurrentStep(nextStep);
       } else {
-        // Final submission logic
-        console.log("Final form submission:", formData);
-        // alert('Profile setup complete! (This is a demo)');
+        // Final submission logic - submit complete data
+        await handleFinalSubmission();
       }
+    }
+  };
+
+  // Handle final submission of complete onboarding data
+  const handleFinalSubmission = async () => {
+    setIsSubmitting(true);
+    try {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      // Get Firebase ID token for API authentication
+      const idToken = await user.getIdToken();
+      const userId = user.uid;
+
+      // Prepare the complete data payload
+      const userOnboardingData = {
+        userId: userId,
+        phone: formData.phoneNumber,
+        city: formData.city,
+        region: formData.region,
+        country: formData.country,
+        postcode: formData.postcode,
+        roles: formData.selectedRoles,
+      };
+
+      // Only add student profile fields if student role is selected
+      if (formData.selectedRoles.includes("student") || formData.selectedRoles.includes("learner")) {
+        userOnboardingData.learningGoals = formData.studentProfile.learningGoals;
+        userOnboardingData.interests = formData.studentProfile.selectedInterests;
+        userOnboardingData.learningStyle = formData.studentProfile.learningStyle;
+      }
+
+      // Only add parent profile fields if parent role is selected
+      if (formData.selectedRoles.includes("parent")) {
+        userOnboardingData.emergencyContactName = formData.parentProfile.emergencyContactName;
+        userOnboardingData.emergencyContactPhone = formData.parentProfile.emergencyContactPhone;
+        userOnboardingData.preferredContactMethod = formData.parentProfile.preferredContactMethod;
+      }
+
+      // Make API call to complete onboarding
+      const response = await axios.post(
+        "https://rootsnwings-api-944856745086.europe-west2.run.app/user-onboarding",
+        userOnboardingData,
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        console.log("Onboarding completed successfully:", response.data);
+        setSuccess(true);
+        // Redirect to dashboard after success
+        setTimeout(() => {
+          window.location.href = '/user/dashboard';
+        }, 1500);
+      }
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      setError("There was an error completing your onboarding. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -397,61 +424,14 @@ const UserOnboardingFlow = () => {
   };
 
   const handleSubmitPreferences = async (e) => {
-
-
     e.preventDefault();
-    window.location.href = '/user/dashboard';
-    // alert("Final form submission:", formData);
-    // e.preventDefault();
-    // console.log("Final form submission:", formData);
-
-    // const user = JSON.parse(localStorage.getItem("user"));
-    // const userId = user.user.uid;
-    // // Prepare the data payload
-    // console.log(userId, "userId userId");
-
-    // const studentData = {
-    //   userId: userId,
-    //   interests: formData.studentProfile.selectedInterests,
-    //   learningGoals: formData.studentProfile.learningGoals,
-    //   preferredLanguages: [],
-
-    //   ageGroup: "adult",
-    //   step: 1,
-    //   location: {
-    //     city: "Birmingham",
-    //     region: "England",
-    //     country: "UK",
-    //     postcode: "B1 1AA",
-    //     geo: {
-    //       lat: 52.4862,
-    //       lng: -1.8904,
-    //     },
-    //   },
-    //   learningPreferences: {
-    //     learningStyle: formData.studentProfile.learningStyle,
-    //   },
-    //   learningGoals: "want to become",
-    //   preferredLanguages: ["english", "french"],
-    // };
-
-    // try {
-    //   const response = await axios.post(
-    //     "https://rootsnwings-api-944856745086.europe-west2.run.app/onboarding/student/save-progress",
-    //     studentData
-    //   );
-    //   if (response.status === 200) {
-    //     // Redirect to dashboard or next step
-    //     // window.location.href = '/dashboard';
-    //   }
-    // } catch (error) {
-    //   console.error("Error saving student progress:", error);
-    //   alert("There was an error saving your preferences. Please try again.");
-    // }
+    
+    // Submit the complete onboarding data
+    await handleFinalSubmission();
   };
 
   // Calculate progress bar width
-  const progressBarWidth = `${(currentStep / (totalSteps + 1)) * 100}%`;
+  const progressBarWidth = `${(currentStep / totalSteps) * 100}%`;
 
   // Show loading while Firebase auth is resolving
   if (loading) {
@@ -533,8 +513,8 @@ const UserOnboardingFlow = () => {
                 <div className="text-sm text-gray-500" id="step-title">
                   {currentStep === 1 && "Welcome"}
                   {currentStep === 2 && "Roles"}
-                  {currentStep === 3 && "Student Profile"}
-                  {currentStep === 4 && "Parent Profile"}
+                  {currentStep === 3 && (formData.selectedRoles.includes("student") || formData.selectedRoles.includes("learner")) ? "Student Profile" : "Next Step"}
+                  {currentStep === 4 && formData.selectedRoles.includes("parent") ? "Parent Profile" : "Complete"}
                 </div>
               </div>
               <div className="text-sm text-gray-500 flex items-center">
@@ -545,23 +525,36 @@ const UserOnboardingFlow = () => {
 
             {/* Progress Steps */}
             <div className="flex items-center space-x-2 overflow-x-auto pb-2">
-              {[1, 2, 3, 4].map((step) => (
-                <>
-                  <div
-                    key={step}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-300 ${
-                      step <= currentStep
-                        ? "bg-primary text-white"
-                        : "bg-gray-300 text-gray-600"
-                    }`}
-                  >
-                    {step}
-                  </div>
-                  {step < totalSteps && (
-                    <div className="w-6 h-0.5 bg-gray-300"></div>
-                  )}
-                </>
-              ))}
+              {(() => {
+                const steps = [1, 2];
+                
+                // Add step 3 only if student role is selected
+                if (formData.selectedRoles.includes("student") || formData.selectedRoles.includes("learner")) {
+                  steps.push(3);
+                }
+                
+                // Add step 4 only if parent role is selected
+                if (formData.selectedRoles.includes("parent")) {
+                  steps.push(4);
+                }
+                
+                return steps.map((step, index) => (
+                  <React.Fragment key={step}>
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-300 ${
+                        step <= currentStep
+                          ? "bg-primary text-white"
+                          : "bg-gray-300 text-gray-600"
+                      }`}
+                    >
+                      {step}
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div className="w-6 h-0.5 bg-gray-300"></div>
+                    )}
+                  </React.Fragment>
+                ));
+              })()}
             </div>
 
             {/* Progress Bar */}

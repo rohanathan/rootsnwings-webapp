@@ -163,7 +163,8 @@ def get_user(
             collection_mapping = {
                 "student": "student_profiles",
                 "parent": "parent_profiles", 
-                "mentor": "mentors"
+                "mentor": "mentors",
+                "young_learner": "young_learner_profiles"
             }
             
             doc = db.collection(collection_mapping[profile_type]).document(user_id).get()
@@ -182,6 +183,11 @@ def get_user(
                         "student": "student_profiles",
                         "parent": "parent_profiles", 
                         "mentor": "mentors"
+                    }
+                elif role == "parent":
+                    # For parents, also include young learner profiles
+                    collection_mapping = {
+                        "parent": "parent_profiles"
                     }
                     doc = db.collection(collection_mapping[role]).document(user_id).get()
                     if doc.exists:
@@ -281,7 +287,7 @@ async def update_user(
         
         # Handle profile-specific updates
         if profile_type:
-            valid_types = ["student", "parent", "mentor"]
+            valid_types = ["student", "parent", "mentor", "young_learner"]
             if profile_type not in valid_types:
                 raise HTTPException(status_code=400, detail=f"Invalid profile type. Must be one of: {valid_types}")
             
@@ -297,7 +303,8 @@ async def update_user(
             collection_mapping = {
                 "student": "student_profiles",
                 "parent": "parent_profiles",
-                "mentor": "mentors"
+                "mentor": "mentors",
+                "young_learner": "young_learner_profiles"
             }
             
             doc_ref = db.collection(collection_mapping[profile_type]).document(user_id)
