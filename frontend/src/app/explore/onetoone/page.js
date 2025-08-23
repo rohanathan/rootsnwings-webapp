@@ -306,6 +306,10 @@ export default function OneOnOneSessions() {
       });
       setShowChildModal(true);
       return;
+    } else if (isChildFriendlySubject && !isParent) {
+      // Show error message for non-parent users
+      alert('⚠️ Parent Profile Required\n\nThis subject is popular with young learners. To book sessions for children, you need to have a parent profile.\n\nPlease contact support to add parent role to your account.');
+      return;
     }
     
     // Proceed with direct booking

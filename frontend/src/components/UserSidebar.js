@@ -75,7 +75,7 @@ export default function UserSidebar({ isSidebarOpen, activeTab, userRoles = [] }
           {userRoles.includes("parent") && (
             <div className="space-y-2" id="young-learners-nav">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">My Children</h3>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">My Young Learners</h3>
                 <button
                   onClick={() => window.location.href = "/user/younglearner"}
                   className="text-primary hover:text-primary-dark transition-colors"

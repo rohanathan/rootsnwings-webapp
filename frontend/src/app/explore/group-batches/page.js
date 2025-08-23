@@ -327,6 +327,9 @@ export default function GroupBatches() {
       // Show child selection modal
       setSelectedBatch(batch);
       setShowChildModal(true);
+    } else if (isChildTeenClass && !isParent) {
+      // Show error message for non-parent users
+      alert('⚠️ Parent Profile Required\n\nThis group batch is designed for children/teens. To book classes for young learners, you need to have a parent profile.\n\nPlease contact support to add parent role to your account.');
     } else {
       // Direct enrollment for adult classes or non-parent users
       localStorage.setItem('selectedMentorClass', JSON.stringify(batch));

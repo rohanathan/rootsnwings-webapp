@@ -238,8 +238,8 @@ const YoungLearnerPage = () => {
             <div className="max-w-7xl mx-auto">
               <div className="flex flex-col md:flex-row md:items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">My Children</h1>
-                  <p className="text-gray-600">Manage your children's learning journey</p>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">My Young Learners</h1>
+                  <p className="text-gray-600">Manage your kids learning journey</p>
                 </div>
                 <button
                   onClick={() => setShowAddModal(true)}

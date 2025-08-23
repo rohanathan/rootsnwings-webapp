@@ -490,6 +490,13 @@ export default function Home() {
       return;
     }
 
+    // Check if non-parent user is trying to book child/teen class
+    if (isChildTeenClass && !isParent) {
+      // Show error message for non-parent users
+      alert('⚠️ Parent Profile Required\n\nThis class is designed for children/teens. To book classes for young learners, you need to have a parent profile.\n\nPlease contact support to add parent role to your account.');
+      return;
+    }
+
     // Store workshop data in localStorage for the booking page
     const classData = {
       classId: workshop.id,
@@ -942,6 +949,17 @@ export default function Home() {
 
                   {/* Description */}
                   <p className="text-gray-600 text-sm mb-4 leading-relaxed">{workshop.description}</p>
+                  
+                  {/* Parent Profile Required Notice */}
+                  {(workshop.age === 'child' || workshop.age === 'teen') && !userRoles.includes('parent') && (
+                    <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <div className="flex items-center text-orange-700 text-sm">
+                        <span className="mr-2">👶</span>
+                        <span><strong>Parent Profile Required:</strong> This class is designed for {workshop.age === 'child' ? 'children' : 'teens'}. Contact support to add parent role.</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Capacity */}
                   <div className="flex items-center justify-between mb-4">
                     {workshop.pricing && (
@@ -960,13 +978,19 @@ export default function Home() {
                   <button
                     className={`w-full text-white py-3 rounded-lg font-semibold transition-colors ${
                       workshop.capacity > 0
-                        ? 'bg-primary hover:bg-blue-500'
+                        ? (workshop.age === 'child' || workshop.age === 'teen') && !userRoles.includes('parent')
+                          ? 'bg-orange-500 hover:bg-orange-600 cursor-not-allowed'
+                          : 'bg-primary hover:bg-blue-500'
                         : 'bg-gray-400 cursor-not-allowed'
                     }`}
                     onClick={() => registerWorkshop(workshop.id)}
-                    disabled={workshop.capacity <= 0}
+                    disabled={workshop.capacity <= 0 || ((workshop.age === 'child' || workshop.age === 'teen') && !userRoles.includes('parent'))}
                   >
-                    {!(workshop.pricing) === 'free' ? 'Register Free' : `Book Now`}
+                    {workshop.capacity <= 0 ? 'Fully Booked' : 
+                     (workshop.age === 'child' || workshop.age === 'teen') && !userRoles.includes('parent')
+                       ? 'Parent Profile Required'
+                       : !(workshop.pricing) === 'free' ? 'Register Free' : 'Book Now'
+                    }
                   </button>
                 </div>
               </div>
