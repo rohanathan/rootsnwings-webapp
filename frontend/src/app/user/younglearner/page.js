@@ -80,7 +80,7 @@ const YoungLearnerPage = () => {
     try {
       const idToken = await user.getIdToken();
       const response = await axios.get(
-        `${API_BASE_URL}/young-learners/parent/${user.uid}`,
+        `${API_BASE_URL}/young-learners?parent_uid=${user.uid}`,
         {
           headers: {
             Authorization: `Bearer ${idToken}`,
@@ -133,14 +133,17 @@ const YoungLearnerPage = () => {
     
     try {
       const idToken = await user.getIdToken();
+      
+      // Format the data correctly for the backend
+      const youngLearnerPayload = {
+        ...formData,
+        interests: Array.isArray(formData.interests) ? formData.interests : 
+                   formData.interests.split(',').map(i => i.trim()).filter(i => i)
+      };
+      
       await axios.post(
-        `${API_BASE_URL}/young-learners`,
-        {
-          ...formData,
-          parentUid: user.uid,
-          interests: Array.isArray(formData.interests) ? formData.interests : 
-                     formData.interests.split(',').map(i => i.trim()).filter(i => i)
-        },
+        `${API_BASE_URL}/young-learners/`,
+        youngLearnerPayload,
         {
           headers: {
             Authorization: `Bearer ${idToken}`,

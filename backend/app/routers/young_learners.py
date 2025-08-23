@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Query, Request, Depends
+from typing import Optional, Dict, Any
 from datetime import datetime
 from app.models.user_models import (
     YoungLearnerProfile, 
@@ -9,25 +9,33 @@ from app.models.user_models import (
     YoungLearnerListResponse
 )
 from app.services.firestore import db
+from app.auth.firebase_auth import get_current_user, AuthUser
+from app.utils.rate_limiting import general_read_rate_limit, general_write_rate_limit
 
 router = APIRouter(prefix="/young-learners", tags=["Young Learners"])
 
 @router.post("/", response_model=YoungLearnerProfileResponse)
-async def create_young_learner(profile: YoungLearnerProfileCreate):
-    """Create a new young learner profile"""
+@general_write_rate_limit()
+async def create_young_learner(
+    request: Request,
+    young_learner_data: dict,
+    current_user: AuthUser = Depends(get_current_user)
+):
+    """Create a new young learner profile with complete flexibility"""
     try:
         # Generate unique ID for the young learner
-        young_learner_id = f"yl_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{profile.parentUid[-4:]}"
+        young_learner_id = f"yl_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{current_user.uid[-4:]}"
         
-        # Create the profile
-        young_learner_data = {
-            **profile.dict(),
+        # Add system fields
+        profile_data = {
+            **young_learner_data,
+            "parentUid": current_user.uid,  # Ensure parent is current user
             "createdAt": datetime.now().isoformat(),
             "updatedAt": datetime.now().isoformat()
         }
         
         # Store in young_learner_profiles collection
-        db.collection('young_learner_profiles').document(young_learner_id).set(young_learner_data)
+        db.collection('young_learner_profiles').document(young_learner_id).set(profile_data)
         
         # Get the created profile
         created_profile = db.collection('young_learner_profiles').document(young_learner_id).get().to_dict()
@@ -35,57 +43,82 @@ async def create_young_learner(profile: YoungLearnerProfileCreate):
         
         return YoungLearnerProfileResponse(
             success=True,
-            profile=YoungLearnerProfile(**created_profile)
+            profile=created_profile
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create young learner profile: {str(e)}")
 
-@router.get("/{young_learner_id}", response_model=YoungLearnerProfileResponse)
-async def get_young_learner(young_learner_id: str):
-    """Get a specific young learner profile"""
+@router.get("", response_model=YoungLearnerListResponse)
+@router.get("/", response_model=YoungLearnerListResponse)
+@general_read_rate_limit()
+async def get_young_learners(
+    request: Request,
+    young_learner_id: Optional[str] = Query(None, description="Get specific young learner by ID"),
+    parent_uid: Optional[str] = Query(None, description="Filter by parent UID"),
+    limit: int = Query(50, description="Maximum number of profiles to return"),
+    current_user: AuthUser = Depends(get_current_user)
+):
+    """Universal getter - handles both individual young learner and filtered lists"""
     try:
-        doc = db.collection('young_learner_profiles').document(young_learner_id).get()
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail="Young learner profile not found")
+        # If specific young learner ID requested
+        if young_learner_id:
+            doc = db.collection('young_learner_profiles').document(young_learner_id).get()
+            if not doc.exists:
+                raise HTTPException(status_code=404, detail="Young learner profile not found")
+            
+            profile_data = doc.to_dict()
+            profile_data['id'] = young_learner_id
+            
+            # Security: Only allow parent to access their own children
+            if profile_data.get('parentUid') != current_user.uid:
+                raise HTTPException(status_code=403, detail="Access denied - not your child")
+            
+            return YoungLearnerListResponse(
+                success=True,
+                profiles=[profile_data]
+            )
         
-        profile_data = doc.to_dict()
-        profile_data['id'] = young_learner_id
+        # Otherwise, return filtered list
+        query = db.collection('young_learner_profiles')
         
-        return YoungLearnerProfileResponse(
-            success=True,
-            profile=YoungLearnerProfile(**profile_data)
-        )
+        # Security: Always filter by current user as parent unless admin access
+        if not parent_uid:
+            parent_uid = current_user.uid
+        elif parent_uid != current_user.uid:
+            # Only allow parents to see their own children
+            raise HTTPException(status_code=403, detail="Access denied - can only view your own children")
+            
+        query = query.where('parentUid', '==', parent_uid)
+        query = query.limit(limit)
         
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get young learner profile: {str(e)}")
-
-@router.get("/parent/{parent_uid}", response_model=YoungLearnerListResponse)
-async def get_young_learners_by_parent(parent_uid: str):
-    """Get all young learners for a specific parent"""
-    try:
-        # Query young learners by parentUid
-        docs = db.collection('young_learner_profiles').where('parentUid', '==', parent_uid).stream()
-        
+        docs = query.stream()
         profiles = []
         for doc in docs:
             profile_data = doc.to_dict()
             profile_data['id'] = doc.id
-            profiles.append(YoungLearnerProfile(**profile_data))
+            profiles.append(profile_data)
         
         return YoungLearnerListResponse(
             success=True,
             profiles=profiles
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get young learners: {str(e)}")
 
 @router.put("/{young_learner_id}", response_model=YoungLearnerProfileResponse)
-async def update_young_learner(young_learner_id: str, profile: YoungLearnerProfileUpdate):
-    """Update a young learner profile"""
+@general_write_rate_limit()
+async def update_young_learner(
+    request: Request,
+    young_learner_id: str,
+    update_data: dict,
+    delete_profile: Optional[bool] = Query(False, description="Delete the young learner profile"),
+    current_user: AuthUser = Depends(get_current_user)
+):
+    """Universal updater - handles updates and deletions with complete flexibility"""
     try:
         doc_ref = db.collection('young_learner_profiles').document(young_learner_id)
         doc = doc_ref.get()
@@ -93,17 +126,26 @@ async def update_young_learner(young_learner_id: str, profile: YoungLearnerProfi
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Young learner profile not found")
         
-        # Get existing profile data
         existing_profile = doc.to_dict()
         
-        # Update only provided fields
-        update_data = profile.dict(exclude_unset=True)
+        # Security: Only allow parent to modify their own children
+        if existing_profile.get('parentUid') != current_user.uid:
+            raise HTTPException(status_code=403, detail="Access denied - not your child")
+        
+        # Handle deletion
+        if delete_profile:
+            doc_ref.delete()
+            return {
+                "success": True, 
+                "message": "Young learner profile deleted successfully",
+                "profile": None
+            }
+        
+        # Handle updates
         update_data['updatedAt'] = datetime.now().isoformat()
         
-        # Merge with existing data
+        # Merge with existing data (MongoDB-style flexibility)
         merged_data = {**existing_profile, **update_data}
-        
-        # Update the document
         doc_ref.set(merged_data)
         
         # Get updated profile
@@ -112,63 +154,10 @@ async def update_young_learner(young_learner_id: str, profile: YoungLearnerProfi
         
         return YoungLearnerProfileResponse(
             success=True,
-            profile=YoungLearnerProfile(**updated_profile)
+            profile=updated_profile
         )
         
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update young learner profile: {str(e)}")
-
-@router.delete("/{young_learner_id}")
-async def delete_young_learner(young_learner_id: str):
-    """Delete a young learner profile"""
-    try:
-        doc_ref = db.collection('young_learner_profiles').document(young_learner_id)
-        doc = doc_ref.get()
-        
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail="Young learner profile not found")
-        
-        # Delete the document
-        doc_ref.delete()
-        
-        return {"success": True, "message": "Young learner profile deleted successfully"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete young learner profile: {str(e)}")
-
-@router.get("/", response_model=YoungLearnerListResponse)
-async def list_young_learners(
-    parent_uid: Optional[str] = Query(None, description="Filter by parent UID"),
-    limit: int = Query(50, description="Maximum number of profiles to return")
-):
-    """List young learner profiles with optional filtering"""
-    try:
-        query = db.collection('young_learner_profiles')
-        
-        # Apply parent filter if provided
-        if parent_uid:
-            query = query.where('parentUid', '==', parent_uid)
-        
-        # Limit results
-        query = query.limit(limit)
-        
-        # Execute query
-        docs = query.stream()
-        
-        profiles = []
-        for doc in docs:
-            profile_data = doc.to_dict()
-            profile_data['id'] = doc.id
-            profiles.append(YoungLearnerProfile(**profile_data))
-        
-        return YoungLearnerListResponse(
-            success=True,
-            profiles=profiles
-        )
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list young learners: {str(e)}")
