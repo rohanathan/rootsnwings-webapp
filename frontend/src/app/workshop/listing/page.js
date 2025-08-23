@@ -475,12 +475,20 @@ export default function Home() {
     console.log('User roles:', userRoles);
     console.log('Workshop age group:', workshop.age);
 
+    // Check if user has student profile (required for all bookings)
+    const isStudent = userRoles.includes('student');
+    if (!isStudent) {
+      alert('⚠️ Student Profile Required\n\nTo book classes, you need to have a student profile.\n\nPlease complete your student profile setup first.');
+      return;
+    }
+
     // Check if user needs to select a child for child/teen classes
     const isChildTeenClass = workshop.age === 'child' || workshop.age === 'teen';
     const isParent = userRoles.includes('parent');
     
     console.log('Is child/teen class:', isChildTeenClass);
     console.log('Is parent:', isParent);
+    console.log('Is student:', isStudent);
     
     if (isChildTeenClass && isParent) {
       console.log('Showing child selection modal');
@@ -950,6 +958,16 @@ export default function Home() {
                   {/* Description */}
                   <p className="text-gray-600 text-sm mb-4 leading-relaxed">{workshop.description}</p>
                   
+                  {/* Student Profile Required Notice */}
+                  {!userRoles.includes('student') && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center text-red-700 text-sm">
+                        <span className="mr-2">🎓</span>
+                        <span><strong>Student Profile Required:</strong> Complete your student profile to book this class.</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Parent Profile Required Notice */}
                   {(workshop.age === 'child' || workshop.age === 'teen') && !userRoles.includes('parent') && (
                     <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
@@ -978,18 +996,22 @@ export default function Home() {
                   <button
                     className={`w-full text-white py-3 rounded-lg font-semibold transition-colors ${
                       workshop.capacity > 0
-                        ? (workshop.age === 'child' || workshop.age === 'teen') && !userRoles.includes('parent')
-                          ? 'bg-orange-500 hover:bg-orange-600 cursor-not-allowed'
-                          : 'bg-primary hover:bg-blue-500'
+                        ? !userRoles.includes('student')
+                          ? 'bg-red-500 hover:bg-red-600 cursor-not-allowed'
+                          : (workshop.age === 'child' || workshop.age === 'teen') && !userRoles.includes('parent')
+                            ? 'bg-orange-500 hover:bg-orange-600 cursor-not-allowed'
+                            : 'bg-primary hover:bg-blue-500'
                         : 'bg-gray-400 cursor-not-allowed'
                     }`}
                     onClick={() => registerWorkshop(workshop.id)}
-                    disabled={workshop.capacity <= 0 || ((workshop.age === 'child' || workshop.age === 'teen') && !userRoles.includes('parent'))}
+                    disabled={workshop.capacity <= 0 || !userRoles.includes('student') || ((workshop.age === 'child' || workshop.age === 'teen') && !userRoles.includes('parent'))}
                   >
                     {workshop.capacity <= 0 ? 'Fully Booked' : 
-                     (workshop.age === 'child' || workshop.age === 'teen') && !userRoles.includes('parent')
-                       ? 'Parent Profile Required'
-                       : !(workshop.pricing) === 'free' ? 'Register Free' : 'Book Now'
+                     !userRoles.includes('student')
+                       ? 'Student Profile Required'
+                       : (workshop.age === 'child' || workshop.age === 'teen') && !userRoles.includes('parent')
+                         ? 'Parent Profile Required'
+                         : workshop.pricing?.perSessionRate === 0 ? 'Register Free' : 'Book Now'
                     }
                   </button>
                 </div>

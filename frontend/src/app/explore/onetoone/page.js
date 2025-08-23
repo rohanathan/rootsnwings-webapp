@@ -289,6 +289,13 @@ export default function OneOnOneSessions() {
   const handleConfirmBooking = async () => {
     if (selectedSessions.length === 0) return;
     
+    // Check if user has student profile (required for all bookings)
+    const isStudent = userRoles.includes('student');
+    if (!isStudent) {
+      alert('⚠️ Student Profile Required\n\nTo book classes, you need to have a student profile.\n\nPlease complete your student profile setup first.');
+      return;
+    }
+    
     // Check if user needs to select a child for child-appropriate subjects
     const childFriendlySubjects = ['music', 'art', 'drawing', 'piano', 'guitar', 'singing', 'dance'];
     const isChildFriendlySubject = childFriendlySubjects.some(subject => 

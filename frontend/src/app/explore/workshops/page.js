@@ -375,6 +375,13 @@ export default function Workshops() {
 
   // Handle enrollment button click
   const handleEnrollNow = (workshop) => {
+    // Check if user has student profile (required for all bookings)
+    const isStudent = userRoles.includes('student');
+    if (!isStudent) {
+      alert('⚠️ Student Profile Required\n\nTo book classes, you need to have a student profile.\n\nPlease complete your student profile setup first.');
+      return;
+    }
+
     // Check if user needs to select a child for child/teen classes
     const isChildTeeenClass = workshop.ageGroup === 'child' || workshop.ageGroup === 'teen';
     const isParent = userRoles.includes('parent');

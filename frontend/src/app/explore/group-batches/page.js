@@ -319,6 +319,13 @@ export default function GroupBatches() {
 
   // Handle enrollment button click
   const handleEnrollNow = (batch) => {
+    // Check if user has student profile (required for all bookings)
+    const isStudent = userRoles.includes('student');
+    if (!isStudent) {
+      alert('⚠️ Student Profile Required\n\nTo book classes, you need to have a student profile.\n\nPlease complete your student profile setup first.');
+      return;
+    }
+
     // Check if user needs to select a child for child/teen classes
     const isChildTeenClass = batch.ageGroup === 'child' || batch.ageGroup === 'teen';
     const isParent = userRoles.includes('parent');
