@@ -326,12 +326,13 @@ def fetch_class_by_id(class_id: str):
 def get_classes_by_mentor_id(mentor_id: str):
     """
     Fetches all approved classes (batch + workshops) created by a given mentor.
+    Excludes one-on-one classes as they are private.
     """
     try:
         # This uses a composite query that might need an index
         classes_ref = db.collection("classes")
-        # query = classes_ref.where("mentorId", "==", mentor_id).where("status", "==", "approved")  # COMMENTED OUT
-        query = classes_ref.where("mentorId", "==", mentor_id)  # NO STATUS FILTER for testing
+        # Exclude one-on-one classes from mentor class listings
+        query = classes_ref.where("mentorId", "==", mentor_id).where("type", "!=", "one-on-one")
         results = query.stream()
 
         classes = []
