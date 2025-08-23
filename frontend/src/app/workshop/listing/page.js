@@ -5,6 +5,8 @@ import Head from 'next/head';
 import Navbar from '@/components/NavBar';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 // API Configuration
 const API_BASE_URL = 'https://rootsnwings-api-944856745086.europe-west2.run.app';
@@ -23,10 +25,40 @@ export default function Home() {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [user, setUser] = useState(null);
+  const [userRoles, setUserRoles] = useState([]);
 
+  // Firebase auth listener with role fetching
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        
+        try {
+          // Fetch user profile with roles
+          const idToken = await currentUser.getIdToken();
+          const profileResponse = await axios.get(
+            `${API_BASE_URL}/users/${currentUser.uid}`,
+            {
+              headers: {
+                Authorization: `Bearer ${idToken}`,
+              },
+            }
+          );
+          
+          const userData = profileResponse.data?.user || {};
+          setUserRoles(userData.roles || []);
+          
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          setUserRoles(["student"]); // Default fallback
+        }
+      } else {
+        setUser(null);
+        setUserRoles([]);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Fetch workshops from API
@@ -39,8 +71,28 @@ export default function Home() {
       // The API returns workshops in data.classes array
       const workshopClasses = data.classes || [];
       
-      // Transform API data to match the component's expected format
-      const transformedWorkshops = workshopClasses.map(cls => ({
+      // Filter classes based on user roles - KISS principle
+      const filteredClasses = workshopClasses.filter(cls => {
+        // If user is not authenticated, show adult classes only
+        if (!user || userRoles.length === 0) {
+          return cls.ageGroup === 'adult';
+        }
+        
+        // If user has parent role, show all classes
+        if (userRoles.includes('parent')) {
+          return true;
+        }
+        
+        // If user is student-only, hide child/teen classes
+        if (userRoles.includes('student') && !userRoles.includes('parent')) {
+          return cls.ageGroup === 'adult';
+        }
+        
+        return true; // Default: show all
+      });
+      
+      // Transform filtered API data to match the component's expected format
+      const transformedWorkshops = filteredClasses.map(cls => ({
         id: cls.classId,
         title: cls.title,
         mentor: cls.mentorName || 'TBD',
@@ -383,10 +435,13 @@ export default function Home() {
     await fetchWorkshops();
   };
 
-  // Fetch workshops on component mount
+  // Fetch workshops after user roles are loaded
   useEffect(() => {
-    fetchWorkshops();
-  }, []);
+    // Only fetch after we have user role information (or confirmed no user)
+    if (user !== null) {
+      fetchWorkshops();
+    }
+  }, [user, userRoles]);
 
   // Apply filters when filter state changes (with debouncing for search)
   useEffect(() => {

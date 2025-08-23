@@ -1,4 +1,4 @@
-export default function UserSidebar({ isSidebarOpen, activeTab }) {
+export default function UserSidebar({ isSidebarOpen, activeTab, userRoles = [] }) {
   return (
     <nav
       id="sidebar"
@@ -71,33 +71,32 @@ export default function UserSidebar({ isSidebarOpen, activeTab }) {
             </button>
           </div> */}
 
-          {/* <div className="space-y-2" id="young-learners-nav">
-            <a
-              href="#"
-              className="young-learner-nav flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-purple-50 hover:translate-x-1"
-            >
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-purple-600 text-xs font-semibold">E</span>
+          {/* Young Learners Section - Only show for parents */}
+          {userRoles.includes("parent") && (
+            <div className="space-y-2" id="young-learners-nav">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">My Children</h3>
+                <button
+                  onClick={() => window.location.href = "/user/younglearner"}
+                  className="text-primary hover:text-primary-dark transition-colors"
+                  title="Add Child"
+                >
+                  <i className="fas fa-plus text-sm"></i>
+                </button>
               </div>
-              <div className="flex-1">
-                <div className="text-sm font-medium">Emma (12)</div>
-                <div className="text-xs text-gray-500">Music, Art</div>
+              
+              {/* Placeholder for young learners - will be populated with real data later */}
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-500 mb-2">No children added yet</p>
+                <button
+                  onClick={() => window.location.href = "/user/younglearner"}
+                  className="text-primary hover:text-primary-dark text-sm font-medium"
+                >
+                  <i className="fas fa-plus mr-2"></i>Add Your First Child
+                </button>
               </div>
-            </a>
-
-            <a
-              href="#"
-              className="young-learner-nav flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 transition-all duration-200 ease-in-out hover:bg-green-50 hover:translate-x-1"
-            >
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 text-xs font-semibold">J</span>
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-medium">Jake (15)</div>
-                <div className="text-xs text-gray-500">Coding, Maths</div>
-              </div>
-            </a>
-          </div> */}
+            </div>
+          )}
 
 
         {/* </div> */}

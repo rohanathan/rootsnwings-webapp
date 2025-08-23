@@ -16,6 +16,7 @@ const Dashboard = () => {
 
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState({});
+  const [userRoles, setUserRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState([]);
   const [showAllUpcomingSessions, setShowAllUpcomingSessions] = useState(false);
@@ -34,15 +35,45 @@ const Dashboard = () => {
 
   // Firebase auth listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        setUserProfile({
-          uid: currentUser.uid,
-          displayName: currentUser.displayName,
-          email: currentUser.email,
-          userType: "student" // Assuming this page is only for students
-        });
+        
+        try {
+          // Fetch full user profile with roles
+          const idToken = await currentUser.getIdToken();
+          const profileResponse = await axios.get(
+            `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${currentUser.uid}`,
+            {
+              headers: {
+                Authorization: `Bearer ${idToken}`,
+              },
+            }
+          );
+          
+          const userData = profileResponse.data?.user || {};
+          setUserProfile(userData);
+          setUserRoles(userData.roles || []);
+          
+          // Set activeProfile based on roles
+          if (userData.roles?.includes("parent")) {
+            setActiveProfile("family");
+          } else {
+            setActiveProfile("adult");
+          }
+          
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          // Fallback to basic profile
+          setUserProfile({
+            uid: currentUser.uid,
+            displayName: currentUser.displayName,
+            email: currentUser.email,
+            roles: ["student"] // Default fallback
+          });
+          setUserRoles(["student"]);
+        }
+        
         setLoading(false);
       } else {
         window.location.href = "/getstarted";
@@ -213,30 +244,34 @@ const Dashboard = () => {
             </span>
           </div>
 
-          {/* Center: Profile Switcher */}
+          {/* Center: Profile Switcher - Role-based visibility */}
           <div className="hidden md:flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-            <button
-              id="adult-profile-btn"
-              onClick={() => setActiveProfile("adult")}
-              className={`profile-switch-btn px-4 py-2 rounded-md font-medium transition-all ${
-                activeProfile === "adult"
-                  ? "bg-white text-gray-700 shadow-sm"
-                  : "text-gray-600 hover:bg-white"
-              }`}
-            >
-              <i className="fas fa-user mr-2"></i>My Profile
-            </button>
-            <button
-              id="family-profile-btn"
-              onClick={() => setActiveProfile("family")}
-              className={`profile-switch-btn px-4 py-2 rounded-md font-medium transition-all ${
-                activeProfile === "family"
-                  ? "bg-white text-gray-700 shadow-sm"
-                  : "text-gray-600 hover:bg-white"
-              }`}
-            >
-              <i className="fas fa-users mr-2"></i>Family View
-            </button>
+            {userRoles.includes("student") && (
+              <button
+                id="adult-profile-btn"
+                onClick={() => setActiveProfile("adult")}
+                className={`profile-switch-btn px-4 py-2 rounded-md font-medium transition-all ${
+                  activeProfile === "adult"
+                    ? "bg-white text-gray-700 shadow-sm"
+                    : "text-gray-600 hover:bg-white"
+                }`}
+              >
+                <i className="fas fa-user mr-2"></i>My Learning
+              </button>
+            )}
+            {userRoles.includes("parent") && (
+              <button
+                id="family-profile-btn"
+                onClick={() => setActiveProfile("family")}
+                className={`profile-switch-btn px-4 py-2 rounded-md font-medium transition-all ${
+                  activeProfile === "family"
+                    ? "bg-white text-gray-700 shadow-sm"
+                    : "text-gray-600 hover:bg-white"
+                }`}
+              >
+                <i className="fas fa-users mr-2"></i>Family Learning
+              </button>
+            )}
           </div>
 
           <div className="relative">
@@ -252,7 +287,7 @@ const Dashboard = () => {
 
       <div className="flex">
         {/* Sidebar */}
-        <UserSidebar isSidebarOpen={isSidebarOpen} activeTab={1} />
+        <UserSidebar isSidebarOpen={isSidebarOpen} activeTab={1} userRoles={userRoles} />
 
         {/* Overlay for mobile sidebar */}
         <div
@@ -263,8 +298,9 @@ const Dashboard = () => {
           } md:hidden fixed inset-0 bg-black bg-opacity-50 z-20`}
         ></div>
 
-        {/* Main Content */}
+        {/* Main Content - Role-based */}
         <main className="flex-1 md:ml-0">
+          {/* Empty State - Role-aware */}
           {bookings.length === 0 && (
             <div className="max-w-4xl mx-auto px-6 py-8">
               <div className="text-center">
@@ -274,24 +310,96 @@ const Dashboard = () => {
                 <h1 className="text-3xl font-bold text-gray-900 mb-4">
                   Welcome to Roots & Wings!
                 </h1>
-                <p className="text-lg text-gray-600 mb-8">
-                  Let's complete your profile to get started with your learning
-                  journey.
-                </p>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                    Complete Your First Booking
-                  </h2>
-                  <p className="text-gray-600 mb-6">
-                    To get the most out of Roots & Wings, please complete your
-                    first class booking.
+                
+                {/* Role-specific welcome message */}
+                {userRoles.includes("student") && userRoles.includes("parent") && (
+                  <p className="text-lg text-gray-600 mb-8">
+                    Start your family learning journey - book classes for yourself or your children.
                   </p>
-                  <button
-                    onClick={() => (window.location.href = "/mentor/directory")}
-                    className="bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-dark transition-colors font-semibold"
-                  >
-                    <i className="fas fa-user-plus mr-2"></i>Explore Mentors
-                  </button>
+                )}
+                {userRoles.includes("student") && !userRoles.includes("parent") && (
+                  <p className="text-lg text-gray-600 mb-8">
+                    Let's get started with your personal learning journey.
+                  </p>
+                )}
+                {!userRoles.includes("student") && userRoles.includes("parent") && (
+                  <p className="text-lg text-gray-600 mb-8">
+                    Set up your family learning hub - add your children and explore classes for them.
+                  </p>
+                )}
+                
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
+                  
+                  {/* Student-only quick start */}
+                  {userRoles.includes("student") && !userRoles.includes("parent") && (
+                    <>
+                      <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                        Find Your Perfect Mentor
+                      </h2>
+                      <p className="text-gray-600 mb-6">
+                        Browse our expert mentors and book your first learning session.
+                      </p>
+                      <button
+                        onClick={() => (window.location.href = "/mentor/directory")}
+                        className="bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-dark transition-colors font-semibold"
+                      >
+                        <i className="fas fa-user-plus mr-2"></i>Explore Mentors
+                      </button>
+                    </>
+                  )}
+                  
+                  {/* Parent-only quick start */}
+                  {!userRoles.includes("student") && userRoles.includes("parent") && (
+                    <>
+                      <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                        Set Up Your Family Learning
+                      </h2>
+                      <p className="text-gray-600 mb-6">
+                        Add your children's profiles and discover amazing learning opportunities for them.
+                      </p>
+                      <div className="space-y-3">
+                        <button
+                          onClick={() => (window.location.href = "/user/younglearner")}
+                          className="w-full bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-dark transition-colors font-semibold"
+                        >
+                          <i className="fas fa-plus mr-2"></i>Add Your First Child
+                        </button>
+                        <button
+                          onClick={() => (window.location.href = "/workshop/listing")}
+                          className="w-full bg-white text-primary border-2 border-primary px-8 py-3 rounded-lg hover:bg-primary-light transition-colors font-semibold"
+                        >
+                          <i className="fas fa-search mr-2"></i>Browse Classes for Kids
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Student + Parent quick start */}
+                  {userRoles.includes("student") && userRoles.includes("parent") && (
+                    <>
+                      <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                        Start Learning Together
+                      </h2>
+                      <p className="text-gray-600 mb-6">
+                        Find mentors for yourself and set up learning for your children.
+                      </p>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <button
+                          onClick={() => (window.location.href = "/mentor/directory")}
+                          className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary-dark transition-colors font-semibold"
+                        >
+                          <i className="fas fa-user-graduate mr-2"></i>Find My Mentor
+                        </button>
+                        <button
+                          onClick={() => (window.location.href = "/user/younglearner")}
+                          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                        >
+                          <i className="fas fa-child mr-2"></i>Add Children
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  
                 </div>
               </div>
             </div>
