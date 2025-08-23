@@ -1,4 +1,17 @@
 export default function UserSidebar({ isSidebarOpen, activeTab, userRoles = [], youngLearners = [] }) {
+  // Helper function to calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return 'N/A';
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   return (
     <nav
       id="sidebar"
@@ -79,28 +92,28 @@ export default function UserSidebar({ isSidebarOpen, activeTab, userRoles = [], 
                 <button
                   onClick={() => window.location.href = "/user/younglearner"}
                   className="text-primary hover:text-primary-dark transition-colors"
-                  title={youngLearners.length > 0 ? "Manage Children" : "Add Child"}
+                  title={youngLearners && youngLearners.length > 0 ? "Manage Children" : "Add Child"}
                 >
-                  <i className={`fas ${youngLearners.length > 0 ? 'fa-cog' : 'fa-plus'} text-sm`}></i>
+                  <i className={`fas ${youngLearners && youngLearners.length > 0 ? 'fa-cog' : 'fa-plus'} text-sm`}></i>
                 </button>
               </div>
               
               {/* Show young learners if they exist, otherwise show add child message */}
-              {youngLearners.length > 0 ? (
+              {youngLearners && youngLearners.length > 0 ? (
                 <div className="space-y-2">
                   {youngLearners.map((learner, index) => (
-                    <div key={learner.id || index} className="flex items-center space-x-3 px-3 py-2 bg-gray-50 rounded-lg">
+                    <div key={learner?.id || index} className="flex items-center space-x-3 px-3 py-2 bg-gray-50 rounded-lg">
                       <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                         <span className="text-white text-sm font-semibold">
-                          {learner.firstName?.charAt(0) || learner.name?.charAt(0) || 'C'}
+                          {learner?.fullName?.charAt(0) || learner?.firstName?.charAt(0) || learner?.name?.charAt(0) || 'C'}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {learner.firstName || learner.name || 'Child'}
+                          {learner?.fullName || learner?.firstName || learner?.name || 'Child'}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Age {learner.age || 'N/A'}
+                          Age {learner?.age || (learner?.dateOfBirth ? calculateAge(learner.dateOfBirth) : 'N/A')}
                         </p>
                       </div>
                     </div>

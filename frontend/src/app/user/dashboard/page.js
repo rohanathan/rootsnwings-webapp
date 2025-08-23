@@ -20,6 +20,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState([]);
   const [showAllUpcomingSessions, setShowAllUpcomingSessions] = useState(false);
+  const [youngLearners, setYoungLearners] = useState([]);
   
   // Review Modal State  
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -127,6 +128,36 @@ const Dashboard = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Load young learners data for parent users
+  useEffect(() => {
+    const loadYoungLearners = async () => {
+      if (!userRoles.includes("parent") || !user?.uid) return;
+
+      try {
+        const idToken = await user.getIdToken();
+        const response = await axios.get(
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=parent`,
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          }
+        );
+
+        if (response.data?.profile?.youngLearners) {
+          setYoungLearners(response.data.profile.youngLearners);
+        }
+      } catch (error) {
+        console.error("Failed to load young learners:", error);
+        // Don't show error for young learners - it's optional data
+      }
+    };
+
+    if (userRoles.length > 0) {
+      loadYoungLearners();
+    }
+  }, [userRoles, user]);
 
   // Effect to handle clicks outside the profile dropdown to close it
   useEffect(() => {
