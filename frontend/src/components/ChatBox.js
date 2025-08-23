@@ -4,8 +4,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import dynamic from 'next/dynamic';
 
-// Dynamically import analytics to avoid SSR issues
-const AnalyticsModule = dynamic(() => import('@/utils/analytics'), { ssr: false });
+// Dynamically import analytics to avoid SSR issues - graceful fallback if it fails
+const AnalyticsModule = dynamic(() => 
+    import('@/utils/analytics').catch(() => ({ 
+        default: null, 
+        chatAnalytics: null 
+    })), 
+    { ssr: false }
+);
 
 const ChatbotOverlay = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -48,14 +54,26 @@ const ChatbotOverlay = () => {
         setIsMounted(true);
     }, []);
 
+    // Helper function to safely call analytics
+    const safeAnalyticsCall = (callback) => {
+        if (!isMounted || typeof window === 'undefined') return;
+        
+        try {
+            if (AnalyticsModule && AnalyticsModule.chatAnalytics) {
+                callback(AnalyticsModule.chatAnalytics);
+            }
+        } catch (error) {
+            console.warn('Analytics call failed:', error);
+        }
+    };
+
     // Track page view when chat opens
     useEffect(() => {
         if (isOpen && isMounted && typeof window !== 'undefined') {
             const pageContext = getPageContext();
-            // Only track if analytics is available
-            if (AnalyticsModule && AnalyticsModule.chatAnalytics) {
-                AnalyticsModule.chatAnalytics.trackPageView(window.location.pathname, pageContext);
-            }
+            safeAnalyticsCall(analytics => {
+                analytics.trackPageView(window.location.pathname, pageContext);
+            });
         }
     }, [isOpen, isMounted]);
 
@@ -139,15 +157,30 @@ const ChatbotOverlay = () => {
             setIsLoading(true);
             setError(null);
             
-            // Get user token if available
-            const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
-            const token = user?.token;
+            // Get user token if available (Firebase auth format)
+            let token = null;
+            if (typeof window !== 'undefined') {
+                try {
+                    // Try to get Firebase auth token
+                    const { auth } = await import('@/lib/firebase');
+                    if (auth.currentUser) {
+                        token = await auth.currentUser.getIdToken();
+                    }
+                } catch (error) {
+                    console.warn('Could not get Firebase token:', error);
+                }
+            }
             
-            // Prepare conversation history for context
-            const history = conversationHistory.map(msg => ({
-                role: msg.sender === 'user' ? 'user' : 'assistant',
-                content: msg.text
-            }));
+            // Prepare conversation history for context (backend expects list of [question, answer] tuples)
+            const history = [];
+            for (let i = 0; i < conversationHistory.length; i += 2) {
+                if (conversationHistory[i] && conversationHistory[i + 1]) {
+                    history.push([
+                        conversationHistory[i].content,
+                        conversationHistory[i + 1].content
+                    ]);
+                }
+            }
             
             // Get current page context
             const pageContext = getPageContext();
@@ -190,41 +223,53 @@ const ChatbotOverlay = () => {
 
             // Track successful conversation for analytics
             const responseTime = Date.now() - startTime;
-            if (isMounted && typeof window !== 'undefined' && AnalyticsModule && AnalyticsModule.chatAnalytics) {
-                AnalyticsModule.chatAnalytics.trackConversation(
+            safeAnalyticsCall(analytics => {
+                analytics.trackConversation(
                     userMessage, 
                     response.data.response, 
                     pageContext, 
                     responseTime, 
                     false
                 );
-            }
+            });
             
         } catch (error) {
             console.error('AI API Error:', error);
+            console.error('Error details:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+            
+            // More specific error message
+            let errorMessage = 'AI service temporarily unavailable';
+            if (error.response?.status === 500) {
+                errorMessage = 'AI service internal error';
+            } else if (error.response?.status === 404) {
+                errorMessage = 'AI service not found';
+            } else if (error.code === 'NETWORK_ERROR') {
+                errorMessage = 'Network connection error';
+            }
             
             // Fallback response on error
             const fallbackMessage = {
                 id: Date.now() + 1,
-                text: "I'm having trouble connecting right now. Let me try to help you with what I know: You can search for mentors, explore workshops, or ask me about our services. What would you like to know? 🤔",
+                text: `I'm having trouble connecting right now (${errorMessage}). Let me try to help you with what I know: You can search for mentors, explore workshops, or ask me about our services. What would you like to know? 🤔`,
                 sender: 'bot',
                 timestamp: new Date()
             };
             
             setMessages(prev => [...prev, fallbackMessage]);
-            setError('AI service temporarily unavailable');
+            setError(errorMessage);
 
             // Track fallback response for analytics
             const responseTime = Date.now() - startTime;
-            if (isMounted && typeof window !== 'undefined' && AnalyticsModule && AnalyticsModule.chatAnalytics) {
-                AnalyticsModule.chatAnalytics.trackConversation(
+            safeAnalyticsCall(analytics => {
+                analytics.trackConversation(
                     userMessage, 
                     fallbackMessage.text, 
                     pageContext, 
                     responseTime, 
                     true
                 );
-            }
+            });
         } finally {
             setIsLoading(false);
             setIsTyping(false);
@@ -332,15 +377,70 @@ const ChatbotOverlay = () => {
         return actions.slice(0, 6); // Limit to 6 actions
     };
 
+    // Analytics Dashboard Component
+    const AnalyticsDashboard = () => {
+        const [analytics, setAnalytics] = useState(null);
+
+        useEffect(() => {
+            safeAnalyticsCall(analyticsModule => {
+                setAnalytics(analyticsModule.getAnalyticsSummary());
+            });
+        }, []);
+
+        const sendAnalytics = () => {
+            safeAnalyticsCall(analyticsModule => {
+                analyticsModule.sendAnalyticsToBackend();
+            });
+        };
+
+        if (!analytics) {
+            return (
+                <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="text-sm font-semibold text-blue-800">Analytics unavailable</h4>
+                </div>
+            );
+        }
+
+        return (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="text-sm font-semibold text-blue-800 mb-2">AI Performance Insights</h4>
+                <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                        <span className="text-blue-700">Success Rate:</span>
+                        <span className="font-semibold">{analytics.successRate}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-blue-700">Avg Response:</span>
+                        <span className="font-semibold">{analytics.averageResponseTime}ms</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-blue-700">Conversations:</span>
+                        <span className="font-semibold">{analytics.totalConversations}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-blue-700">Quick Actions:</span>
+                        <span className="font-semibold">{analytics.totalQuickActions}</span>
+                    </div>
+                </div>
+                <button
+                    onClick={sendAnalytics}
+                    className="w-full mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                >
+                    Send Analytics to Backend
+                </button>
+            </div>
+        );
+    };
+
     // Handle quick action buttons
     const handleQuickAction = (message) => {
         setInputMessage(message);
         
         // Track quick action usage for analytics
-        if (isMounted && typeof window !== 'undefined' && AnalyticsModule && AnalyticsModule.chatAnalytics) {
-            const pageContext = getPageContext();
-            AnalyticsModule.chatAnalytics.trackQuickAction(message, pageContext);
-        }
+        const pageContext = getPageContext();
+        safeAnalyticsCall(analytics => {
+            analytics.trackQuickAction(message, pageContext);
+        });
         
         // Auto-send quick action messages
         setTimeout(() => {
@@ -582,41 +682,7 @@ const ChatbotOverlay = () => {
                     
                     {/* Analytics Dashboard */}
                     {showAnalytics && isMounted && typeof window !== 'undefined' && (
-                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <h4 className="text-sm font-semibold text-blue-800 mb-2">AI Performance Insights</h4>
-                            <div className="space-y-2 text-xs">
-                                <div className="flex justify-between">
-                                    <span className="text-blue-700">Success Rate:</span>
-                                    <span className="font-semibold">
-                                        {AnalyticsModule && AnalyticsModule.chatAnalytics ? AnalyticsModule.chatAnalytics.getAnalyticsSummary().successRate : 0}%
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-blue-700">Avg Response:</span>
-                                    <span className="font-semibold">
-                                        {AnalyticsModule && AnalyticsModule.chatAnalytics ? AnalyticsModule.chatAnalytics.getAnalyticsSummary().averageResponseTime : 0}ms
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-blue-700">Conversations:</span>
-                                    <span className="font-semibold">
-                                        {AnalyticsModule && AnalyticsModule.chatAnalytics ? AnalyticsModule.chatAnalytics.getAnalyticsSummary().totalConversations : 0}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-blue-700">Quick Actions:</span>
-                                    <span className="font-semibold">
-                                        {AnalyticsModule && AnalyticsModule.chatAnalytics ? AnalyticsModule.chatAnalytics.getAnalyticsSummary().totalQuickActions : 0}
-                                    </span>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => AnalyticsModule && AnalyticsModule.chatAnalytics ? AnalyticsModule.chatAnalytics.sendAnalyticsToBackend() : null}
-                                className="w-full mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                            >
-                                Send Analytics to Backend
-                            </button>
-                        </div>
+                        <AnalyticsDashboard />
                     )}
                     
                     {/* Powered by indicator */}

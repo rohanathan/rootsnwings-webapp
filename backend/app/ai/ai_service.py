@@ -804,16 +804,43 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
                             },
                             safety_settings=safety_settings
                         )
-                        ai_response = api_response.text if api_response and api_response.text else "I received data but couldn't format it properly."
+                        # Extract text from the API response
+                        if (api_response and 
+                            api_response.candidates and 
+                            len(api_response.candidates) > 0 and 
+                            api_response.candidates[0].content and 
+                            api_response.candidates[0].content.parts):
+                            ai_response = api_response.candidates[0].content.parts[0].text
+                        else:
+                            ai_response = "I received data but couldn't format it properly."
                     else:
-                        # Regular text response
-                        ai_response = response.text if response.text else "I couldn't generate a proper response."
+                        # Regular text response - extract from parts
+                        if hasattr(first_part, 'text') and first_part.text:
+                            ai_response = first_part.text
+                        else:
+                            ai_response = "I couldn't generate a proper response."
                 else:
-                    # No function call, just regular response
-                    ai_response = response.text if response.text else "I couldn't generate a proper response."
+                    # No function call, just regular response - extract from parts
+                    if hasattr(first_part, 'text') and first_part.text:
+                        ai_response = first_part.text
+                    else:
+                        ai_response = "I couldn't generate a proper response."
         except Exception as e:
             print(f"Error in response parsing: {e}")
-            ai_response = response.text if response and response.text else "I encountered an error processing your request."
+            # Try to extract text safely from response, otherwise use fallback
+            try:
+                if (response and 
+                    response.candidates and 
+                    len(response.candidates) > 0 and 
+                    response.candidates[0].content and 
+                    response.candidates[0].content.parts and 
+                    len(response.candidates[0].content.parts) > 0 and
+                    hasattr(response.candidates[0].content.parts[0], 'text')):
+                    ai_response = response.candidates[0].content.parts[0].text
+                else:
+                    ai_response = "I encountered an error processing your request."
+            except:
+                ai_response = "I encountered an error processing your request."
             
         # Store the conversation
         conversation_history.append((user_question, ai_response))
