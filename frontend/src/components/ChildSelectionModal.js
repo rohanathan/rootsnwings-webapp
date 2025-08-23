@@ -30,7 +30,7 @@ const ChildSelectionModal = ({
       
       const idToken = await user.getIdToken();
       const response = await axios.get(
-        `${API_BASE_URL}/young-learners/parent/${user.uid}`,
+        `${API_BASE_URL}/young-learners?parent_uid=${user.uid}`,
         {
           headers: {
             Authorization: `Bearer ${idToken}`,

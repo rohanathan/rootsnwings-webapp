@@ -5,7 +5,8 @@ from app.models.booking_models import (
 )
 from app.services.booking_service import (
     create_simple_booking, get_simple_booking, update_booking_flexible,
-    get_bookings_by_student, get_bookings_by_mentor, get_bookings_by_class
+    get_bookings_by_student, get_bookings_by_mentor, get_bookings_by_class,
+    get_bookings_by_parent
 )
 
 router = APIRouter(
@@ -162,6 +163,8 @@ def get_bookings(
     studentId: Optional[str] = Query(None, description="Get student's bookings - USED BY: User bookings page (?studentId={uid}), User dashboard enrollment list"),
     mentorId: Optional[str] = Query(None, description="Get mentor's bookings - USED BY: Mentor dashboard student lists, Mentor class management"), 
     classId: Optional[str] = Query(None, description="Get class enrollments - USED BY: Mentor class pages (?classId={id}), Admin class enrollment tracking"),
+    parentId: Optional[str] = Query(None, description="Get parent's bookings - USED BY: Parent dashboard, young learner management"),
+    youngLearnerName: Optional[str] = Query(None, description="Filter by young learner name - USED BY: Parent viewing specific child's bookings"),
     include_attendance: bool = Query(True, description="Include attendance data - USED BY: Progress tracking (true), Basic lists (false)"),
     page: int = Query(1, ge=1, description="Page number - USED BY: User bookings pagination, Admin booking lists"),
     pageSize: int = Query(20, ge=1, le=100, description="Items per page - USED BY: Dashboard summaries (5-10), Full lists (20-50)")
@@ -218,8 +221,11 @@ def get_bookings(
             bookings, total = get_bookings_by_mentor(mentorId, page, pageSize)
         elif classId:
             bookings, total = get_bookings_by_class(classId, page, pageSize)
+        elif parentId:
+            # Get bookings for parent (can include young learner filter)
+            bookings, total = get_bookings_by_parent(parentId, youngLearnerName, page, pageSize)
         else:
-            raise HTTPException(status_code=400, detail="Must provide bookingId, studentId, mentorId, or classId")
+            raise HTTPException(status_code=400, detail="Must provide bookingId, studentId, mentorId, classId, or parentId")
         
         # Optionally filter out attendance data from list results
         if not include_attendance:

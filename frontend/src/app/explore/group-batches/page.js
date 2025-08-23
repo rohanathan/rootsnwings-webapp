@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { calculateTotalPayable, formatPrice } from '../../utils/pricingCalculator';
+import ChildSelectionModal from '@/components/ChildSelectionModal';
 // Helper functions for conditional visual styling
 const getLevelBadge = (level) => {
   switch(level?.toLowerCase()) {
@@ -176,6 +179,14 @@ export default function GroupBatches() {
     subject: '',
   });
   // const [filteredBatches, setFilteredBatches] = useState({});
+  
+  // Authentication state
+  const [user, setUser] = useState(null);
+  const [userRoles, setUserRoles] = useState([]);
+  
+  // Child selection modal state
+  const [showChildModal, setShowChildModal] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState(null);
 
   // Function to handle filter changes
   const handleFilterChange = (e) => {
@@ -270,14 +281,72 @@ export default function GroupBatches() {
     fetchClassesData();
   }, []);
 
+  // Firebase auth listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        
+        try {
+          const idToken = await currentUser.getIdToken();
+          const profileResponse = await axios.get(
+            `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${currentUser.uid}`,
+            {
+              headers: {
+                Authorization: `Bearer ${idToken}`,
+              },
+            }
+          );
+          
+          const userData = profileResponse.data?.user || {};
+          setUserRoles(userData.roles || []);
+          
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          setUserRoles(['student']); // Default fallback
+        }
+      } else {
+        setUser(null);
+        setUserRoles([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   console.log(mentorData,'mentorData mentorClasses');
   
 
   // Handle enrollment button click
   const handleEnrollNow = (batch) => {
-    alert(`Enrolling you in "${batch.title}". Redirecting to payment...`);
-    window.location.href = '/booking/confirmbooking/'+batch.classId;
-    localStorage.setItem('selectedMentorClass', JSON.stringify(batch));
+    // Check if user needs to select a child for child/teen classes
+    const isChildTeenClass = batch.ageGroup === 'child' || batch.ageGroup === 'teen';
+    const isParent = userRoles.includes('parent');
+    
+    if (isChildTeenClass && isParent) {
+      // Show child selection modal
+      setSelectedBatch(batch);
+      setShowChildModal(true);
+    } else {
+      // Direct enrollment for adult classes or non-parent users
+      localStorage.setItem('selectedMentorClass', JSON.stringify(batch));
+      window.location.href = '/booking/confirmbooking/' + batch.classId;
+    }
+  };
+
+  // Handle child selection from modal
+  const handleChildSelected = (childData) => {
+    if (selectedBatch) {
+      // Store batch data with child information
+      const bookingData = {
+        ...selectedBatch,
+        selectedChild: childData
+      };
+      localStorage.setItem('selectedMentorClass', JSON.stringify(bookingData));
+      window.location.href = '/booking/confirmbooking/' + selectedBatch.classId;
+    }
+    setShowChildModal(false);
+    setSelectedBatch(null);
   };
 
   return (
@@ -637,7 +706,15 @@ export default function GroupBatches() {
         </div>
       </div>
 
-      
+      {/* Child Selection Modal */}
+      <ChildSelectionModal
+        isOpen={showChildModal}
+        onClose={() => setShowChildModal(false)}
+        onSelectChild={handleChildSelected}
+        classData={selectedBatch}
+        user={user}
+        userRoles={userRoles}
+      />
     </>
   );
 }

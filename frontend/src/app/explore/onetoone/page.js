@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import ChildSelectionModal from '@/components/ChildSelectionModal';
 
 // Helper function to format date strings
 const formatDate = (date, formatOptions) => {
@@ -38,6 +41,14 @@ export default function OneOnOneSessions() {
   const [creatingClass, setCreatingClass] = useState(false);
   const [showLimitWarning, setShowLimitWarning] = useState(false);
   const [mentorId, setMentorId] = useState(null);
+  
+  // Authentication state
+  const [user, setUser] = useState(null);
+  const [userRoles, setUserRoles] = useState([]);
+  
+  // Child selection modal state
+  const [showChildModal, setShowChildModal] = useState(false);
+  const [selectedClassData, setSelectedClassData] = useState(null);
 
   // Load mentor data and availability
   useEffect(() => {
@@ -127,6 +138,39 @@ export default function OneOnOneSessions() {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Firebase auth listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        
+        try {
+          const idToken = await currentUser.getIdToken();
+          const profileResponse = await axios.get(
+            `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${currentUser.uid}`,
+            {
+              headers: {
+                Authorization: `Bearer ${idToken}`,
+              },
+            }
+          );
+          
+          const userData = profileResponse.data?.user || {};
+          setUserRoles(userData.roles || []);
+          
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          setUserRoles(['student']); // Default fallback
+        }
+      } else {
+        setUser(null);
+        setUserRoles([]);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Generate week data from mentor's availability
@@ -245,6 +289,44 @@ export default function OneOnOneSessions() {
   const handleConfirmBooking = async () => {
     if (selectedSessions.length === 0) return;
     
+    // Check if user needs to select a child for child-appropriate subjects
+    const childFriendlySubjects = ['music', 'art', 'drawing', 'piano', 'guitar', 'singing', 'dance'];
+    const isChildFriendlySubject = childFriendlySubjects.some(subject => 
+      selectedSessions[0].subject?.toLowerCase().includes(subject)
+    );
+    const isParent = userRoles.includes('parent');
+    
+    if (isChildFriendlySubject && isParent) {
+      // Show child selection modal
+      setSelectedClassData({
+        title: `One-on-One ${selectedSessions[0].subject} Sessions`,
+        subject: selectedSessions[0].subject,
+        sessions: selectedSessions,
+        ageGroup: 'flexible' // One-to-one can be for any age
+      });
+      setShowChildModal(true);
+      return;
+    }
+    
+    // Proceed with direct booking
+    await proceedWithBooking();
+  };
+
+  // Handle child selection from modal
+  const handleChildSelected = (childData) => {
+    setShowChildModal(false);
+    
+    // Store child data for booking
+    if (selectedClassData) {
+      selectedClassData.selectedChild = childData;
+    }
+    
+    // Proceed with booking
+    proceedWithBooking();
+    setSelectedClassData(null);
+  };
+
+  const proceedWithBooking = async () => {
     setCreatingClass(true);
     try {
       // Prepare request payload
@@ -657,6 +739,15 @@ export default function OneOnOneSessions() {
         </div>
       </main>
 
+      {/* Child Selection Modal */}
+      <ChildSelectionModal
+        isOpen={showChildModal}
+        onClose={() => setShowChildModal(false)}
+        onSelectChild={handleChildSelected}
+        classData={selectedClassData}
+        user={user}
+        userRoles={userRoles}
+      />
     </>
   );
 }

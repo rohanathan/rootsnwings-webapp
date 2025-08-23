@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { calculateTotalPayable, formatPrice } from '../../utils/pricingCalculator';
+import ChildSelectionModal from '@/components/ChildSelectionModal';
 
 // Helper functions for conditional visual styling (same as group-batches)
 const getLevelBadge = (level) => {
@@ -250,6 +253,14 @@ export default function Workshops() {
   });
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Authentication state
+  const [user, setUser] = useState(null);
+  const [userRoles, setUserRoles] = useState([]);
+  
+  // Child selection modal state
+  const [showChildModal, setShowChildModal] = useState(false);
+  const [selectedWorkshop, setSelectedWorkshop] = useState(null);
 
   // Function to handle filter changes
   const handleFilterChange = (e) => {
@@ -318,6 +329,39 @@ export default function Workshops() {
 
     fetchWorkshopsData();
   }, []);
+
+  // Firebase auth listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        
+        try {
+          const idToken = await currentUser.getIdToken();
+          const profileResponse = await axios.get(
+            `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${currentUser.uid}`,
+            {
+              headers: {
+                Authorization: `Bearer ${idToken}`,
+              },
+            }
+          );
+          
+          const userData = profileResponse.data?.user || {};
+          setUserRoles(userData.roles || []);
+          
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          setUserRoles(['student']); // Default fallback
+        }
+      } else {
+        setUser(null);
+        setUserRoles([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
   
   // Apply filters to workshops
   const filteredWorkshops = workshops.filter((workshop) => {
@@ -331,9 +375,34 @@ export default function Workshops() {
 
   // Handle enrollment button click
   const handleEnrollNow = (workshop) => {
-    // Store workshop data for booking confirmation
-    localStorage.setItem('selectedMentorClass', JSON.stringify(workshop));
-    window.location.href = `/booking/confirmbooking/${workshop.classId}`;
+    // Check if user needs to select a child for child/teen classes
+    const isChildTeeenClass = workshop.ageGroup === 'child' || workshop.ageGroup === 'teen';
+    const isParent = userRoles.includes('parent');
+    
+    if (isChildTeeenClass && isParent) {
+      // Show child selection modal
+      setSelectedWorkshop(workshop);
+      setShowChildModal(true);
+    } else {
+      // Direct enrollment for adult classes or non-parent users
+      localStorage.setItem('selectedMentorClass', JSON.stringify(workshop));
+      window.location.href = `/booking/confirmbooking/${workshop.classId}`;
+    }
+  };
+
+  // Handle child selection from modal
+  const handleChildSelected = (childData) => {
+    if (selectedWorkshop) {
+      // Store workshop data with child information
+      const bookingData = {
+        ...selectedWorkshop,
+        selectedChild: childData
+      };
+      localStorage.setItem('selectedMentorClass', JSON.stringify(bookingData));
+      window.location.href = `/booking/confirmbooking/${selectedWorkshop.classId}`;
+    }
+    setShowChildModal(false);
+    setSelectedWorkshop(null);
   };
 
   return (
@@ -698,6 +767,16 @@ export default function Workshops() {
           </div>
         </div>
       </main>
+
+      {/* Child Selection Modal */}
+      <ChildSelectionModal
+        isOpen={showChildModal}
+        onClose={() => setShowChildModal(false)}
+        onSelectChild={handleChildSelected}
+        classData={selectedWorkshop}
+        user={user}
+        userRoles={userRoles}
+      />
     </>
   );
 }

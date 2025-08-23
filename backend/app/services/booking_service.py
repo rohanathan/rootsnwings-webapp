@@ -271,3 +271,26 @@ def create_booking_flexible(booking_data: dict) -> dict:
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create flexible booking: {str(e)}")
+
+def get_bookings_by_parent(parent_id: str, young_learner_name: str = None, page: int = 1, page_size: int = 20) -> Tuple[List[SimpleBooking], int]:
+    """Get bookings for a parent (and optionally filter by young learner name)"""
+    query = db.collection("bookings").where("parentId", "==", parent_id)
+    
+    # If young learner name is provided, add additional filter
+    if young_learner_name:
+        query = query.where("youngLearnerName", "==", young_learner_name)
+    
+    # Get total count
+    total = len(list(query.stream()))
+    
+    # Get paginated results
+    offset = (page - 1) * page_size
+    docs = query.limit(page_size).offset(offset).stream()
+    
+    bookings = []
+    for doc in docs:
+        data = doc.to_dict()
+        data["bookingId"] = doc.id
+        bookings.append(SimpleBooking(**data))
+    
+    return bookings, total
