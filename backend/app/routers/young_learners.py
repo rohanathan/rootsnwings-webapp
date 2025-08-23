@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Request, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Optional, Dict, Any
 from datetime import datetime
 from app.models.user_models import (
@@ -10,14 +10,11 @@ from app.models.user_models import (
 )
 from app.services.firestore import db
 from app.services.auth_service import get_current_user
-from app.utils.rate_limiting import general_read_rate_limit, general_write_rate_limit
 
 router = APIRouter(prefix="/young-learners", tags=["Young Learners"])
 
 @router.post("/", response_model=YoungLearnerProfileResponse)
-@general_write_rate_limit()
 async def create_young_learner(
-    request: Request,
     young_learner_data: dict,
     current_user_uid: str = Depends(get_current_user)
 ):
@@ -51,9 +48,7 @@ async def create_young_learner(
 
 @router.get("", response_model=YoungLearnerListResponse)
 @router.get("/", response_model=YoungLearnerListResponse)
-@general_read_rate_limit()
 async def get_young_learners(
-    request: Request,
     young_learner_id: Optional[str] = Query(None, description="Get specific young learner by ID"),
     parent_uid: Optional[str] = Query(None, description="Filter by parent UID"),
     limit: int = Query(50, description="Maximum number of profiles to return"),
@@ -110,9 +105,7 @@ async def get_young_learners(
         raise HTTPException(status_code=500, detail=f"Failed to get young learners: {str(e)}")
 
 @router.put("/{young_learner_id}", response_model=YoungLearnerProfileResponse)
-@general_write_rate_limit()
 async def update_young_learner(
-    request: Request,
     young_learner_id: str,
     update_data: dict,
     delete_profile: Optional[bool] = Query(False, description="Delete the young learner profile"),
