@@ -85,7 +85,7 @@ const ChildSelectionModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
         {/* Header */}
         <div className="border-b border-gray-200 px-6 py-4">
@@ -102,7 +102,7 @@ const ChildSelectionModal = ({
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <i className="fas fa-times text-lg"></i>
+              ✕
             </button>
           </div>
         </div>
@@ -111,7 +111,7 @@ const ChildSelectionModal = ({
         <div className="px-6 py-4">
           {loading && (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
               <p className="text-gray-600 text-sm">Loading...</p>
             </div>
           )}
@@ -130,11 +130,11 @@ const ChildSelectionModal = ({
               {classData?.ageGroup === 'adult' && userRoles.includes('student') && (
                 <button
                   onClick={handleParentSelect}
-                  className="w-full text-left p-4 border-2 border-gray-200 rounded-lg hover:border-primary hover:bg-primary-light transition-all"
+                  className="w-full text-left p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                      <i className="fas fa-user text-white"></i>
+                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                      👤
                     </div>
                     <div>
                       <div className="font-semibold text-gray-900">Myself</div>
@@ -172,7 +172,7 @@ const ChildSelectionModal = ({
               ) : (
                 <div className="text-center py-6">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i className="fas fa-child text-gray-400 text-xl"></i>
+                    👶
                   </div>
                   <p className="text-gray-600 mb-4">No children added yet</p>
                   <button
@@ -180,9 +180,9 @@ const ChildSelectionModal = ({
                       onClose();
                       window.location.href = '/user/younglearner';
                     }}
-                    className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-semibold transition-colors"
                   >
-                    <i className="fas fa-plus mr-2"></i>Add Your First Child
+                    ➕ Add Your First Child
                   </button>
                 </div>
               )}

@@ -7,6 +7,7 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import ChildSelectionModal from '@/components/ChildSelectionModal';
 
 // API Configuration
 const API_BASE_URL = 'https://rootsnwings-api-944856745086.europe-west2.run.app';
@@ -26,6 +27,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [user, setUser] = useState(null);
   const [userRoles, setUserRoles] = useState([]);
+  const [showChildModal, setShowChildModal] = useState(false);
+  const [selectedWorkshop, setSelectedWorkshop] = useState(null);
 
   // Firebase auth listener with role fetching
   useEffect(() => {
@@ -452,6 +455,12 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [filters, searchQuery]);
 
+  // Debug modal state changes
+  useEffect(() => {
+    console.log('Modal state changed - showChildModal:', showChildModal);
+    console.log('Selected workshop:', selectedWorkshop);
+  }, [showChildModal, selectedWorkshop]);
+
   const handleFilterChange = (e) => {
     const { id, value } = e.target;
     const filterKey = id.replace('-filter', '');
@@ -461,6 +470,25 @@ export default function Home() {
   const registerWorkshop = (workshopId) => {
     const workshop = workshops.find(w => w.id === workshopId);
     if (!workshop || workshop.capacity <= 0) return;
+
+    console.log('Registering workshop:', workshop);
+    console.log('User roles:', userRoles);
+    console.log('Workshop age group:', workshop.age);
+
+    // Check if user needs to select a child for child/teen classes
+    const isChildTeenClass = workshop.age === 'child' || workshop.age === 'teen';
+    const isParent = userRoles.includes('parent');
+    
+    console.log('Is child/teen class:', isChildTeenClass);
+    console.log('Is parent:', isParent);
+    
+    if (isChildTeenClass && isParent) {
+      console.log('Showing child selection modal');
+      // Show child selection modal
+      setSelectedWorkshop(workshop);
+      setShowChildModal(true);
+      return;
+    }
 
     // Store workshop data in localStorage for the booking page
     const classData = {
@@ -510,6 +538,70 @@ export default function Home() {
 
     // Redirect to common booking confirmation page
     router.push(`/booking/confirmbooking/${workshopId}`);
+  };
+
+  // Handle child selection from modal
+  const handleChildSelected = (childData) => {
+    console.log('Child selected:', childData);
+    if (selectedWorkshop) {
+      // Store workshop data with child information
+      const bookingData = {
+        ...selectedWorkshop,
+        selectedChild: childData
+      };
+      
+      // Store workshop data in localStorage for the booking page
+      const classData = {
+        classId: selectedWorkshop.id,
+        title: selectedWorkshop.title,
+        subject: selectedWorkshop.subject,
+        description: selectedWorkshop.description,
+        level: selectedWorkshop.level,
+        ageGroup: selectedWorkshop.age,
+        format: selectedWorkshop.mode,
+        schedule: {
+          startDate: selectedWorkshop.date,
+          sessionDuration: parseInt(selectedWorkshop.duration),
+          weeklySchedule: [{
+            day: selectedWorkshop.date.split(',')[0], // Extract day from date
+            startTime: selectedWorkshop.date.split('•')[1]?.split('-')[0]?.trim() || '14:00',
+            endTime: selectedWorkshop.date.split('•')[1]?.split('-')[1]?.trim() || '16:00'
+          }]
+        },
+        capacity: {
+          maxStudents: selectedWorkshop.initialCapacity,
+          currentEnrollment: selectedWorkshop.initialCapacity - selectedWorkshop.capacity
+        },
+        pricing: {
+          perSessionRate: selectedWorkshop.price === 'free' ? 0 : parseFloat(selectedWorkshop.price.split('-')[0] || '25'),
+          totalSessions: selectedWorkshop.totalSessions || 1,
+          currency: 'GBP'
+        },
+        type: 'workshop',
+        selectedChild: childData
+      };
+
+      const mentorData = {
+        uid: selectedWorkshop.id, // Using workshop ID as fallback
+        displayName: selectedWorkshop.mentor,
+        category: selectedWorkshop.subject,
+        pricing: {
+          oneOnOneRate: classData.pricing.perSessionRate,
+          groupRate: classData.pricing.perSessionRate,
+          currency: 'GBP',
+          firstSessionFree: selectedWorkshop.price === 'free'
+        }
+      };
+
+      // Store data for booking page
+      localStorage.setItem('selectedMentorClass', JSON.stringify(classData));
+      localStorage.setItem('mentor', JSON.stringify(mentorData));
+
+      // Redirect to common booking confirmation page
+      router.push(`/booking/confirmbooking/${selectedWorkshop.id}`);
+    }
+    setShowChildModal(false);
+    setSelectedWorkshop(null);
   };
 
   // This function simulates the JS logic from the original HTML file.
@@ -906,6 +998,16 @@ export default function Home() {
         </section>
 
       </div>
+      {showChildModal && selectedWorkshop && (
+        <ChildSelectionModal
+          isOpen={showChildModal}
+          onClose={() => setShowChildModal(false)}
+          onSelectChild={handleChildSelected}
+          classData={selectedWorkshop}
+          user={user}
+          userRoles={userRoles}
+        />
+      )}
     </>
   );
 }
