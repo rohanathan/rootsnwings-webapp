@@ -1,4 +1,4 @@
-export default function UserSidebar({ isSidebarOpen, activeTab, userRoles = [] }) {
+export default function UserSidebar({ isSidebarOpen, activeTab, userRoles = [], youngLearners = [] }) {
   return (
     <nav
       id="sidebar"
@@ -79,22 +79,50 @@ export default function UserSidebar({ isSidebarOpen, activeTab, userRoles = [] }
                 <button
                   onClick={() => window.location.href = "/user/younglearner"}
                   className="text-primary hover:text-primary-dark transition-colors"
-                  title="Add Child"
+                  title={youngLearners.length > 0 ? "Manage Children" : "Add Child"}
                 >
-                  <i className="fas fa-plus text-sm"></i>
+                  <i className={`fas ${youngLearners.length > 0 ? 'fa-cog' : 'fa-plus'} text-sm`}></i>
                 </button>
               </div>
               
-              {/* Placeholder for young learners - will be populated with real data later */}
-              <div className="text-center py-4">
-                <p className="text-sm text-gray-500 mb-2">No children added yet</p>
-                <button
-                  onClick={() => window.location.href = "/user/younglearner"}
-                  className="text-primary hover:text-primary-dark text-sm font-medium"
-                >
-                  <i className="fas fa-plus mr-2"></i>Add Your First Child
-                </button>
-              </div>
+              {/* Show young learners if they exist, otherwise show add child message */}
+              {youngLearners.length > 0 ? (
+                <div className="space-y-2">
+                  {youngLearners.map((learner, index) => (
+                    <div key={learner.id || index} className="flex items-center space-x-3 px-3 py-2 bg-gray-50 rounded-lg">
+                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                        <span className="text-white text-sm font-semibold">
+                          {learner.firstName?.charAt(0) || learner.name?.charAt(0) || 'C'}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {learner.firstName || learner.name || 'Child'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Age {learner.age || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => window.location.href = "/user/younglearner"}
+                    className="w-full text-primary hover:text-primary-dark text-sm font-medium py-2 px-3 border border-primary rounded-lg hover:bg-primary-light transition-colors"
+                  >
+                    <i className="fas fa-cog mr-2"></i>Manage Young Learners
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500 mb-2">No children added yet</p>
+                  <button
+                    onClick={() => window.location.href = "/user/younglearner"}
+                    className="text-primary hover:text-primary-dark text-sm font-medium"
+                  >
+                    <i className="fas fa-plus mr-2"></i>Add Your First Child
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import axios from "axios";
@@ -8,12 +8,14 @@ import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 
 const YoungLearnerPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState({});
   const [userRoles, setUserRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [youngLearners, setYoungLearners] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [bookingsByChild, setBookingsByChild] = useState({});
+  const [showOptionsMenu, setShowOptionsMenu] = useState(null); // Track which card's menu is open
 
   // Add Young Learner Form State
   const [formData, setFormData] = useState({
@@ -28,6 +30,7 @@ const YoungLearnerPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const API_BASE_URL = 'https://rootsnwings-api-944856745086.europe-west2.run.app';
+  const optionsMenuRef = useRef(null);
 
   // Firebase auth listener
   useEffect(() => {
@@ -47,6 +50,7 @@ const YoungLearnerPage = () => {
           );
           
           const userData = profileResponse.data?.user || {};
+          setUserProfile(userData);
           setUserRoles(userData.roles || []);
           
           // Redirect if not a parent
@@ -76,6 +80,46 @@ const YoungLearnerPage = () => {
     fetchYoungLearners();
   }, [user, userRoles]);
 
+  // Close options menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target)) {
+        setShowOptionsMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Effect to handle window resize and close the mobile sidebar on larger screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Effect to handle clicks outside the profile dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        isProfileDropdownOpen &&
+        !event.target.closest("#profile-dropdown-btn") &&
+        !event.target.closest("#profile-dropdown")
+      ) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [isProfileDropdownOpen]);
+
   const fetchYoungLearners = async () => {
     try {
       const idToken = await user.getIdToken();
@@ -90,40 +134,9 @@ const YoungLearnerPage = () => {
       
       setYoungLearners(response.data?.profiles || []);
       
-      // Fetch bookings for each young learner
-      fetchBookingsForChildren(response.data?.profiles || []);
-      
     } catch (error) {
       console.error('Error fetching young learners:', error);
       setYoungLearners([]);
-    }
-  };
-
-  const fetchBookingsForChildren = async (children) => {
-    try {
-      const idToken = await user.getIdToken();
-      const bookingsData = {};
-      
-      for (const child of children) {
-        try {
-          const bookingResponse = await axios.get(
-            `${API_BASE_URL}/bookings?parentId=${user.uid}&youngLearnerName=${encodeURIComponent(child.fullName)}`,
-            {
-              headers: {
-                Authorization: `Bearer ${idToken}`,
-              },
-            }
-          );
-          bookingsData[child.id] = bookingResponse.data?.bookings || [];
-        } catch (error) {
-          console.error(`Error fetching bookings for ${child.fullName}:`, error);
-          bookingsData[child.id] = [];
-        }
-      }
-      
-      setBookingsByChild(bookingsData);
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
     }
   };
 
@@ -174,6 +187,38 @@ const YoungLearnerPage = () => {
     }
   };
 
+  const handleDeleteYoungLearner = async (childId) => {
+    if (!confirm('Are you sure you want to remove this child? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const idToken = await user.getIdToken();
+      await axios.delete(
+        `${API_BASE_URL}/young-learners/${childId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+      
+      // Refresh the list
+      fetchYoungLearners();
+      setShowOptionsMenu(null);
+      
+    } catch (error) {
+      console.error('Error deleting young learner:', error);
+      alert('Failed to delete child. Please try again.');
+    }
+  };
+
+  const handleEditYoungLearner = (child) => {
+    // TODO: Implement edit functionality
+    console.log('Edit child:', child);
+    setShowOptionsMenu(null);
+  };
+
   const calculateAge = (dateOfBirth) => {
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
@@ -189,24 +234,19 @@ const YoungLearnerPage = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  const getUpcomingBookings = (bookings) => {
-    const today = new Date();
-    return bookings.filter(booking => {
-      if (booking.status !== 'confirmed') return false;
-      
-      if (booking.sessions && booking.sessions.length > 0) {
-        return booking.sessions.some(session => 
-          new Date(session.sessionDate) >= today && session.status === 'scheduled'
-        );
-      }
-      
-      return new Date(booking.startDate) >= today;
-    });
+  // Function to toggle the mobile sidebar
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  // Function to toggle the profile dropdown
+  const toggleProfileDropdown = () => {
+    setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -216,21 +256,56 @@ const YoungLearnerPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="font-sans text-gray-800 bg-primary-light min-h-screen">
       {/* Header */}
-      <MentorHeaderAccount 
-        isSidebarOpen={isSidebarOpen} 
-        setIsSidebarOpen={setIsSidebarOpen} 
-      />
-      
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div className="flex items-center justify-between px-6 py-4">
+          {/* Left: Logo & Mobile Menu */}
+          <div className="flex items-center space-x-4">
+            <button
+              id="mobile-menu-btn"
+              onClick={toggleSidebar}
+              className="md:hidden text-gray-600 hover:text-primary"
+            >
+              <i className="fas fa-bars text-xl"></i>
+            </button>
+            <h1 className="text-2xl font-bold text-primary-dark">
+              Roots & Wings
+            </h1>
+            <span className="hidden md:block text-sm text-gray-500">
+              Family Learning Hub
+            </span>
+          </div>
+
+          <div className="relative">
+            <MentorHeaderAccount
+              isProfileDropdownOpen={isProfileDropdownOpen}
+              handleProfileDropdownClick={toggleProfileDropdown}
+              user={userProfile}
+              mentorDetails={null}
+            />
+          </div>
+        </div>
+      </header>
+
       <div className="flex">
         {/* Sidebar */}
         <UserSidebar 
           isSidebarOpen={isSidebarOpen} 
           activeTab={0}
           userRoles={userRoles}
+          youngLearners={youngLearners}
         />
         
+        {/* Overlay for mobile sidebar */}
+        <div
+          id="sidebar-overlay"
+          onClick={toggleSidebar}
+          className={`${
+            isSidebarOpen ? "" : "hidden"
+          } md:hidden fixed inset-0 bg-black bg-opacity-50 z-20`}
+        ></div>
+
         {/* Main Content */}
         <main className="flex-1 md:ml-0">
           {/* Page Header */}
@@ -239,7 +314,7 @@ const YoungLearnerPage = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">My Young Learners</h1>
-                  <p className="text-gray-600">Manage your kids learning journey</p>
+                  <p className="text-gray-600">Manage your children's learning profiles</p>
                 </div>
                 <button
                   onClick={() => setShowAddModal(true)}
@@ -270,106 +345,101 @@ const YoungLearnerPage = () => {
             ) : (
               // Children List
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {youngLearners.map((child) => {
-                  const childBookings = bookingsByChild[child.id] || [];
-                  const upcomingBookings = getUpcomingBookings(childBookings);
-                  
-                  return (
-                    <div key={child.id} className="bg-white rounded-xl shadow-sm border border-gray-200">
-                      {/* Child Header */}
-                      <div className="p-6 border-b border-gray-200">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-16 h-16 bg-primary-light rounded-full flex items-center justify-center">
-                            <span className="text-primary-dark font-bold text-lg">
-                              {getInitials(child.fullName)}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-xl font-semibold text-gray-900">{child.fullName}</h3>
-                            <p className="text-gray-600">Age {calculateAge(child.dateOfBirth)}</p>
-                            {child.interests && child.interests.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {child.interests.slice(0, 3).map((interest, index) => (
-                                  <span key={index} className="bg-primary-light text-primary-dark px-3 py-1 rounded-full text-sm">
-                                    {interest}
-                                  </span>
-                                ))}
-                                {child.interests.length > 3 && (
-                                  <span className="text-gray-500 text-sm">+{child.interests.length - 3} more</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <button className="text-gray-400 hover:text-gray-600">
+                {youngLearners.map((child) => (
+                  <div key={child.id} className="bg-white rounded-xl shadow-sm border border-gray-200">
+                    {/* Child Header */}
+                    <div className="p-6 border-b border-gray-200">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-16 h-16 bg-primary-light rounded-full flex items-center justify-center">
+                          <span className="text-primary-dark font-bold text-lg">
+                            {getInitials(child.fullName)}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-semibold text-gray-900">{child.fullName}</h3>
+                          <p className="text-gray-600">Age {calculateAge(child.dateOfBirth)}</p>
+                          {child.interests && child.interests.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {child.interests.slice(0, 3).map((interest, index) => (
+                                <span key={index} className="bg-primary-light text-primary-dark px-3 py-1 rounded-full text-sm">
+                                  {interest}
+                                </span>
+                              ))}
+                              {child.interests.length > 3 && (
+                                <span className="text-gray-500 text-sm">+{child.interests.length - 3} more</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="relative" ref={optionsMenuRef}>
+                          <button 
+                            className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
+                            onClick={() => setShowOptionsMenu(showOptionsMenu === child.id ? null : child.id)}
+                          >
                             <i className="fas fa-ellipsis-v"></i>
                           </button>
-                        </div>
-                      </div>
-
-                      {/* Quick Stats */}
-                      <div className="p-6 border-b border-gray-200">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-primary">{childBookings.length}</div>
-                            <div className="text-sm text-gray-600">Total Classes</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-green-600">{upcomingBookings.length}</div>
-                            <div className="text-sm text-gray-600">Upcoming</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-blue-600">
-                              {childBookings.filter(b => b.status === 'completed').length}
-                            </div>
-                            <div className="text-sm text-gray-600">Completed</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Upcoming Sessions */}
-                      <div className="p-6">
-                        <h4 className="font-semibold text-gray-900 mb-3">Upcoming Sessions</h4>
-                        {upcomingBookings.length === 0 ? (
-                          <div className="text-center py-6">
-                            <p className="text-gray-500 text-sm mb-3">No upcoming sessions</p>
-                            <button className="text-primary hover:text-primary-dark text-sm font-medium">
-                              <i className="fas fa-plus mr-2"></i>Book New Class
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {upcomingBookings.slice(0, 2).map((booking, index) => (
-                              <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                                <div className="w-8 h-8 bg-primary-light rounded-full flex items-center justify-center">
-                                  <i className="fas fa-book text-primary text-sm"></i>
-                                </div>
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm text-gray-900">
-                                    {booking.classTitle || 'Class'}
-                                  </div>
-                                  <div className="text-xs text-gray-600">
-                                    {booking.sessions && booking.sessions[0] ? 
-                                      new Date(booking.sessions[0].sessionDate).toLocaleDateString() :
-                                      new Date(booking.startDate).toLocaleDateString()
-                                    }
-                                  </div>
-                                </div>
-                                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                  Confirmed
-                                </span>
+                          
+                          {/* Options Menu */}
+                          {showOptionsMenu === child.id && (
+                            <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                              <div className="py-2">
+                                <button
+                                  onClick={() => handleEditYoungLearner(child)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                                >
+                                  <i className="fas fa-edit mr-3 text-gray-500"></i>
+                                  Edit Profile
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteYoungLearner(child.id)}
+                                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                                >
+                                  <i className="fas fa-trash mr-3 text-red-500"></i>
+                                  Remove
+                                </button>
                               </div>
-                            ))}
-                            {upcomingBookings.length > 2 && (
-                              <button className="text-primary hover:text-primary-dark text-sm font-medium w-full text-center">
-                                View all {upcomingBookings.length} sessions
-                              </button>
-                            )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Child Details */}
+                    <div className="p-6">
+                      <div className="space-y-4">
+                        {child.learningGoals && (
+                          <div>
+                            <h4 className="font-medium text-gray-900 text-sm mb-1">Learning Goals</h4>
+                            <p className="text-gray-600 text-sm">{child.learningGoals}</p>
+                          </div>
+                        )}
+                        
+                        {child.learningStyle && (
+                          <div>
+                            <h4 className="font-medium text-gray-900 text-sm mb-1">Learning Style</h4>
+                            <p className="text-gray-600 text-sm capitalize">{child.learningStyle.replace('_', ' ')}</p>
+                          </div>
+                        )}
+                        
+                        {child.specialNeeds && (
+                          <div>
+                            <h4 className="font-medium text-gray-900 text-sm mb-1">Special Notes</h4>
+                            <p className="text-gray-600 text-sm">{child.specialNeeds}</p>
                           </div>
                         )}
                       </div>
+                      
+                      <div className="mt-6 pt-4 border-t border-gray-200">
+                        <button
+                          onClick={() => window.location.href = '/workshop/listing'}
+                          className="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium"
+                        >
+                          <i className="fas fa-search mr-2"></i>Find Classes for {child.fullName}
+                        </button>
+                      </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             )}
           </div>

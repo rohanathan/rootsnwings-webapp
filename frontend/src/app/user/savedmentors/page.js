@@ -13,12 +13,15 @@ const SavedMentorsPage = () => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState({});
+  const [userRoles, setUserRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savedMentorIds, setSavedMentorIds] = useState([]);
   const [savedMentors, setSavedMentors] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [youngLearners, setYoungLearners] = useState([]);
 
   const profileDropdownRef = useRef(null);
   const profileDropdownBtnRef = useRef(null);
@@ -26,9 +29,38 @@ const SavedMentorsPage = () => {
 
   // Firebase auth listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        
+        try {
+          // Fetch full user profile with roles
+          const idToken = await currentUser.getIdToken();
+          const profileResponse = await axios.get(
+            `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${currentUser.uid}`,
+            {
+              headers: {
+                Authorization: `Bearer ${idToken}`,
+              },
+            }
+          );
+          
+          const userData = profileResponse.data?.user || {};
+          setUserProfile(userData);
+          setUserRoles(userData.roles || []);
+          
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          // Fallback to basic profile
+          setUserProfile({
+            uid: currentUser.uid,
+            displayName: currentUser.displayName,
+            email: currentUser.email,
+            roles: ["student"] // Default fallback
+          });
+          setUserRoles(["student"]);
+        }
+        
         setLoading(false);
       } else {
         window.location.href = "/getstarted";
@@ -37,6 +69,36 @@ const SavedMentorsPage = () => {
 
     return () => unsubscribe();
   }, []);
+
+  // Load young learners data for parent users
+  useEffect(() => {
+    const loadYoungLearners = async () => {
+      if (!userRoles.includes("parent") || !user?.uid) return;
+
+      try {
+        const idToken = await user.getIdToken();
+        const response = await axios.get(
+          `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=parent`,
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          }
+        );
+
+        if (response.data?.profile?.youngLearners) {
+          setYoungLearners(response.data.profile.youngLearners);
+        }
+      } catch (error) {
+        console.error("Failed to load young learners:", error);
+        // Don't show error for young learners - it's optional data
+      }
+    };
+
+    if (userRoles.length > 0) {
+      loadYoungLearners();
+    }
+  }, [userRoles, user]);
 
   // Load data when user is available
   useEffect(() => {
@@ -106,6 +168,34 @@ const SavedMentorsPage = () => {
     };
   }, []);
 
+  // Effect to handle window resize and close the mobile sidebar on larger screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Effect to handle clicks outside the profile dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        isProfileDropdownOpen &&
+        !event.target.closest("#profile-dropdown-btn") &&
+        !event.target.closest("#profile-dropdown")
+      ) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [isProfileDropdownOpen]);
+
   // Remove mentor from saved list
   const removeSavedMentor = async (mentorId) => {
     if (!user) return;
@@ -154,6 +244,16 @@ const SavedMentorsPage = () => {
     );
   };
 
+  // Function to toggle the mobile sidebar
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  // Function to toggle the profile dropdown
+  const toggleProfileDropdown = () => {
+    setIsProfileDropdownOpen(!isProfileDropdownOpen);
+  };
+
   // Show loading while Firebase auth is resolving
   if (loading) {
     return (
@@ -167,40 +267,54 @@ const SavedMentorsPage = () => {
   }
 
   return (
-    <div className="flex bg-gray-100 min-h-screen">
-      {/* UserSidebar Component */}
-      <UserSidebar
-        activeTab="saved-mentors"
-        isSidebarOpen={isSidebarOpen}
-        setIsSidebarOpen={setIsSidebarOpen}
-        user={{
-          uid: user.uid,
-          displayName: user.displayName,
-          email: user.email,
-          userType: "student"
-        }}
-      />
+    <div className="font-sans text-gray-800 bg-primary-light min-h-screen">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div className="flex items-center justify-between px-6 py-4">
+          {/* Left: Logo & Mobile Menu */}
+          <div className="flex items-center space-x-4">
+            <button
+              id="mobile-menu-btn"
+              onClick={toggleSidebar}
+              className="md:hidden text-gray-600 hover:text-primary"
+            >
+              <i className="fas fa-bars text-xl"></i>
+            </button>
+            <h1 className="text-2xl font-bold text-primary-dark">
+              Roots & Wings
+            </h1>
+            <span className="hidden md:block text-sm text-gray-500">
+              Family Learning Hub
+            </span>
+          </div>
 
-      {/* Main Content */}
-      <div className="flex-1 md:ml-64">
-        {/* MentorHeaderAccount Component */}
-        <MentorHeaderAccount
-          setIsSidebarOpen={setIsSidebarOpen}
-          isProfileDropdownOpen={isProfileDropdownOpen}
-          setIsProfileDropdownOpen={setIsProfileDropdownOpen}
-          profileDropdownRef={profileDropdownRef}
-          profileDropdownBtnRef={profileDropdownBtnRef}
-          user={{
-            uid: user.uid,
-            displayName: user.displayName,
-            email: user.email,
-            userType: "student"
-          }}
-        />
+          <div className="relative">
+            <MentorHeaderAccount
+              isProfileDropdownOpen={isProfileDropdownOpen}
+              handleProfileDropdownClick={toggleProfileDropdown}
+              user={userProfile}
+              mentorDetails={null}
+            />
+          </div>
+        </div>
+      </header>
 
-        {/* Main content area */}
-        <main className="p-6">
-          <div className="max-w-7xl mx-auto">
+      <div className="flex">
+        {/* Sidebar */}
+        <UserSidebar isSidebarOpen={isSidebarOpen} activeTab={4} userRoles={userRoles} youngLearners={youngLearners} />
+
+        {/* Overlay for mobile sidebar */}
+        <div
+          id="sidebar-overlay"
+          onClick={toggleSidebar}
+          className={`${
+            isSidebarOpen ? "" : "hidden"
+          } md:hidden fixed inset-0 bg-black bg-opacity-50 z-20`}
+        ></div>
+
+        {/* Main Content */}
+        <main className="flex-1 md:ml-0">
+          <div className="max-w-7xl mx-auto px-6 py-8">
             {/* Header */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
                 <div className="flex items-center justify-between mb-6">

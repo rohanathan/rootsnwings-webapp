@@ -286,8 +286,8 @@ const Dashboard = () => {
       </header>
 
       <div className="flex">
-        {/* Sidebar */}
-        <UserSidebar isSidebarOpen={isSidebarOpen} activeTab={1} userRoles={userRoles} />
+                 {/* Sidebar */}
+         <UserSidebar isSidebarOpen={isSidebarOpen} activeTab={1} userRoles={userRoles} youngLearners={youngLearners} />
 
         {/* Overlay for mobile sidebar */}
         <div
@@ -358,12 +358,17 @@ const Dashboard = () => {
                         Add your children's profiles and discover amazing learning opportunities for them.
                       </p>
                       <div className="space-y-3">
-                        <button
-                          onClick={() => (window.location.href = "/user/younglearner")}
-                          className="w-full bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-dark transition-colors font-semibold"
-                        >
-                          <i className="fas fa-plus mr-2"></i>Add Your First Child
-                        </button>
+                                                 <button
+                           onClick={() => (window.location.href = "/user/younglearner")}
+                           className={`w-full px-8 py-3 rounded-lg font-semibold transition-colors ${
+                             youngLearners.length > 0 
+                               ? 'bg-green-600 hover:bg-green-700 text-white' 
+                               : 'bg-primary hover:bg-primary-dark text-white'
+                           }`}
+                         >
+                           <i className={`fas ${youngLearners.length > 0 ? 'fa-cog' : 'fa-plus'} mr-2`}></i>
+                           {youngLearners.length > 0 ? 'Manage Young Learners' : 'Add Your First Child'}
+                         </button>
                         <button
                           onClick={() => (window.location.href = "/workshop/listing")}
                           className="w-full bg-white text-primary border-2 border-primary px-8 py-3 rounded-lg hover:bg-primary-light transition-colors font-semibold"
@@ -390,12 +395,17 @@ const Dashboard = () => {
                         >
                           <i className="fas fa-user-graduate mr-2"></i>Find My Mentor
                         </button>
-                        <button
-                          onClick={() => (window.location.href = "/user/younglearner")}
-                          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
-                        >
-                          <i className="fas fa-child mr-2"></i>Add Children
-                        </button>
+                                                 <button
+                           onClick={() => (window.location.href = "/user/younglearner")}
+                           className={`px-6 py-3 rounded-lg transition-colors font-semibold ${
+                             youngLearners.length > 0 
+                               ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                               : 'bg-green-600 hover:bg-green-700 text-white'
+                           }`}
+                         >
+                           <i className={`fas ${youngLearners.length > 0 ? 'fa-cog' : 'fa-child'} mr-2`}></i>
+                           {youngLearners.length > 0 ? 'Manage Children' : 'Add Children'}
+                         </button>
                       </div>
                     </>
                   )}

@@ -386,7 +386,7 @@ const Dashboard = () => {
 
       <div className="flex">
         {/* Sidebar */}
-        <UserSidebar isSidebarOpen={isSidebarOpen} activeTab={3} />
+        <UserSidebar isSidebarOpen={isSidebarOpen} activeTab={3} userRoles={userRoles} youngLearners={youngLearners} />
 
         {/* Overlay for mobile sidebar */}
         <div
