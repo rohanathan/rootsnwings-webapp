@@ -2,7 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { chatAnalytics } from '@/utils/analytics';
+import dynamic from 'next/dynamic';
+
+// Dynamically import analytics to avoid SSR issues
+const AnalyticsModule = dynamic(() => import('@/utils/analytics'), { ssr: false });
 
 const ChatbotOverlay = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -20,6 +23,7 @@ const ChatbotOverlay = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [showAnalytics, setShowAnalytics] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -39,13 +43,21 @@ const ChatbotOverlay = () => {
         }
     }, [isOpen]);
 
+    // Set mounted state
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     // Track page view when chat opens
     useEffect(() => {
-        if (isOpen && typeof window !== 'undefined') {
+        if (isOpen && isMounted && typeof window !== 'undefined') {
             const pageContext = getPageContext();
-            chatAnalytics.trackPageView(window.location.pathname, pageContext);
+            // Only track if analytics is available
+            if (AnalyticsModule && AnalyticsModule.chatAnalytics) {
+                AnalyticsModule.chatAnalytics.trackPageView(window.location.pathname, pageContext);
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, isMounted]);
 
     // Toggle chat visibility
     const toggleChat = () => {
@@ -178,8 +190,8 @@ const ChatbotOverlay = () => {
 
             // Track successful conversation for analytics
             const responseTime = Date.now() - startTime;
-            if (typeof window !== 'undefined') {
-                chatAnalytics.trackConversation(
+            if (isMounted && typeof window !== 'undefined' && AnalyticsModule && AnalyticsModule.chatAnalytics) {
+                AnalyticsModule.chatAnalytics.trackConversation(
                     userMessage, 
                     response.data.response, 
                     pageContext, 
@@ -204,8 +216,8 @@ const ChatbotOverlay = () => {
 
             // Track fallback response for analytics
             const responseTime = Date.now() - startTime;
-            if (typeof window !== 'undefined') {
-                chatAnalytics.trackConversation(
+            if (isMounted && typeof window !== 'undefined' && AnalyticsModule && AnalyticsModule.chatAnalytics) {
+                AnalyticsModule.chatAnalytics.trackConversation(
                     userMessage, 
                     fallbackMessage.text, 
                     pageContext, 
@@ -325,9 +337,9 @@ const ChatbotOverlay = () => {
         setInputMessage(message);
         
         // Track quick action usage for analytics
-        if (typeof window !== 'undefined') {
+        if (isMounted && typeof window !== 'undefined' && AnalyticsModule && AnalyticsModule.chatAnalytics) {
             const pageContext = getPageContext();
-            chatAnalytics.trackQuickAction(message, pageContext);
+            AnalyticsModule.chatAnalytics.trackQuickAction(message, pageContext);
         }
         
         // Auto-send quick action messages
@@ -342,6 +354,11 @@ const ChatbotOverlay = () => {
             callAIBackend(message);
         }, 100);
     };
+
+    // Don't render until mounted to avoid SSR issues
+    if (!isMounted) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 pointer-events-none z-50">
@@ -564,37 +581,37 @@ const ChatbotOverlay = () => {
                     )}
                     
                     {/* Analytics Dashboard */}
-                    {showAnalytics && typeof window !== 'undefined' && (
+                    {showAnalytics && isMounted && typeof window !== 'undefined' && (
                         <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                             <h4 className="text-sm font-semibold text-blue-800 mb-2">AI Performance Insights</h4>
                             <div className="space-y-2 text-xs">
                                 <div className="flex justify-between">
                                     <span className="text-blue-700">Success Rate:</span>
                                     <span className="font-semibold">
-                                        {chatAnalytics.getAnalyticsSummary().successRate}%
+                                        {AnalyticsModule && AnalyticsModule.chatAnalytics ? AnalyticsModule.chatAnalytics.getAnalyticsSummary().successRate : 0}%
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-blue-700">Avg Response:</span>
                                     <span className="font-semibold">
-                                        {chatAnalytics.getAnalyticsSummary().averageResponseTime}ms
+                                        {AnalyticsModule && AnalyticsModule.chatAnalytics ? AnalyticsModule.chatAnalytics.getAnalyticsSummary().averageResponseTime : 0}ms
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-blue-700">Conversations:</span>
                                     <span className="font-semibold">
-                                        {chatAnalytics.getAnalyticsSummary().totalConversations}
+                                        {AnalyticsModule && AnalyticsModule.chatAnalytics ? AnalyticsModule.chatAnalytics.getAnalyticsSummary().totalConversations : 0}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-blue-700">Quick Actions:</span>
                                     <span className="font-semibold">
-                                        {chatAnalytics.getAnalyticsSummary().totalQuickActions}
+                                        {AnalyticsModule && AnalyticsModule.chatAnalytics ? AnalyticsModule.chatAnalytics.getAnalyticsSummary().totalQuickActions : 0}
                                     </span>
                                 </div>
                             </div>
                             <button
-                                onClick={() => chatAnalytics.sendAnalyticsToBackend()}
+                                onClick={() => AnalyticsModule && AnalyticsModule.chatAnalytics ? AnalyticsModule.chatAnalytics.sendAnalyticsToBackend() : null}
                                 className="w-full mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
                             >
                                 Send Analytics to Backend

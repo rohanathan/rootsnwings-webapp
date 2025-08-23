@@ -412,3 +412,6 @@ class ChatAnalytics {
 // Export singleton instance
 export const chatAnalytics = new ChatAnalytics();
 export default ChatAnalytics;
+
+// Also export as a named export for dynamic imports
+export { ChatAnalytics };
