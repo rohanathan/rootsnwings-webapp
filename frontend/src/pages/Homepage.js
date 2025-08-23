@@ -329,42 +329,54 @@ const Homepage = () => {
                 return (
                   <>
                     <div className="bg-white rounded-3xl p-8 text-center shadow-lg hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 group">
-                      <div
-                        className="w-20 h-20 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-6"
-                        data-name="Priya Sharma"
-                        aria-label="Priya Sharma's profile picture"
-                      >
-                        P
-                      </div>
+                      {eachMentor.photoURL ? (
+                        <img
+                          src={eachMentor.photoURL}
+                          alt={`${eachMentor.displayName}'s profile`}
+                          className="w-20 h-20 rounded-full object-cover mx-auto mb-6"
+                        />
+                      ) : (
+                        <div
+                          className="w-20 h-20 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-6"
+                          aria-label={`${eachMentor.displayName}'s profile picture`}
+                        >
+                          {eachMentor.displayName ? eachMentor.displayName.charAt(0).toUpperCase() : 'M'}
+                        </div>
+                      )}
                       <h3 className="text-xl font-semibold text-primary-dark mb-2">
-                        {eachMentor.displayName}
+                        {eachMentor.displayName || 'Mentor Name'}
                       </h3>
                       <p className="text-gray-600 mb-4">
-                        {eachMentor.headline}
+                        {eachMentor.headline || 'No headline available'}
                       </p>
                       <div className="flex justify-center items-center mb-3">
                         <span
                           className="text-yellow-400 mr-2"
-                          aria-label="5 star rating"
+                          aria-label={`${eachMentor.stats?.avgRating || 0} star rating`}
                         >
-                          ★★★★★
+                          {'★'.repeat(Math.floor(eachMentor.stats?.avgRating || 0))}
+                          {'☆'.repeat(5 - Math.floor(eachMentor.stats?.avgRating || 0))}
                         </span>
                         <span className="text-sm text-gray-600">
-                          {eachMentor.stats.avgRating} from{" "}
-                          {eachMentor.stats.totalReviews} reviews
+                          {eachMentor.stats?.avgRating?.toFixed(1) || 'N/A'} from{" "}
+                          {eachMentor.stats?.totalReviews || 0} reviews
                         </span>
                       </div>
                       <p className="text-sm text-gray-500 mb-4">
-                        {eachMentor.city}
+                        {eachMentor.city || 'Location not specified'}
                       </p>
-                      {eachMentor.pricing.firstSessionFree && (
+                      {eachMentor.pricing?.firstSessionFree && (
                         <div className="inline-block bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full mb-6">
                           {`1st Lesson Free`}
                         </div>
                       )}
                       <button
+                        onClick={() => {
+                          localStorage.setItem("mentor", JSON.stringify(eachMentor));
+                          window.location.href = "/mentor/detailpage";
+                        }}
                         className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-full font-semibold transition-colors group-hover:bg-blue-500"
-                        aria-label="View Priya Sharma's profile"
+                        aria-label={`View ${eachMentor.displayName}'s profile`}
                       >
                         Explore Profile
                       </button>
@@ -416,41 +428,47 @@ const Homepage = () => {
           </div>
         </section>
 
-        {/* Featured Workshops Section Component */}
-        <section id="workshops" className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-5">
-            <h2 className="text-4xl font-bold text-center text-primary-dark mb-12">
-              Workshops You Can Join This Month
-            </h2>
+                 {/* Featured Workshops Section Component */}
+         <section id="workshops" className="py-20 bg-white">
+           <div className="max-w-7xl mx-auto px-5">
+             <h2 className="text-4xl font-bold text-center text-primary-dark mb-12">
+               {workshop.length > 0 ? `Featured Workshops` : 'No Workshops Available'}
+             </h2>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Workshop Card 1 */}
-
-              {workshop.map((eachworkshop) => {
-                return (
-                  <>
-                    <div className="bg-white border-2 border-gray-100 rounded-3xl overflow-hidden hover:border-primary hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-                      <div className="h-48 bg-gradient-to-r from-primary to-primary-dark flex items-center justify-center text-white text-5xl">
-                        🕉️
-                      </div>
-                      <div className="p-6">
-                        <h3 className="text-lg font-semibold text-primary-dark mb-4">
-                          Introduction to Vedic Chanting
-                        </h3>
-                        <div className="space-y-2 mb-5 text-sm text-gray-600">
-                          <div className="flex items-center">
-                            <span className="mr-2">📅</span>
-                            <span id="workshop-date-1">
-                              {eachworkshop.schedule.weeklySchedule[0].day}
-                              {formatDate(eachworkshop.schedule.startDate)}
-                              {
-                                eachworkshop.schedule.weeklySchedule[0]
-                                  .startTime
-                              }{" "}
-                              -{" "}
-                              {eachworkshop.schedule.weeklySchedule[0].endTime}
-                            </span>
-                          </div>
+                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+               {/* Workshop Cards */}
+               {workshop.length > 0 ? (
+                                  workshop.map((eachworkshop, index) => {
+                   return (
+                     <div key={eachworkshop.id || `workshop-${index}`} className="bg-white border-2 border-gray-100 rounded-3xl overflow-hidden hover:border-primary hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+                     {eachworkshop.imageUrl ? (
+                       <img 
+                         src={eachworkshop.imageUrl} 
+                         alt={eachworkshop.title}
+                         className="h-48 w-full object-cover"
+                       />
+                     ) : (
+                       <div className="h-48 bg-gradient-to-r from-primary to-primary-dark flex items-center justify-center text-white text-5xl">
+                         📚
+                       </div>
+                     )}
+                     <div className="p-6">
+                       <h3 className="text-lg font-semibold text-primary-dark mb-4">
+                         {eachworkshop.title || 'Workshop Title'}
+                       </h3>
+                                                 <div className="space-y-2 mb-5 text-sm text-gray-600">
+                           <div className="flex items-center">
+                             <span className="mr-2">📅</span>
+                             <span>
+                               {eachworkshop.schedule?.weeklySchedule?.[0]?.day || 'TBD'} - {eachworkshop.schedule?.startDate ? formatDate(eachworkshop.schedule.startDate) : 'Date TBD'}
+                             </span>
+                           </div>
+                           <div className="flex items-center">
+                             <span className="mr-2">⏰</span>
+                             <span>
+                               {eachworkshop.schedule?.weeklySchedule?.[0]?.startTime || 'TBD'} - {eachworkshop.schedule?.weeklySchedule?.[0]?.endTime || 'TBD'}
+                             </span>
+                           </div>
 
                           {/* <div className="flex items-center">
                       <span className="mr-2">📅</span>
@@ -461,29 +479,47 @@ const Homepage = () => {
                       </span>
                     </div> */}
 
-                          <div className="flex items-center">
-                            <span className="mr-2">👤</span>
-                            <span>{eachworkshop.mentorName}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <span className="mr-2">💻</span>
-                            <span>{eachworkshop.format.charAt(0).toUpperCase() + eachworkshop.format.slice(1)}</span>
-                          </div>
+                                                     <div className="flex items-center">
+                             <span className="mr-2">👤</span>
+                             <span>{eachworkshop.mentorName || 'Mentor TBD'}</span>
+                           </div>
+                           <div className="flex items-center">
+                             <span className="mr-2">💻</span>
+                             <span>{eachworkshop.format ? eachworkshop.format.charAt(0).toUpperCase() + eachworkshop.format.slice(1) : 'Format TBD'}</span>
+                           </div>
                         </div>
-                        <div className="text-2xl font-bold text-primary-dark mb-5">
-                          Free
-                        </div>
-                        <button
-                          className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-xl font-semibold transition-colors"
-                          aria-label="View details for Vedic Chanting workshop"
-                        >
-                          Book Workshop
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                );
-              })}
+                                                 <div className="text-2xl font-bold text-primary-dark mb-5">
+                           {eachworkshop.pricing?.total ? `£${eachworkshop.pricing.total}` : 'Free'}
+                         </div>
+                         <button
+                           onClick={() => {
+                             localStorage.setItem('selectedWorkshop', JSON.stringify(eachworkshop));
+                             window.location.href = '/workshop/listing';
+                           }}
+                           className="w-full bg-primary hover:bg-blue-500 text-white py-3 rounded-xl font-semibold transition-colors"
+                           aria-label={`Explore ${eachworkshop.title || 'workshop'} details`}
+                         >
+                           Explore Workshop
+                                                  </button>
+                       </div>
+                     </div>
+                   );
+                 })
+               ) : (
+                 <div className="col-span-full text-center py-12">
+                   <div className="text-gray-400 text-6xl mb-4">📚</div>
+                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No workshops available</h3>
+                   <p className="text-gray-600 mb-6">
+                     Check back soon for upcoming workshops and learning opportunities.
+                   </p>
+                   <button
+                     onClick={() => window.location.href = '/explore/workshops'}
+                     className="bg-primary hover:bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                   >
+                     Browse All Workshops
+                   </button>
+                 </div>
+               )}
 
               {/* Workshop Card 2 */}
               {/* <div className="bg-white border-2 border-gray-100 rounded-3xl overflow-hidden hover:border-primary hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
