@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import datetime
+from enum import Enum
 
 class MentorStats(BaseModel):
     """
@@ -37,14 +38,61 @@ class AvailabilitySummary(BaseModel):
     generallyAvailable: List[str] = Field(default_factory=list)
     preferredHours: Optional[List[str]] = Field(default_factory=list)
 
+class QualificationType(str, Enum):
+    """
+    Enhanced qualification types including cultural/traditional training.
+    Used in mentor onboarding and profile display.
+    """
+    # === FORMAL QUALIFICATIONS ===
+    DEGREE = "degree"
+    CERTIFICATION = "certification" 
+    PROFESSIONAL_EXPERIENCE = "professional_experience"
+    
+    # === CULTURAL/TRADITIONAL QUALIFICATIONS ===
+    TRADITIONAL_LINEAGE = "traditional_lineage"  # "Student of Guru"
+    CULTURAL_APPRENTICESHIP = "cultural_apprenticeship"  # "Apprenticed under Master craftsman"
+    CULTURAL_IMMERSION = "cultural_immersion"  # "3 years studying in India"
+    SELF_TAUGHT_CULTURAL = "self_taught_cultural"  # "20 years self-study of tradition"
+    COMMUNITY_RECOGNITION = "community_recognition"  # "Recognized by cultural community"
+
 class Qualification(BaseModel):
     id: str
-    type: str  # "degree", "certification", "experience"
-    title: str
-    institution: str
-    year: str
-    icon: str = "🎓"
+    type: QualificationType = Field(..., description="Type of qualification - formal or cultural/traditional")
+    title: str = Field(..., description="Qualification title or description")
+    institution: str = Field(..., description="Institution, guru name, or 'Self-taught' for traditional learning")
+    year: str = Field(..., description="Year obtained or period of study")
+    icon: str = Field("🎓", description="Display icon - varies by type")
     certUrl: Optional[str] = None  # Optional certificate/document URL for admin validation
+    
+    # === ENHANCED CULTURAL CONTEXT ===
+    cultural_subjects: Optional[List[str]] = []  # Subject IDs this qualification relates to
+    description: Optional[str] = None  # Additional context for traditional/cultural qualifications
+    verification_status: Optional[str] = "pending"  # Admin verification status
+    
+    def is_cultural_qualification(self) -> bool:
+        """Check if this is a cultural/traditional qualification"""
+        cultural_types = {
+            QualificationType.TRADITIONAL_LINEAGE,
+            QualificationType.CULTURAL_APPRENTICESHIP,
+            QualificationType.CULTURAL_IMMERSION,
+            QualificationType.SELF_TAUGHT_CULTURAL,
+            QualificationType.COMMUNITY_RECOGNITION
+        }
+        return self.type in cultural_types
+    
+    def get_display_icon(self) -> str:
+        """Get appropriate icon based on qualification type"""
+        icon_mapping = {
+            QualificationType.DEGREE: "🎓",
+            QualificationType.CERTIFICATION: "📜", 
+            QualificationType.PROFESSIONAL_EXPERIENCE: "💼",
+            QualificationType.TRADITIONAL_LINEAGE: "🙏",
+            QualificationType.CULTURAL_APPRENTICESHIP: "👨‍🏫",
+            QualificationType.CULTURAL_IMMERSION: "🌍",
+            QualificationType.SELF_TAUGHT_CULTURAL: "📚",
+            QualificationType.COMMUNITY_RECOGNITION: "🏆"
+        }
+        return icon_mapping.get(self.type, "🎓")
 
 class Mentor(BaseModel):
     """

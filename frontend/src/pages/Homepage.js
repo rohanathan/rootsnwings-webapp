@@ -3,6 +3,7 @@
 import { formatDate } from "@/app/utils";
 
 import Navbar from "@/components/NavBar";
+import CulturalWorldMap from "@/components/CulturalWorldMap";
 import axios from "axios";
 import React, { useState, useEffect } from "react";
 
@@ -144,6 +145,52 @@ const Homepage = () => {
     setTimeout(() => handleSearch(), 100); // Small delay to ensure state is updated
   };
 
+  // Get category image from Firebase Storage
+  const getCategoryImage = (categoryId) => {
+    const baseUrl = 'https://firebasestorage.googleapis.com/v0/b/rootsnwings-465610.firebasestorage.app/o/category-icons%2F';
+    const token = '?alt=media'; // Firebase requires this for public access
+    
+    const imageMap = {
+      'crafts_and_hobbies': `${baseUrl}crafts_and_hobbies.jpg${token}`,
+      'culinary_arts': `${baseUrl}culinary_arts.webp${token}`,
+      'visual_arts': `${baseUrl}visual_arts.jpg${token}`,
+      'music': `${baseUrl}music.jpg${token}`,
+      'performing_arts': `${baseUrl}performing_arts.jpg${token}`,
+      'stem': `${baseUrl}stem.jpg${token}`,
+      'water_sports': `${baseUrl}water_sports.jpg${token}`,
+      'languages': `${baseUrl}languages.jpg${token}`,
+      'wellness': `${baseUrl}wellness.jpg${token}`,
+      'fitness': `${baseUrl}fitness.jpg${token}`,
+      'academics': `${baseUrl}academics.jpg${token}`,
+      'business': `${baseUrl}business.jpg${token}`,
+      'technology': `${baseUrl}technology.jpg${token}`,
+      'philosophy': `${baseUrl}philosophy.jpg${token}`
+    };
+    
+    return imageMap[categoryId] || `${baseUrl}default.jpg${token}`;
+  };
+
+  // Fallback emoji if image fails to load
+  const getCategoryEmoji = (categoryId) => {
+    const emojiMap = {
+      'visual_arts': '🎨',
+      'music': '🎵',
+      'performing_arts': '🎭', 
+      'culinary_arts': '👨‍🍳',
+      'crafts_and_hobbies': '✂️',
+      'stem': '🔬',
+      'water_sports': '🏊‍♀️',
+      'languages': '📚',
+      'wellness': '🧘',
+      'technology': '💻',
+      'fitness': '💪',
+      'academics': '📖',
+      'business': '💼',
+      'philosophy': '📜'
+    };
+    return emojiMap[categoryId] || '🎯';
+  };
+
   return (
     <>
       <script src="https://cdn.tailwindcss.com"></script>
@@ -272,45 +319,79 @@ const Homepage = () => {
           </div>
         </section>
 
-        {/* Categories Section Component */}
+        {/* Cultural Heritage & Categories Section */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-5">
-            <h2 className="text-4xl font-bold text-center text-primary-dark mb-12">
-              Explore Learning Categories
-            </h2>
+            {/* Cultural World Map */}
+            <div className="mb-16">
+              <CulturalWorldMap />
+            </div>
 
-            {/* Categories Scroller */}
-            <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
-              {[
-                "🎻 Classical Music",
-                "🎨 Art & Craft",
-                "🧘 Mindfulness",
-                "🗣️ Spoken Word",
-                "📜 Philosophy",
-                "💻 Coding",
-                "📚 Languages",
-                "🎭 Drama",
-              ].map((category, index) => (
-                <div
-                  key={index}
-                  className={`flex-shrink-0 text-center p-6 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl min-w-[140px] ${
-                    searchTerm === category
-                      ? "bg-primary text-white"
-                      : "bg-primary-light hover:bg-primary hover:text-white"
-                  }`}
-                  role="button"
-                  tabIndex="0"
-                  aria-label={`Browse ${category} mentors`}
-                  onClick={() => handleCategoryClick(category)}
-                >
-                  <div className="text-4xl mb-3" aria-hidden="true">
-                    {category.split(" ")[0]}
+            {/* Dynamic Learning Categories */}
+            <div>
+              <h2 className="text-4xl font-bold text-center text-primary-dark mb-12">
+                Explore Learning Categories
+              </h2>
+
+              {/* Dynamic Categories Scroller */}
+              <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
+                {categories.map((category, index) => (
+                  <div
+                    key={category.categoryId || index}
+                    className={`flex-shrink-0 text-center p-6 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl min-w-[140px] ${
+                      searchTerm === category.categoryName
+                        ? "bg-primary text-white"
+                        : "bg-primary-light hover:bg-primary hover:text-white"
+                    }`}
+                    role="button"
+                    tabIndex="0"
+                    aria-label={`Browse ${category.categoryName} mentors`}
+                    onClick={() => handleCategoryClick(category.categoryName)}
+                  >
+                    <div className="text-4xl mb-3" aria-hidden="true">
+                      {getCategoryEmoji(category.categoryId)}
+                    </div>
+                    <div className="font-semibold text-sm">
+                      {category.categoryName}
+                    </div>
+                    <div className="text-xs mt-2 opacity-80">
+                      {category.subjectCount} subjects
+                    </div>
                   </div>
-                  <div className="font-semibold text-sm">
-                    {category.substring(category.indexOf(" ") + 1)}
+                ))}
+                
+                {/* Fallback static categories if API fails */}
+                {categories.length === 0 && [
+                  "🎻 Classical Music",
+                  "🎨 Art & Craft", 
+                  "🧘 Mindfulness",
+                  "🗣️ Spoken Word",
+                  "📜 Philosophy",
+                  "💻 Coding",
+                  "📚 Languages",
+                  "🎭 Drama",
+                ].map((category, index) => (
+                  <div
+                    key={index}
+                    className={`flex-shrink-0 text-center p-6 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl min-w-[140px] ${
+                      searchTerm === category
+                        ? "bg-primary text-white"
+                        : "bg-primary-light hover:bg-primary hover:text-white"
+                    }`}
+                    role="button"
+                    tabIndex="0"
+                    aria-label={`Browse ${category} mentors`}
+                    onClick={() => handleCategoryClick(category)}
+                  >
+                    <div className="text-4xl mb-3" aria-hidden="true">
+                      {category.split(" ")[0]}
+                    </div>
+                    <div className="font-semibold text-sm">
+                      {category.substring(category.indexOf(" ") + 1)}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </section>

@@ -12,6 +12,7 @@ router = APIRouter(
 )
 
 class Subject(BaseModel):
+    # === CORE FIELDS ===
     subjectId: str
     subject: str
     category: str
@@ -19,6 +20,20 @@ class Subject(BaseModel):
     synonyms: List[str]
     relatedSubjects: List[str]
     searchBoost: float
+    
+    # === CULTURAL TAXONOMY FIELDS ===
+    tradition_or_school: Optional[str] = None  # e.g. "Bharatanatyam"
+    heritage_context: Optional[str] = "folk"  # "intangible_heritage", "folk", "classical", "community_practice", "modern_fusion"
+    materials_used: Optional[List[str]] = []  # ["tabla", "harmonium"]
+    language_of_instruction: Optional[List[str]] = ["English"]  # Languages available
+    cultural_context_provided: Optional[bool] = True  # Whether cultural significance is explained
+    age_appropriateness_min: Optional[int] = 5  # Minimum recommended age
+    age_appropriateness_max: Optional[int] = 99  # Maximum recommended age (99 = no limit)
+    prerequisite_skills: Optional[List[str]] = []  # ["basic drawing", "rhythm awareness"]
+    cultural_authenticity_score: Optional[float] = 0.5  # 0.0-1.0 (0=modern interpretation, 1=traditional)
+    cultural_significance_level: Optional[float] = 0.5  # 0.0-1.0 importance level
+    is_culturally_rooted: Optional[bool] = False  # Whether rooted in specific traditions
+    cultural_keywords: Optional[List[str]] = []  # ["traditional", "heritage", "ceremonial"]
 
 class SubjectsResponse(BaseModel):
     subjects: List[Subject]
