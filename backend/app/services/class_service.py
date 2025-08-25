@@ -598,6 +598,17 @@ def generate_search_metadata(class_data: Dict) -> Dict:
         metadata["isWorkshop"] = class_type == "workshop"
         metadata["isGroup"] = class_type == "group"
         
+        # === KEYWORDS AND CULTURAL CONTEXT ===
+        
+        # Generate keywords for search optimization
+        keywords = generate_class_keywords(class_data)
+        metadata["keywords"] = keywords
+        
+        # Add cultural context if available
+        cultural_context = generate_cultural_context(class_data)
+        if cultural_context:
+            metadata.update(cultural_context)
+        
         return metadata
     
     except Exception as e:
@@ -620,6 +631,146 @@ def generate_search_metadata(class_data: Dict) -> Dict:
             "isWorkshop": False,
             "isGroup": True
         }
+
+def generate_class_keywords(class_data: Dict) -> List[str]:
+    """
+    Generate search keywords from class data for enhanced discoverability.
+    """
+    keywords = []
+    
+    # Core class information
+    title = class_data.get("title", "")
+    subject = class_data.get("subject", "")
+    category = class_data.get("category", "")
+    description = class_data.get("description", "")
+    
+    # Add obvious keywords
+    if title:
+        keywords.extend(title.lower().split())
+    if subject:
+        keywords.extend(subject.lower().split())
+    if category:
+        keywords.append(category.lower())
+    
+    # Add level and age group keywords
+    level = class_data.get("level", "")
+    age_group = class_data.get("ageGroup", "")
+    class_format = class_data.get("format", "")
+    
+    if level:
+        keywords.append(level.lower())
+    if age_group:
+        keywords.append(age_group.lower())
+        # Add synonyms
+        if age_group.lower() == "child":
+            keywords.extend(["kids", "children"])
+        elif age_group.lower() == "teen":
+            keywords.extend(["teenager", "youth"])
+    if class_format:
+        keywords.append(class_format.lower())
+    
+    # Extract meaningful words from description
+    if description:
+        desc_words = [word.strip().lower() for word in description.split() 
+                     if len(word) > 3 and word.isalpha()]
+        keywords.extend(desc_words[:10])  # Limit to first 10 meaningful words
+    
+    # Remove duplicates and empty strings
+    keywords = list(set([k for k in keywords if k.strip()]))
+    
+    return keywords[:20]  # Limit to 20 keywords max
+
+def generate_cultural_context(class_data: Dict) -> Dict:
+    """
+    Generate cultural context by trying to match subject to cultural database.
+    Returns cultural metadata or basic context for non-cultural subjects.
+    """
+    cultural_context = {}
+    
+    subject = class_data.get("subject", "").lower()
+    category = class_data.get("category", "").lower()
+    
+    # Try to match to cultural subjects using simple keyword matching
+    cultural_match = match_subject_to_cultural_data(subject, category)
+    
+    if cultural_match:
+        # Found cultural match - use rich cultural context
+        cultural_context = {
+            "cultural_origin_region": cultural_match.get("region"),
+            "heritage_context": cultural_match.get("heritage_context", "folk"),
+            "cultural_authenticity_score": cultural_match.get("cultural_authenticity_score", 0.5),
+            "cultural_significance_level": cultural_match.get("cultural_significance_level", 0.5),
+            "is_culturally_rooted": cultural_match.get("is_culturally_rooted", False),
+            "cultural_keywords": cultural_match.get("cultural_keywords", []),
+            "tradition_or_school": cultural_match.get("tradition_or_school"),
+        }
+    else:
+        # No cultural match - provide basic context for non-rooted classes
+        cultural_context = {
+            "cultural_origin_region": "Worldwide",
+            "heritage_context": "modern",
+            "cultural_authenticity_score": 0.3,
+            "cultural_significance_level": 0.2,
+            "is_culturally_rooted": False,
+            "cultural_keywords": ["contemporary", "modern"],
+            "tradition_or_school": None
+        }
+    
+    # Add mentor cultural score (placeholder - will be enhanced)
+    cultural_context["mentor_cultural_score"] = 0.5
+    cultural_context["combined_cultural_score"] = (
+        cultural_context["cultural_authenticity_score"] * 0.7 + 
+        cultural_context["mentor_cultural_score"] * 0.3
+    )
+    
+    return cultural_context
+
+def match_subject_to_cultural_data(subject_text: str, category: str) -> Optional[Dict]:
+    """
+    Simple matching logic to connect free-text subjects to cultural database.
+    """
+    # Simple keyword-based mapping for common cultural subjects
+    cultural_mappings = {
+        "bharatanatyam": {
+            "region": "India", 
+            "heritage_context": "classical",
+            "cultural_authenticity_score": 0.95,
+            "cultural_significance_level": 0.9,
+            "is_culturally_rooted": True,
+            "cultural_keywords": ["classical", "traditional", "temple", "devotional", "indian"],
+            "tradition_or_school": "Tamil Nadu Classical Dance"
+        },
+        "bagpipe": {
+            "region": "Scotland",
+            "heritage_context": "folk", 
+            "cultural_authenticity_score": 0.8,
+            "cultural_significance_level": 0.7,
+            "is_culturally_rooted": True,
+            "cultural_keywords": ["scottish", "traditional", "highland", "folk music", "celtic"],
+            "tradition_or_school": "Scottish Highland Tradition"
+        },
+        "origami": {
+            "region": "Japan",
+            "heritage_context": "folk",
+            "cultural_authenticity_score": 0.8,
+            "cultural_significance_level": 0.7, 
+            "is_culturally_rooted": True,
+            "cultural_keywords": ["japanese", "traditional", "paper folding", "meditative", "zen"],
+            "tradition_or_school": "Traditional Japanese Paper Art"
+        }
+    }
+    
+    # Check for direct matches
+    for key, cultural_data in cultural_mappings.items():
+        if key in subject_text.lower():
+            return cultural_data
+    
+    # Check for broader cultural patterns
+    if any(word in subject_text.lower() for word in ["indian", "classical", "traditional"]):
+        if "dance" in subject_text.lower():
+            return cultural_mappings.get("bharatanatyam")
+    
+    return None
 
 def calculate_intensity(class_data: Dict) -> str:
     """
