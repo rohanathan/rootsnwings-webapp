@@ -4,6 +4,7 @@ from app.models.mentor_models import Mentor, MentorSearchQuery
 from app.models.class_models import ClassItem, ClassSearchQuery
 from app.services.mentor_service import search_mentors
 from app.services.class_service import search_classes
+from app.services.cultural_ranking_service import culturally_aware_ranking
 from typing import List, Tuple
 from fastapi import HTTPException
 import re
@@ -46,9 +47,6 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
                 # Format location string
                 location = f"{mentor.city}, {mentor.country}"
                 
-                # Calculate relevance score for ranking
-                relevance_score = calculate_mentor_relevance(mentor, query.q)
-                
                 search_result = {
                     "type": "mentor",
                     "id": mentor.uid,
@@ -60,8 +58,7 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
                     "location": location,
                     "imageUrl": mentor.photoURL,
                     "tags": mentor.searchKeywords,
-                    "data": mentor,
-                    "relevance_score": relevance_score
+                    "data": mentor
                 }
                 
                 search_results.append(search_result)
@@ -95,9 +92,6 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
                 # Format location string
                 location = "Online" if class_item.format == "online" else class_item.format
                 
-                # Calculate relevance score for ranking
-                relevance_score = calculate_class_relevance(class_item, query.q)
-                
                 search_result = {
                     "type": "class",
                     "id": class_item.classId,
@@ -109,11 +103,13 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
                     "location": location,
                     "imageUrl": class_item.mentorPhotoURL,
                     "tags": [class_item.subject] if class_item.subject else [],
-                    "data": class_item,
-                    "relevance_score": relevance_score
+                    "data": class_item
                 }
                 
                 search_results.append(search_result)
+        
+        # Apply intelligent cultural ranking
+        search_results = culturally_aware_ranking(query.q, search_results)
         
         # Apply unified filtering
         filtered_results = apply_unified_filters(search_results, query)
@@ -127,10 +123,12 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
         end_idx = start_idx + query.pageSize
         paginated_results = sorted_results[start_idx:end_idx]
         
-        # Convert back to SearchResult objects and remove relevance_score
+        # Convert back to SearchResult objects and clean internal scoring
         final_results = []
         for result_dict in paginated_results:
-            result_dict.pop('relevance_score', None)  # Remove relevance score
+            # Remove internal scoring fields
+            result_dict.pop('ranking_score', None)
+            result_dict.pop('score_breakdown', None)
             final_results.append(SearchResult(**result_dict))
         
         stats = {
@@ -252,8 +250,8 @@ def sort_unified_results(results: List[dict], sort_by: str, sort_order: str) -> 
     reverse = sort_order == "desc"
     
     if sort_by == "relevance":
-        # Sort by relevance score (if available)
-        results.sort(key=lambda r: r.get('relevance_score', 0), reverse=reverse)
+        # Sort by cultural ranking score (if available)
+        results.sort(key=lambda r: r.get('ranking_score', 0), reverse=reverse)
     elif sort_by == "rating":
         results.sort(key=lambda r: r["rating"] or 0, reverse=reverse)
     elif sort_by == "price":
@@ -267,8 +265,8 @@ def sort_unified_results(results: List[dict], sort_by: str, sort_order: str) -> 
                 return r["data"].createdAt or ""
         results.sort(key=get_date_score, reverse=reverse)
     else:
-        # Default to relevance
-        results.sort(key=lambda r: r.get('relevance_score', 0), reverse=True)
+        # Default to cultural ranking
+        results.sort(key=lambda r: r.get('ranking_score', 0), reverse=True)
     
     return results
 
