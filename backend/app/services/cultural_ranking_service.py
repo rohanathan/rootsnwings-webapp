@@ -115,8 +115,15 @@ def calculate_trust_score(item: Dict) -> float:
     if mentor_data.get('isVerified'):
         score += 0.2  # Admin verified
     
-    # Small boost for experience
-    total_students = mentor_data.get('stats', {}).get('totalStudents', 0)
+    # Small boost for experience - handle both dict and Pydantic object formats
+    stats = mentor_data.get('stats', {})
+    if hasattr(stats, 'totalStudents'):  # Pydantic object
+        total_students = stats.totalStudents
+    elif isinstance(stats, dict):  # Dictionary
+        total_students = stats.get('totalStudents', 0)
+    else:
+        total_students = 0
+        
     if total_students > 5:
         score += 0.1  # Has taught multiple students
     

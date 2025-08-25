@@ -47,6 +47,9 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
                 # Format location string
                 location = f"{mentor.city}, {mentor.country}"
                 
+                # Convert mentor to dict format for cultural ranking (handle nested Pydantic objects)
+                mentor_dict = mentor.dict() if hasattr(mentor, 'dict') else mentor.__dict__
+                
                 search_result = {
                     "type": "mentor",
                     "id": mentor.uid,
@@ -58,7 +61,12 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
                     "location": location,
                     "imageUrl": mentor.photoURL,
                     "tags": mentor.searchKeywords,
-                    "data": mentor
+                    "data": mentor_dict,  # Use dict format for cultural ranking
+                    "searchMetadata": {  # Add basic searchMetadata for cultural ranking
+                        "keywords": mentor.searchKeywords or [],
+                        "is_culturally_rooted": False,  # Will be determined by cultural ranking
+                        "cultural_authenticity_score": 0.3
+                    }
                 }
                 
                 search_results.append(search_result)
@@ -92,6 +100,9 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
                 # Format location string
                 location = "Online" if class_item.format == "online" else class_item.format
                 
+                # Convert class to dict format for cultural ranking (handle nested Pydantic objects)
+                class_dict = class_item.dict() if hasattr(class_item, 'dict') else class_item.__dict__
+                
                 search_result = {
                     "type": "class",
                     "id": class_item.classId,
@@ -103,7 +114,12 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
                     "location": location,
                     "imageUrl": class_item.mentorPhotoURL,
                     "tags": [class_item.subject] if class_item.subject else [],
-                    "data": class_item
+                    "data": class_dict,  # Use dict format for cultural ranking
+                    "searchMetadata": getattr(class_item, 'searchMetadata', {  # Use existing or create basic
+                        "keywords": [class_item.subject] if class_item.subject else [],
+                        "is_culturally_rooted": False,
+                        "cultural_authenticity_score": 0.3
+                    })
                 }
                 
                 search_results.append(search_result)
