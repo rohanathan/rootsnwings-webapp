@@ -446,11 +446,41 @@ const Homepage = () => {
                       <p className="text-sm text-gray-500 mb-4">
                         {eachMentor.city || 'Location not specified'}
                       </p>
-                      {eachMentor.pricing?.firstSessionFree && (
-                        <div className="inline-block bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full mb-6">
-                          {`1st Lesson Free`}
-                        </div>
-                      )}
+                      
+                      {/* Cultural and Offer Badges */}
+                      <div className="flex flex-wrap justify-center gap-2 mb-6">
+                        {/* Cultural Heritage Badge */}
+                        {eachMentor.searchMetadata?.cultural_origin_region && 
+                         eachMentor.searchMetadata.cultural_origin_region !== 'worldwide' && (
+                          <div className="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full">
+                            🌍 {eachMentor.searchMetadata.cultural_origin_region}
+                          </div>
+                        )}
+                        
+                        {/* Traditional Training Badge */}
+                        {eachMentor.qualifications && 
+                         eachMentor.qualifications.some(q => 
+                           ['traditional_lineage', 'cultural_apprenticeship', 'cultural_immersion'].includes(q.type)
+                         ) && (
+                          <div className="inline-block bg-orange-100 text-orange-800 text-xs font-semibold px-3 py-1 rounded-full">
+                            🙏 Traditional Training
+                          </div>
+                        )}
+                        
+                        {/* Cultural Authenticity Badge */}
+                        {eachMentor.searchMetadata?.cultural_authenticity_score >= 0.7 && (
+                          <div className="inline-block bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1 rounded-full">
+                            ⭐ Authentic
+                          </div>
+                        )}
+                        
+                        {/* First Session Free Badge */}
+                        {eachMentor.pricing?.firstSessionFree && (
+                          <div className="inline-block bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">
+                            1st Lesson Free
+                          </div>
+                        )}
+                      </div>
                       <button
                         onClick={() => {
                           localStorage.setItem("mentor", JSON.stringify(eachMentor));

@@ -321,7 +321,7 @@ matched_subjects: [list of subjects found in metadata]`
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         {/* Result Type Badge */}
-                        <div className="flex items-center gap-3 mb-3">
+                        <div className="flex items-center gap-3 mb-3 flex-wrap">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             result.type === 'mentor' 
                               ? 'bg-blue-100 text-blue-800' 
@@ -332,6 +332,31 @@ matched_subjects: [list of subjects found in metadata]`
                           {result.category && (
                             <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
                               {result.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </span>
+                          )}
+                          
+                          {/* Cultural Heritage Badge */}
+                          {result.data?.searchMetadata?.cultural_origin_region && 
+                           result.data.searchMetadata.cultural_origin_region !== 'worldwide' && (
+                            <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+                              🌍 {result.data.searchMetadata.cultural_origin_region}
+                            </span>
+                          )}
+                          
+                          {/* Traditional Training Badge */}
+                          {result.type === 'mentor' && result.data?.qualifications && 
+                           result.data.qualifications.some(q => 
+                             ['traditional_lineage', 'cultural_apprenticeship', 'cultural_immersion'].includes(q.type)
+                           ) && (
+                            <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium">
+                              🙏 Traditional Training
+                            </span>
+                          )}
+                          
+                          {/* Cultural Authenticity Badge */}
+                          {result.data?.searchMetadata?.cultural_authenticity_score >= 0.7 && (
+                            <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">
+                              ⭐ Authentic
                             </span>
                           )}
                         </div>

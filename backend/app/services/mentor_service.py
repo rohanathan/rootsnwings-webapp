@@ -4,6 +4,7 @@ from app.models.mentor_models import Mentor, MentorStats, MentorSearchQuery
 from fastapi import HTTPException
 from typing import List, Tuple
 import re
+from app.services.cultural_ranking_service import calculate_mentor_cultural_expertise
 
 def search_mentors(query: MentorSearchQuery) -> Tuple[List[Mentor], int]:
     """
@@ -121,7 +122,7 @@ def fetch_all_mentors(page: int = 1, page_size: int = 20) -> Tuple[List[Mentor],
     return search_mentors(query)
 
 def fetch_featured_mentors(limit: int = 6) -> List[Mentor]:
-    """Get featured mentors based on performance score"""
+    """Get featured mentors based on cultural expertise and performance score"""
     try:
         # docs = db.collection("mentors").where("status", "==", "active").stream()  # COMMENTED OUT
         docs = db.collection("mentors").stream()  # NO STATUS FILTER for testing
@@ -135,8 +136,8 @@ def fetch_featured_mentors(limit: int = 6) -> List[Mentor]:
                 mentor = Mentor(**data)
                 stats = mentor.stats or MentorStats()
                 
-                # Calculate performance score
-                score = (
+                # Calculate base performance score
+                performance_score = (
                     stats.avgRating * 3 +
                     stats.repeatStudentRate * 2 +
                     stats.totalStudents * 0.1 +
@@ -144,14 +145,30 @@ def fetch_featured_mentors(limit: int = 6) -> List[Mentor]:
                     stats.responseTimeMinutes * 0.001
                 )
                 
-                mentor_scores.append((score, mentor))
-            except Exception:
-                # Skip invalid mentor data
+                # Calculate cultural expertise score
+                cultural_expertise_score = calculate_mentor_cultural_expertise(mentor.uid)
+                
+                # Combined scoring: Performance (70%) + Cultural Expertise (30%)
+                # This ensures culturally qualified mentors get featured
+                final_score = (performance_score * 0.7) + (cultural_expertise_score * 10 * 0.3)
+                
+                mentor_scores.append((final_score, mentor, cultural_expertise_score))
+                
+            except Exception as e:
+                # Skip invalid mentor data but log for debugging
+                print(f"Skipping mentor {doc.id}: {str(e)}")
                 continue
         
-        # Sort by score and return top mentors
+        # Sort by combined score and return top mentors
         mentor_scores.sort(reverse=True, key=lambda x: x[0])
-        return [m[1] for m in mentor_scores[:limit]]
+        
+        # Return mentors with logging for cultural expertise
+        featured_mentors = []
+        for score, mentor, cultural_score in mentor_scores[:limit]:
+            print(f"Featured mentor {mentor.displayName}: Total score={score:.2f}, Cultural expertise={cultural_score:.2f}")
+            featured_mentors.append(mentor)
+        
+        return featured_mentors
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch featured mentors: {str(e)}")

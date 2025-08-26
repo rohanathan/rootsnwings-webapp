@@ -5,7 +5,7 @@ Using the enhanced searchMetadata we already created
 """
 
 from typing import List, Dict
-from app.services.mentor_service import fetch_mentor_by_id
+from app.services.firestore import db
 
 def calculate_cultural_relevance(query: str, item: Dict) -> float:
     """
@@ -51,16 +51,23 @@ def calculate_mentor_cultural_expertise(mentor_id: str) -> float:
     Using the enhanced qualifications we already built.
     """
     try:
-        mentor = fetch_mentor_by_id(mentor_id)
-        if not mentor or not mentor.qualifications:
+        # Get mentor data directly from Firestore to avoid circular import
+        mentor_doc = db.collection('mentors').document(mentor_id).get()
+        if not mentor_doc.exists:
+            return 0.4  # Basic score for mentors not found
+            
+        mentor_data = mentor_doc.to_dict()
+        qualifications = mentor_data.get('qualifications', [])
+        
+        if not qualifications:
             return 0.4  # Basic score for mentors without special qualifications
         
         expertise_score = 0.0
         cultural_qualifications = 0
         
         # Score based on qualification types
-        for qual in mentor.qualifications:
-            qual_type = str(qual.type).lower()
+        for qual in qualifications:
+            qual_type = str(qual.get('type', '')).lower()
             
             if 'traditional_lineage' in qual_type:
                 expertise_score += 1.0  # Highest score for traditional training
@@ -98,8 +105,8 @@ def calculate_trust_score(item: Dict) -> float:
         mentor_id = item.get('data', {}).get('mentorId')
         if mentor_id:
             try:
-                mentor = fetch_mentor_by_id(mentor_id)
-                mentor_data = mentor.__dict__ if mentor else {}
+                mentor_doc = db.collection('mentors').document(mentor_id).get()
+                mentor_data = mentor_doc.to_dict() if mentor_doc.exists else {}
             except:
                 mentor_data = {}
     

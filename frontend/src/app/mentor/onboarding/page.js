@@ -50,6 +50,7 @@ const OnBoarding = () => {
     ageGroups: [],
     title: "",
     aboutYou: "",
+    qualifications: [], // Added qualifications array
     city: "",
     region: "",
     postalCode: "",
@@ -71,6 +72,17 @@ const OnBoarding = () => {
 
   const [customSubject, setCustomSubject] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("");
+
+  // Qualification form state
+  const [showQualificationForm, setShowQualificationForm] = useState(false);
+  const [editingQualificationIndex, setEditingQualificationIndex] = useState(-1);
+  const [currentQualification, setCurrentQualification] = useState({
+    type: "degree",
+    title: "",
+    institution: "",
+    year: "",
+    description: ""
+  });
 
   const languageSelectRef = useRef(null);
 
@@ -261,6 +273,75 @@ const OnBoarding = () => {
     }
   };
 
+  // Qualification types mapping from backend QualificationType enum
+  const qualificationTypes = [
+    // === FORMAL QUALIFICATIONS ===
+    { value: "degree", label: "Degree", icon: "🎓", description: "University degree or formal qualification" },
+    { value: "certification", label: "Certification", icon: "📜", description: "Professional certification or license" },
+    { value: "professional_experience", label: "Professional Experience", icon: "💼", description: "Work experience or industry background" },
+    
+    // === CULTURAL/TRADITIONAL QUALIFICATIONS ===
+    { value: "traditional_lineage", label: "Traditional Lineage", icon: "🙏", description: "Student of Guru or traditional master" },
+    { value: "cultural_apprenticeship", label: "Cultural Apprenticeship", icon: "👨‍🏫", description: "Apprenticed under cultural master or craftsperson" },
+    { value: "cultural_immersion", label: "Cultural Immersion", icon: "🌍", description: "Studied tradition in its cultural homeland" },
+    { value: "self_taught_cultural", label: "Self-Taught Cultural", icon: "📚", description: "Self-study of cultural or traditional practice" },
+    { value: "community_recognition", label: "Community Recognition", icon: "🏆", description: "Recognized by cultural community or elders" }
+  ];
+
+  // Add/Edit qualification handlers
+  const handleAddQualification = () => {
+    setCurrentQualification({
+      type: "degree",
+      title: "",
+      institution: "",
+      year: "",
+      description: ""
+    });
+    setEditingQualificationIndex(-1);
+    setShowQualificationForm(true);
+  };
+
+  const handleEditQualification = (index) => {
+    setCurrentQualification(formData.qualifications[index]);
+    setEditingQualificationIndex(index);
+    setShowQualificationForm(true);
+  };
+
+  const handleSaveQualification = () => {
+    if (!currentQualification.title.trim() || !currentQualification.institution.trim() || !currentQualification.year.trim()) {
+      alert("Please fill in all required fields (Title, Institution, Year)");
+      return;
+    }
+
+    const qualificationToSave = {
+      ...currentQualification,
+      id: editingQualificationIndex >= 0 ? formData.qualifications[editingQualificationIndex].id : `qual_${Date.now()}`,
+      icon: qualificationTypes.find(type => type.value === currentQualification.type)?.icon || "🎓"
+    };
+
+    if (editingQualificationIndex >= 0) {
+      // Edit existing qualification
+      const updatedQualifications = [...formData.qualifications];
+      updatedQualifications[editingQualificationIndex] = qualificationToSave;
+      setFormData(prev => ({ ...prev, qualifications: updatedQualifications }));
+    } else {
+      // Add new qualification
+      setFormData(prev => ({ ...prev, qualifications: [...prev.qualifications, qualificationToSave] }));
+    }
+
+    setShowQualificationForm(false);
+    setCurrentQualification({ type: "degree", title: "", institution: "", year: "", description: "" });
+  };
+
+  const handleRemoveQualification = (index) => {
+    const updatedQualifications = formData.qualifications.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, qualifications: updatedQualifications }));
+  };
+
+  const handleQualificationInputChange = (field, value) => {
+    setCurrentQualification(prev => ({ ...prev, [field]: value }));
+  };
+
   // Navigation functions
   const nextStep = () => {
     if (currentStep < totalSteps) {
@@ -295,6 +376,7 @@ const OnBoarding = () => {
         ageGroups: formData.ageGroups,
         title: formData.title,
         aboutYou: formData.aboutYou,
+        qualifications: formData.qualifications, 
         city: formData.city,
         region: formData.region,
         postalCode: formData.postalCode,
@@ -649,14 +731,14 @@ const OnBoarding = () => {
                   About you
                 </label>
                 <p className="text-gray-600 mb-3">
-                  Share your qualifications, experience, passion, and personal
+                  Share your background, experience, passion, and personal
                   message to students
                 </p>
                 <textarea
                   id="aboutYou"
                   name="aboutYou"
                   rows="5"
-                  placeholder="Tell students about your background, qualifications, why you love teaching..."
+                  placeholder="Tell students about your background, experience, why you love teaching..."
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={formData.aboutYou}
                   onChange={handleInputChange}
@@ -664,6 +746,180 @@ const OnBoarding = () => {
                 <div className="mt-2 text-sm text-gray-500">
                   Minimum 50 characters ({formData.aboutYou.length}/50)
                 </div>
+              </div>
+
+              {/* Qualifications Section */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <label className="block text-lg font-semibold text-gray-900">
+                    <span role="img" aria-label="graduation">
+                      🎓
+                    </span>{" "}
+                    Your Qualifications
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddQualification}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                  >
+                    <i className="fas fa-plus mr-2"></i>Add Qualification
+                  </button>
+                </div>
+                <p className="text-gray-600 mb-4">
+                  Add your degrees, certifications, traditional training, or cultural qualifications
+                </p>
+
+                {/* Display existing qualifications */}
+                {formData.qualifications.length > 0 && (
+                  <div className="space-y-3 mb-4">
+                    {formData.qualifications.map((qual, index) => {
+                      const qualType = qualificationTypes.find(type => type.value === qual.type);
+                      return (
+                        <div key={qual.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-lg">{qualType?.icon || '🎓'}</span>
+                                <span className="text-sm font-medium text-blue-600">{qualType?.label || 'Qualification'}</span>
+                              </div>
+                              <h4 className="font-semibold text-gray-900">{qual.title}</h4>
+                              <p className="text-gray-600">{qual.institution} • {qual.year}</p>
+                              {qual.description && (
+                                <p className="text-sm text-gray-500 mt-1">{qual.description}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 ml-4">
+                              <button
+                                type="button"
+                                onClick={() => handleEditQualification(index)}
+                                className="text-blue-500 hover:text-blue-700 p-1"
+                              >
+                                <i className="fas fa-edit"></i>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveQualification(index)}
+                                className="text-red-500 hover:text-red-700 p-1"
+                              >
+                                <i className="fas fa-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Add/Edit Qualification Form */}
+                {showQualificationForm && (
+                  <div className="bg-white border border-gray-300 rounded-lg p-6 shadow-sm mb-4">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      {editingQualificationIndex >= 0 ? 'Edit' : 'Add'} Qualification
+                    </h4>
+                    
+                    <div className="space-y-4">
+                      {/* Qualification Type Selection */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Type of Qualification</label>
+                        <select
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          value={currentQualification.type}
+                          onChange={(e) => handleQualificationInputChange('type', e.target.value)}
+                        >
+                          {qualificationTypes.map(type => (
+                            <option key={type.value} value={type.value}>
+                              {type.icon} {type.label}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {qualificationTypes.find(type => type.value === currentQualification.type)?.description}
+                        </p>
+                      </div>
+
+                      {/* Title */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Title <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="e.g., Bachelor of Music, Kathak Dance Certification, 10 years Guitar Teaching"
+                          value={currentQualification.title}
+                          onChange={(e) => handleQualificationInputChange('title', e.target.value)}
+                        />
+                      </div>
+
+                      {/* Institution */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Institution/Teacher <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="e.g., University of Cambridge, Guru Rajesh Kumar, Self-taught"
+                          value={currentQualification.institution}
+                          onChange={(e) => handleQualificationInputChange('institution', e.target.value)}
+                        />
+                      </div>
+
+                      {/* Year */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Year/Period <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="e.g., 2018, 2015-2019, 20+ years"
+                          value={currentQualification.year}
+                          onChange={(e) => handleQualificationInputChange('year', e.target.value)}
+                        />
+                      </div>
+
+                      {/* Description (optional) */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Additional Details (Optional)</label>
+                        <textarea
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          rows="2"
+                          placeholder="Any additional context about this qualification..."
+                          value={currentQualification.description}
+                          onChange={(e) => handleQualificationInputChange('description', e.target.value)}
+                        ></textarea>
+                      </div>
+                    </div>
+
+                    {/* Form Actions */}
+                    <div className="flex justify-end gap-3 mt-6">
+                      <button
+                        type="button"
+                        onClick={() => setShowQualificationForm(false)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveQualification}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      >
+                        {editingQualificationIndex >= 0 ? 'Save Changes' : 'Add Qualification'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {formData.qualifications.length === 0 && !showQualificationForm && (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                    <div className="text-gray-400 text-4xl mb-3">🎓</div>
+                    <p className="text-gray-500 mb-4">No qualifications added yet</p>
+                    <button
+                      type="button"
+                      onClick={handleAddQualification}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      Add Your First Qualification
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </>

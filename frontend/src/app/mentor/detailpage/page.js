@@ -721,14 +721,16 @@ const MentorDetail = () => {
                                             {mentorData.qualifications.map((qual, index) => (
                                                 <div key={index} className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
                                                     <div className="flex items-start gap-3">
-                                                        <div className="w-8 h-8 bg-primary-light rounded-lg flex items-center justify-center text-primary font-bold text-xs">
+                                                        <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center text-lg">
                                                             {qual.icon || "🎓"}
                                                         </div>
                                                         <div className="flex-1">
                                                             <h4 className="font-semibold text-gray-800">{qual.title}</h4>
-                                                            <p className="text-sm text-gray-600">{qual.institution}</p>
+                                                            <p className="text-sm text-gray-600 font-medium">{qual.institution}</p>
                                                             {qual.year && <p className="text-sm text-gray-500">{qual.year}</p>}
-                                                            {qual.type && <span className="text-xs text-primary bg-primary-light px-2 py-1 rounded-full mt-1 inline-block">{qual.type}</span>}
+                                                            {qual.description && (
+                                                                <p className="text-sm text-gray-600 mt-1 italic">{qual.description}</p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
