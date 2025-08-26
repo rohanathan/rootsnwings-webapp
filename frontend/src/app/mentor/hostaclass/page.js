@@ -49,6 +49,12 @@ const HostClassPage = () => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [subjects, setSubjects] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
+  const [filteredSubjects, setFilteredSubjects] = useState([]);
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
+  const [subjectSearch, setSubjectSearch] = useState("");
+  const [selectedSubjectData, setSelectedSubjectData] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Consolidated form data state matching API requirements
@@ -56,6 +62,7 @@ const HostClassPage = () => {
     type: "group",
     title: "",
     subject: "",
+    subjectId: "",  // Store subject ID for enhanced integration
     category: "",
     customCategory: "",
     description: "",
@@ -141,7 +148,7 @@ const HostClassPage = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Fetch categories from API
+  // Fetch categories and subjects from API
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -180,7 +187,32 @@ const HostClassPage = () => {
       }
     };
 
+    const fetchSubjects = async () => {
+      try {
+        setLoadingSubjects(true);
+        const response = await fetch(
+          "https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/subjects"
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setSubjects(data.subjects || []);
+          setFilteredSubjects(data.subjects || []);
+        } else {
+          console.error("Failed to fetch subjects");
+          setSubjects([]);
+          setFilteredSubjects([]);
+        }
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+        setSubjects([]);
+        setFilteredSubjects([]);
+      } finally {
+        setLoadingSubjects(false);
+      }
+    };
+
     fetchCategories();
+    fetchSubjects();
   }, []);
 
   // Calculate weekly schedule and total sessions whenever dependencies change
@@ -364,6 +396,100 @@ const HostClassPage = () => {
     updateFormField("schedule.selectedDays", newDays);
   };
 
+  // Filter subjects based on search and category
+  const filterSubjects = (searchTerm, categoryFilter = "") => {
+    let filtered = subjects;
+
+    // Filter by category if selected
+    if (categoryFilter && categoryFilter !== "Other") {
+      const categoryKey = categoryFilter.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      filtered = filtered.filter(subject => 
+        subject.category?.toLowerCase().replace(/[^a-z0-9]/g, '_') === categoryKey
+      );
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(subject => 
+        subject.subject?.toLowerCase().includes(search) ||
+        subject.synonyms?.some(synonym => synonym.toLowerCase().includes(search)) ||
+        subject.cultural_keywords?.some(keyword => keyword.toLowerCase().includes(search))
+      );
+    }
+
+    // Sort by relevance: cultural subjects first, then by searchBoost
+    filtered.sort((a, b) => {
+      if (a.is_culturally_rooted && !b.is_culturally_rooted) return -1;
+      if (!a.is_culturally_rooted && b.is_culturally_rooted) return 1;
+      return (b.searchBoost || 0) - (a.searchBoost || 0);
+    });
+
+    return filtered;
+  };
+
+  // Handle subject search
+  const handleSubjectSearch = (searchTerm) => {
+    setSubjectSearch(searchTerm);
+    const filtered = filterSubjects(searchTerm, formData.category);
+    setFilteredSubjects(filtered);
+    setShowSubjectDropdown(true);
+  };
+
+  // Handle subject selection
+  const handleSubjectSelect = (subject) => {
+    setFormData(prev => ({
+      ...prev,
+      subject: subject.subject,
+      subjectId: subject.subjectId
+    }));
+    setSelectedSubjectData(subject);
+    setSubjectSearch(subject.subject);
+    setShowSubjectDropdown(false);
+  };
+
+  // Handle manual subject input (fallback for new subjects)
+  const handleCustomSubjectInput = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      subject: value,
+      subjectId: ""  // Clear subjectId for custom subjects
+    }));
+    setSelectedSubjectData(null);
+    setSubjectSearch(value);
+    
+    if (value.length > 0) {
+      handleSubjectSearch(value);
+    } else {
+      setShowSubjectDropdown(false);
+    }
+  };
+
+  // Handle category change and filter subjects accordingly
+  const handleCategoryChange = (categoryValue) => {
+    updateFormField("category", categoryValue);
+    
+    // Filter subjects based on new category
+    const filtered = filterSubjects(subjectSearch, categoryValue);
+    setFilteredSubjects(filtered);
+    
+    // If current subject doesn't match new category, clear it
+    if (selectedSubjectData && categoryValue !== "Other") {
+      const categoryKey = categoryValue.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const subjectCategoryKey = selectedSubjectData.category?.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      
+      if (subjectCategoryKey !== categoryKey) {
+        setFormData(prev => ({
+          ...prev,
+          subject: "",
+          subjectId: ""
+        }));
+        setSelectedSubjectData(null);
+        setSubjectSearch("");
+      }
+    }
+  };
+
   // Handle class type selection
   const handleClassTypeSelect = (type) => {
     updateFormField("type", type);
@@ -395,6 +521,7 @@ const HostClassPage = () => {
         type: formData.type,
         title: formData.title,
         subject: formData.subject,
+        subjectId: formData.subjectId,  // Include subject ID for enhanced integration
         category:
           formData.category === "Other"
             ? formData.customCategory
@@ -669,7 +796,7 @@ const HostClassPage = () => {
                         id="subjectCategory"
                         value={formData.category}
                         onChange={(e) =>
-                          updateFormField("category", e.target.value)
+                          handleCategoryChange(e.target.value)
                         }
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                         disabled={loadingCategories}
@@ -707,27 +834,151 @@ const HostClassPage = () => {
                     </div>
                   </div>
 
-                  {/* Subject Field */}
-                  <div>
+                  {/* Enhanced Cultural Subject Selector - NEW FEATURE */}
+                  <div className="relative">
                     <label
                       htmlFor="subject"
                       className="block text-sm font-semibold text-gray-900 mb-2"
                     >
                       Specific Subject
+                      {selectedSubjectData?.is_culturally_rooted && (
+                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                          <span className="mr-1">🏛️</span>
+                          Cultural Heritage
+                        </span>
+                      )}
                     </label>
-                    <input
-                      type="text"
-                      id="subject"
-                      placeholder="e.g., Guitar, Kathak Dance, Watercolor Painting"
-                      value={formData.subject}
-                      onChange={(e) =>
-                        updateFormField("subject", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      required
-                    />
+                    
+                    <div className="relative">
+                      <input
+                        type="text"
+                        id="subject"
+                        placeholder="Search subjects or type custom subject..."
+                        value={subjectSearch}
+                        onChange={(e) => handleCustomSubjectInput(e.target.value)}
+                        onFocus={() => {
+                          if (filteredSubjects.length > 0) {
+                            setShowSubjectDropdown(true);
+                          }
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        required
+                      />
+                      
+                      {/* Subject Dropdown - NEW */}
+                      {showSubjectDropdown && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                          {loadingSubjects ? (
+                            <div className="px-4 py-3 text-gray-500">Loading subjects...</div>
+                          ) : filteredSubjects.length > 0 ? (
+                            <>
+                              {filteredSubjects.map((subject, index) => (
+                                <div
+                                  key={subject.subjectId || index}
+                                  onClick={() => handleSubjectSelect(subject)}
+                                  className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                      <div className="font-medium text-gray-900">
+                                        {subject.subject}
+                                      </div>
+                                      {subject.heritage_context && subject.heritage_context !== "folk" && (
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          {subject.heritage_context.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} tradition
+                                        </div>
+                                      )}
+                                      {subject.synonyms && subject.synonyms.length > 0 && (
+                                        <div className="text-xs text-gray-400 mt-1">
+                                          Also known as: {subject.synonyms.slice(0, 3).join(", ")}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-col items-end ml-3">
+                                      {subject.is_culturally_rooted && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 mb-1">
+                                          🏛️ Cultural
+                                        </span>
+                                      )}
+                                      {subject.cultural_authenticity_score && subject.cultural_authenticity_score > 0.7 && (
+                                        <div className="flex items-center text-xs text-gray-500">
+                                          <span className="text-yellow-500">★</span>
+                                          <span className="ml-1">{Math.round(subject.cultural_authenticity_score * 100)}% authentic</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                              
+                              {/* Option for custom subject */}
+                              {subjectSearch && !filteredSubjects.find(s => s.subject.toLowerCase() === subjectSearch.toLowerCase()) && (
+                                <div
+                                  onClick={() => {
+                                    handleSubjectSelect({
+                                      subject: subjectSearch,
+                                      subjectId: "",
+                                      is_culturally_rooted: false
+                                    });
+                                  }}
+                                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-t-2 border-blue-100 bg-blue-25"
+                                >
+                                  <div className="flex items-center">
+                                    <span className="text-blue-600 mr-2">+</span>
+                                    <div>
+                                      <div className="font-medium text-blue-900">
+                                        Add "{subjectSearch}" as custom subject
+                                      </div>
+                                      <div className="text-xs text-blue-600">
+                                        Subject will be reviewed by admin
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="px-4 py-3 text-gray-500">
+                              No subjects found. Type to add custom subject.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Click outside handler */}
+                      {showSubjectDropdown && (
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setShowSubjectDropdown(false)}
+                        />
+                      )}
+                    </div>
+                    
+                    {/* Cultural Context Display - NEW */}
+                    {selectedSubjectData?.is_culturally_rooted && (
+                      <div className="mt-2 p-3 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg">
+                        <div className="flex items-start">
+                          <span className="text-amber-600 mr-2 mt-0.5">ℹ️</span>
+                          <div>
+                            <p className="text-sm font-medium text-amber-800">Cultural Subject</p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              This subject has cultural significance. 
+                              {selectedSubjectData.cultural_authenticity_score > 0.8 && 
+                                " Consider mentioning your traditional training or cultural background."
+                              }
+                            </p>
+                            {selectedSubjectData.tradition_or_school && (
+                              <p className="text-xs text-amber-600 mt-1">
+                                Traditional school: {selectedSubjectData.tradition_or_school}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <p className="text-xs text-gray-500 mt-1">
-                      What specific skill or topic will you teach?
+                      Search from our cultural taxonomy or add your own custom subject
                     </p>
                   </div>
 

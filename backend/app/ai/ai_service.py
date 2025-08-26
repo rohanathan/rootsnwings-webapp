@@ -36,11 +36,20 @@ safety_settings = [
 ]
 
 system_instruction = """
-You are a helpful AI assistant for Roots & Wings, a UK-focused mentorship and learning platform. 
-Provide accurate, concise, and actionable responses to help users navigate and use the platform effectively.
+You are a helpful AI assistant for Roots & Wings, a UK-focused mentorship and learning platform with cultural heritage expertise.
+Provide accurate, concise, and actionable responses while being sensitive to cultural authenticity and traditional learning methods.
 
 ## PLATFORM OVERVIEW
-Roots & Wings connects students with mentors across 25+ subjects including:
+Roots & Wings connects students with mentors across 25+ subjects including cultural and traditional disciplines:
+
+### **Cultural & Traditional Subjects** (High Priority)
+- **Classical Dance**: Bharatanatyam, Kathak, Odissi, Ballet, Flamenco (with traditional lineage training)
+- **Traditional Music**: Sitar, Tabla, Carnatic vocals, Bagpipes, Traditional folk instruments
+- **Cultural Arts**: Calligraphy, Tea ceremony, Traditional crafts, Heritage cooking
+- **Martial Arts**: Kung Fu, Karate, Tai Chi (emphasizing traditional schools and lineages)
+- **Cultural Studies**: Philosophy, traditional medicine, spiritual practices
+
+### **Modern Subjects**
 - **Music**: Piano, guitar, violin, vocals, drums, theory
 - **Arts**: Drawing, painting, photography, digital art, craft
 - **Languages**: English, Spanish, French, Mandarin, Hindi, Arabic
@@ -227,6 +236,28 @@ Classify user questions into these categories and respond accordingly:
 5. **NAVIGATE**: Help finding specific pages or features
 6. **GUIDANCE**: How-to assistance for platform features
 
+## CULTURAL AWARENESS & SENSITIVITY GUIDELINES
+
+### **Cultural Subject Recognition**
+When users ask about cultural subjects, prioritize mentors with traditional training:
+- **Traditional Lineage**: Mentors trained under recognized gurus or masters
+- **Cultural Immersion**: Mentors with authentic cultural learning experiences  
+- **Community Recognition**: Mentors recognized by cultural organizations
+- **Authenticity Scores**: Prioritize subjects with high cultural authenticity (80%+ scores)
+
+### **Cultural Query Enhancement**
+For cultural queries, automatically enhance responses with context:
+- "bharatanatyam teacher" → Prioritize mentors with traditional Guru training
+- "tea ceremony" → Emphasize authentic Japanese ceremony methods
+- "traditional music" → Focus on lineage-based teaching approaches
+- "cultural dance" → Explain cultural significance and heritage context
+
+### **Respectful Cultural Representation**
+- Acknowledge cultural heritage and significance of traditional subjects
+- Mention mentor's traditional qualifications when relevant
+- Explain cultural context respectfully (e.g., "Tamil Nadu heritage", "Japanese tradition")
+- Suggest related cultural subjects for deeper cultural learning
+
 ## RESPONSE GUIDELINES
 - **No URLs**: Never show URLs like /getstarted - instead say "click the Sign Up button"
 - **UI Guidance**: Describe button clicks, menu navigation, and visual actions
@@ -235,6 +266,7 @@ Classify user questions into these categories and respond accordingly:
 - **Be Helpful**: Offer alternative solutions when direct requests aren't possible
 - **Use Specific Data**: Reference actual mentor names, class titles, prices, and availability when available
 - **Format Information**: Present data in user-friendly formats (e.g., "£120 per session" not raw numbers)
+- **Cultural Priority**: For cultural subjects, prioritize traditionally trained mentors and mention cultural context
 
 ## COMMON USER QUERIES & RESPONSES
 
@@ -251,6 +283,21 @@ Classify user questions into these categories and respond accordingly:
 - "Online beginner piano workshops" → Use GET /classes?type=workshop&subject=piano&level=beginner&format=online
 - "Show me music classes for adults in London" → Use GET /classes?category=music&ageGroup=adult&city=London
 - "I want online or in-person yoga for beginners" → Use GET /classes?subject=yoga&level=beginner&format=online,in-person
+
+### **Cultural Heritage Queries** (Enhanced with Cultural Ranking)
+- "bharatanatyam teacher" → Use unified_search(), prioritize mentors with traditional_lineage qualifications
+- "authentic tea ceremony" → Look for mentors with cultural_immersion or traditional training
+- "traditional indian classical music" → Search culturally rooted subjects, mention heritage significance
+- "classical dance with traditional training" → Emphasize mentor cultural expertise and authenticity scores
+- "learn from a real guru" → Filter mentors by traditional_lineage and community_recognition qualifications
+
+### **Cultural Context Responses**
+When returning cultural results, include:
+- Cultural authenticity percentage (e.g., "95% culturally authentic")
+- Traditional training background (e.g., "Trained under Guru Padma Subrahmanyam")
+- Heritage context (e.g., "Tamil Nadu classical tradition")
+- Cultural significance explanation
+- Related cultural subjects suggestions
 
 ### Booking Queries
 - "How do I book a session with [mentor name]?" → Guide through booking flow
@@ -490,13 +537,66 @@ def make_direct_service_call(service_type, **kwargs):
                 return {"error": "User ID required"}
                 
         elif service_type == "search":
-            # Handle unified search
+            # Handle unified search with intelligent cultural detection
             search_query = UnifiedSearchQuery(**kwargs)
             results, metadata = unified_search(search_query)
-            return {
+            
+            # Intelligent cultural query detection using our subjects database
+            query_text = kwargs.get("q", "").lower()
+            is_cultural_query = False
+            matched_cultural_subjects = []
+            
+            # Get cultural subjects from our database
+            try:
+                all_subjects = get_subjects_service()
+                if all_subjects and hasattr(all_subjects, 'subjects'):
+                    for subject in all_subjects.subjects:
+                        if getattr(subject, 'is_culturally_rooted', False):
+                            # Check if query matches this cultural subject
+                            if (subject.subject.lower() in query_text or 
+                                any(synonym.lower() in query_text for synonym in getattr(subject, 'synonyms', [])) or
+                                any(keyword.lower() in query_text for keyword in getattr(subject, 'cultural_keywords', []))):
+                                is_cultural_query = True
+                                matched_cultural_subjects.append({
+                                    'subject': subject.subject,
+                                    'authenticity': getattr(subject, 'cultural_authenticity_score', 0),
+                                    'heritage': getattr(subject, 'heritage_context', ''),
+                                    'tradition': getattr(subject, 'tradition_or_school', '')
+                                })
+            except Exception as e:
+                print(f"Error detecting cultural query: {e}")
+                # Fallback to result-based detection
+            
+            # Count cultural results in the response
+            cultural_results_count = 0
+            high_authenticity_count = 0
+            
+            if results:
+                for result in results:
+                    # Check if result has cultural context (from our ranking service)
+                    if (hasattr(result.data, 'searchMetadata') and 
+                        getattr(result.data.searchMetadata, 'is_culturally_rooted', False)):
+                        cultural_results_count += 1
+                        auth_score = getattr(result.data.searchMetadata, 'cultural_authenticity_score', 0)
+                        if auth_score > 0.8:
+                            high_authenticity_count += 1
+            
+            response_data = {
                 "results": [result.dict() for result in results],
                 "metadata": metadata
             }
+            
+            # Add intelligent cultural context for AI to use
+            if is_cultural_query or cultural_results_count > 0 or matched_cultural_subjects:
+                response_data["cultural_context"] = {
+                    "is_cultural_query": is_cultural_query,
+                    "matched_cultural_subjects": matched_cultural_subjects,
+                    "cultural_results_found": cultural_results_count,
+                    "high_authenticity_results": high_authenticity_count,
+                    "guidance": "Use cultural taxonomy data to provide authentic recommendations"
+                }
+            
+            return response_data
             
         else:
             return {"error": f"Unknown service type: {service_type}"}
