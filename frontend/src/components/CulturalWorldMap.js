@@ -1,210 +1,300 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import Leaflet components to avoid SSR issues
+const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
+const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
+const CircleMarker = dynamic(() => import('react-leaflet').then(mod => mod.CircleMarker), { ssr: false });
 
 const CulturalWorldMap = () => {
-  const [hoveredCountry, setHoveredCountry] = useState(null);
-  const [availableSubjects, setAvailableSubjects] = useState({});
+  const [culturalData, setCulturalData] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(null);
 
-  // Cultural mapping - subjects to their countries of origin
-  const culturalMapping = {
-    'India': {
-      flag: '🇮🇳',
-      subjects: ['bollywood_dance', 'classical_indian_music', 'hindi_language', 'yoga', 'tabla', 'kathak', 'bharatanatyam', 'ayurveda'],
-      displayName: 'Indian Cultural Arts'
-    },
-    'China': {
-      flag: '🇨🇳', 
-      subjects: ['martial_arts', 'mandarin', 'chinese_calligraphy', 'tai_chi', 'traditional_chinese_medicine', 'chinese_opera'],
-      displayName: 'Chinese Traditional Arts'
-    },
-    'France': {
-      flag: '🇫🇷',
-      subjects: ['ballet', 'french_language', 'french_cuisine', 'classical_music', 'wine_making', 'patisserie'],
-      displayName: 'French Cultural Arts'
-    },
-    'Nigeria': {
-      flag: '🇳🇬',
-      subjects: ['afrobeats', 'african_drumming', 'yoruba_language', 'african_textiles', 'traditional_african_dance'],
-      displayName: 'Nigerian Cultural Arts'
-    },
-    'Japan': {
-      flag: '🇯🇵',
-      subjects: ['japanese_language', 'origami', 'ikebana', 'tea_ceremony', 'calligraphy', 'kendo', 'anime_art'],
-      displayName: 'Japanese Traditional Arts'
-    },
-    'Spain': {
-      flag: '🇪🇸',
-      subjects: ['spanish_language', 'flamenco', 'spanish_guitar', 'paella_cooking', 'salsa_dance'],
-      displayName: 'Spanish Cultural Arts'
-    },
-    'Italy': {
-      flag: '🇮🇹',
-      subjects: ['italian_language', 'italian_cuisine', 'opera', 'renaissance_art', 'wine_appreciation'],
-      displayName: 'Italian Cultural Arts'
-    },
-    'Brazil': {
-      flag: '🇧🇷',
-      subjects: ['portuguese_language', 'samba', 'capoeira', 'brazilian_cuisine', 'bossa_nova'],
-      displayName: 'Brazilian Cultural Arts'
-    },
-    'Russia': {
-      flag: '🇷🇺',
-      subjects: ['russian_language', 'ballet', 'classical_music', 'traditional_folk_dance', 'matryoshka_painting'],
-      displayName: 'Russian Cultural Arts'
-    },
-    'Indonesia': {
-      flag: '🇮🇩',
-      subjects: ['balinese_dance', 'indonesian_language', 'traditional_crafts', 'gamelan_music'],
-      displayName: 'Indonesian Cultural Arts'
-    }
+  // Country coordinates for map markers
+  const countryCoordinates = {
+    'India': [20.5937, 78.9629],
+    'China': [35.8617, 104.1954],
+    'France': [46.2276, 2.2137],
+    'Nigeria': [9.0820, 8.6753],
+    'Japan': [36.2048, 138.2529],
+    'Spain': [40.4637, -3.7492],
+    'Italy': [41.8719, 12.5674],
+    'Brazil': [-14.2350, -51.9253],
+    'Russia': [61.5240, 105.3188],
+    'Indonesia': [-0.7893, 113.9213],
+    'Scotland': [56.4907, -4.2026],
+    'United Kingdom': [55.3781, -3.4360],
+    'UK': [55.3781, -3.4360],
+    'Germany': [51.1657, 10.4515],
+    'Greece': [39.0742, 21.8243],
+    'Egypt': [26.0975, 30.0444],
+    'Mexico': [23.6345, -102.5528],
+    'Argentina': [-38.4161, -63.6167],
+    'Australia': [-25.2744, 133.7751],
+    'South Korea': [35.9078, 127.7669],
+    'Thailand': [15.8700, 100.9925],
+    'Iran': [32.4279, 53.6880],
+    'Turkey': [38.9637, 35.2433],
+    'Poland': [51.9194, 19.1451],
+    'Morocco': [31.7917, -7.0926]
   };
 
-  // Fetch available subjects from API and match with cultural mapping
+  // Country flag emojis
+  const countryFlags = {
+    'India': '🇮🇳',
+    'China': '🇨🇳', 
+    'France': '🇫🇷',
+    'Nigeria': '🇳🇬',
+    'Japan': '🇯🇵',
+    'Spain': '🇪🇸',
+    'Italy': '🇮🇹',
+    'Brazil': '🇧🇷',
+    'Russia': '🇷🇺',
+    'Indonesia': '🇮🇩',
+    'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+    'United Kingdom': '🇬🇧',
+    'UK': '🇬🇧',
+    'Germany': '🇩🇪',
+    'Greece': '🇬🇷',
+    'Egypt': '🇪🇬',
+    'Mexico': '🇲🇽',
+    'Argentina': '🇦🇷',
+    'Australia': '🇦🇺',
+    'South Korea': '🇰🇷',
+    'Thailand': '🇹🇭',
+    'Iran': '🇮🇷',
+    'Turkey': '🇹🇷',
+    'Poland': '🇵🇱',
+    'Morocco': '🇲🇦'
+  };
+
+  // Extract country from region string
+  const extractCountry = (region) => {
+    if (!region) return null;
+    if (region.includes(',')) {
+      return region.split(',')[1].trim();
+    }
+    return region;
+  };
+
+  // Fetch cultural data from approved classes
   useEffect(() => {
-    const fetchAvailableSubjects = async () => {
+    const fetchCulturalData = async () => {
       try {
-        // Fetch subjects and mentors to see what's actually available
-        const [subjectsResponse, mentorsResponse] = await Promise.all([
-          fetch('https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/subjects'),
-          fetch('https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/')
-        ]);
-
-        const subjectsData = await subjectsResponse.json();
-        const mentorsData = await mentorsResponse.json();
-
-        // Get all subjects that mentors actually teach
-        const mentorSubjects = mentorsData.mentors?.flatMap(mentor => mentor.subjects || []) || [];
-        const availableSubjectsList = [...new Set(mentorSubjects)];
-
-        // Map countries to their available subjects
-        const countrySubjects = {};
+        setLoading(true);
+        // Fetch only approved classes
+        const response = await fetch('https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?status=approved');
+        const data = await response.json();
         
-        Object.entries(culturalMapping).forEach(([country, data]) => {
-          const availableForCountry = data.subjects.filter(subject => 
-            availableSubjectsList.some(mentorSubject => 
-              mentorSubject.toLowerCase().includes(subject.toLowerCase()) ||
-              subject.toLowerCase().includes(mentorSubject.toLowerCase())
-            )
-          );
+        const culturalMap = {};
+        
+        // Process each approved class
+        (data.classes || []).forEach(classItem => {
+          const region = classItem.searchMetadata?.cultural_origin_region;
           
-          if (availableForCountry.length > 0) {
-            countrySubjects[country] = {
-              ...data,
-              availableSubjects: availableForCountry,
-              count: availableForCountry.length
-            };
+          if (region && region !== 'Worldwide' && region.toLowerCase() !== 'worldwide') {
+            const country = extractCountry(region);
+            
+            if (country && countryCoordinates[country]) {
+              if (!culturalMap[country]) {
+                culturalMap[country] = {
+                  regions: new Set(),
+                  subjects: new Set(),
+                  classes: [],
+                  count: 0,
+                  authenticityScores: [],
+                  flag: countryFlags[country] || '🌍'
+                };
+              }
+              
+              culturalMap[country].regions.add(region);
+              culturalMap[country].subjects.add(classItem.subject);
+              culturalMap[country].classes.push(classItem);
+              culturalMap[country].count++;
+              
+              const authenticity = classItem.searchMetadata?.cultural_authenticity_score || 0.5;
+              culturalMap[country].authenticityScores.push(authenticity);
+            }
           }
         });
-
-        setAvailableSubjects(countrySubjects);
-      } catch (error) {
-        console.error('Error fetching cultural subjects:', error);
+        
+        // Convert Sets to Arrays and calculate averages
+        Object.keys(culturalMap).forEach(country => {
+          culturalMap[country].regions = Array.from(culturalMap[country].regions);
+          culturalMap[country].subjects = Array.from(culturalMap[country].subjects);
+          
+          const scores = culturalMap[country].authenticityScores;
+          culturalMap[country].avgAuthenticity = scores.length > 0 
+            ? scores.reduce((a, b) => a + b, 0) / scores.length 
+            : 0.5;
+        });
+        
+        setCulturalData(culturalMap);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching cultural data:', err);
+        setError('Failed to load cultural heritage data');
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchAvailableSubjects();
+    fetchCulturalData();
   }, []);
 
-  const handleCountryClick = (country) => {
-    if (availableSubjects[country]) {
-      setSelectedCountry(country);
-      setShowModal(true);
-    }
+  // Create markers for countries with cultural classes
+  const markers = useMemo(() => {
+    return Object.entries(culturalData).map(([country, data]) => {
+      const coords = countryCoordinates[country];
+      if (!coords) return null;
+
+      // Color based on cultural authenticity
+      const color = data.avgAuthenticity >= 0.8 ? '#dc2626' : // High authenticity - red
+                   data.avgAuthenticity >= 0.6 ? '#ea580c' : // Medium authenticity - orange  
+                   '#3b82f6'; // Lower authenticity - blue
+
+      return {
+        country,
+        position: coords,
+        data,
+        color
+      };
+    }).filter(Boolean);
+  }, [culturalData]);
+
+  const handleMarkerClick = (country) => {
+    setSelectedCountry(country);
+    setShowModal(true);
   };
 
-  const handleSubjectClick = (subject) => {
+  const handleSubjectSearch = (subject) => {
     setShowModal(false);
-    // Navigate to search with the subject
     window.location.href = `/search?q=${encodeURIComponent(subject)}`;
   };
 
-  const WorldMapSVG = () => (
-    <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 overflow-hidden">
-      {/* Decorative background */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-4 left-4 text-6xl">🌍</div>
-        <div className="absolute top-8 right-8 text-4xl">✈️</div>
-        <div className="absolute bottom-8 left-12 text-3xl">🏛️</div>
-        <div className="absolute bottom-4 right-4 text-5xl">🎭</div>
+  if (loading) {
+    return (
+      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading cultural heritage map...</p>
       </div>
-      
-      <div className="relative z-10">
-        <h3 className="text-2xl font-bold text-center text-gray-800 mb-6">
-          Discover Your Cultural Heritage in the UK
-        </h3>
-        <p className="text-center text-gray-600 mb-8 max-w-2xl mx-auto">
-          Hover over your home country to find traditional subjects and cultural arts taught by UK-based mentors
-        </p>
-        
-        {/* Interactive Country Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-4xl mx-auto">
-          {Object.entries(culturalMapping).map(([country, data]) => {
-            const isAvailable = availableSubjects[country];
-            const count = isAvailable?.count || 0;
-            
-            return (
-              <div
-                key={country}
-                className={`relative p-4 rounded-lg text-center transition-all duration-300 cursor-pointer ${
-                  isAvailable 
-                    ? 'bg-white hover:bg-blue-50 hover:scale-105 shadow-lg hover:shadow-xl border-2 border-transparent hover:border-blue-300' 
-                    : 'bg-gray-100 opacity-50 cursor-not-allowed'
-                }`}
-                onMouseEnter={() => isAvailable && setHoveredCountry(country)}
-                onMouseLeave={() => setHoveredCountry(null)}
-                onClick={() => handleCountryClick(country)}
-              >
-                <div className="text-3xl mb-2">{data.flag}</div>
-                <div className="text-sm font-medium text-gray-800">{country}</div>
-                {isAvailable && (
-                  <div className="text-xs text-blue-600 font-semibold mt-1">
-                    {count} subject{count !== 1 ? 's' : ''}
-                  </div>
-                )}
-                
-                {/* Availability badge */}
-                {isAvailable && (
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+    );
+  }
 
-        {/* Hover tooltip */}
-        {hoveredCountry && availableSubjects[hoveredCountry] && (
-          <div className="mt-6 text-center">
-            <div className="inline-block bg-white px-4 py-2 rounded-lg shadow-lg border">
-              <div className="text-sm font-semibold text-gray-800">
-                {availableSubjects[hoveredCountry].flag} {hoveredCountry} Cultural Arts
-              </div>
-              <div className="text-xs text-blue-600">
-                {availableSubjects[hoveredCountry].count} subjects available • Click to explore
-              </div>
-            </div>
-          </div>
-        )}
+  if (error) {
+    return (
+      <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-2xl p-8 text-center">
+        <div className="text-red-600 text-xl mb-2">🗺️</div>
+        <p className="text-red-600">{error}</p>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <>
-      <WorldMapSVG />
-      
-      {/* Modal for showing country subjects */}
-      {showModal && selectedCountry && availableSubjects[selectedCountry] && (
+      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 overflow-hidden">
+        <div className="text-center mb-6">
+          <h3 className="text-2xl font-bold text-gray-800 mb-2">
+            🌍 Global Cultural Heritage on Our Platform
+          </h3>
+          <p className="text-gray-600 max-w-3xl mx-auto">
+            Discover traditional arts and cultural subjects from around the world, taught by UK-based mentors. 
+            Click on any marker to explore cultural offerings.
+          </p>
+        </div>
+
+        {Object.keys(culturalData).length === 0 ? (
+          <div className="text-center py-8">
+            <div className="text-6xl mb-4">🏛️</div>
+            <p className="text-gray-600">No cultural heritage classes found with approved status</p>
+          </div>
+        ) : (
+          <>
+            {/* Interactive World Map */}
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ height: '400px' }}>
+              <MapContainer
+                center={[30, 0]}
+                zoom={2}
+                style={{ height: '100%', width: '100%' }}
+                className="z-10"
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                
+                {markers.map(({ country, position, data, color }, index) => (
+                  <CircleMarker
+                    key={`${country}-${index}`}
+                    center={position}
+                    radius={Math.min(20, 8 + data.count * 2)}
+                    fillColor={color}
+                    color="white"
+                    weight={2}
+                    opacity={0.9}
+                    fillOpacity={0.7}
+                    eventHandlers={{
+                      click: () => handleMarkerClick(country),
+                    }}
+                  >
+                    <Popup>
+                      <div className="text-center p-2">
+                        <div className="text-2xl mb-1">{data.flag}</div>
+                        <div className="font-semibold text-gray-800">{country}</div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          {data.count} cultural class{data.count !== 1 ? 'es' : ''}
+                        </div>
+                        <div className="text-xs text-blue-600 mt-1">
+                          {data.subjects.length} subject{data.subjects.length !== 1 ? 's' : ''} • Authenticity: {(data.avgAuthenticity * 100).toFixed(0)}%
+                        </div>
+                        <button 
+                          onClick={() => handleMarkerClick(country)}
+                          className="mt-2 px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                        >
+                          Explore {country} Arts
+                        </button>
+                      </div>
+                    </Popup>
+                  </CircleMarker>
+                ))}
+              </MapContainer>
+            </div>
+
+            {/* Legend */}
+            <div className="mt-4 flex flex-wrap justify-center items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-red-600"></div>
+                <span>High Authenticity (80%+)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-orange-600"></div>
+                <span>Medium Authenticity (60-80%)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-blue-600"></div>
+                <span>General Cultural (60%)</span>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Cultural Subjects Modal */}
+      {showModal && selectedCountry && culturalData[selectedCountry] && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-96 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-96 overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-800">
-                  {availableSubjects[selectedCountry].flag} {availableSubjects[selectedCountry].displayName}
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  {culturalData[selectedCountry].flag} 
+                  {selectedCountry} Cultural Heritage
                 </h3>
                 <button
                   onClick={() => setShowModal(false)}
@@ -214,22 +304,36 @@ const CulturalWorldMap = () => {
                 </button>
               </div>
               
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-semibold">Classes Available:</span> {culturalData[selectedCountry].count}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Cultural Authenticity:</span> {(culturalData[selectedCountry].avgAuthenticity * 100).toFixed(0)}%
+                  </div>
+                </div>
+                <div className="mt-2 text-sm">
+                  <span className="font-semibold">Regions:</span> {culturalData[selectedCountry].regions.join(', ')}
+                </div>
+              </div>
+              
               <p className="text-gray-600 mb-4 text-sm">
-                Available cultural subjects from {selectedCountry} taught by UK-based mentors:
+                Cultural subjects from {selectedCountry} available on our platform:
               </p>
               
               <div className="grid grid-cols-1 gap-2">
-                {availableSubjects[selectedCountry].availableSubjects.map((subject, index) => (
+                {culturalData[selectedCountry].subjects.map((subject, index) => (
                   <button
                     key={index}
-                    onClick={() => handleSubjectClick(subject)}
-                    className="text-left p-3 bg-gray-50 hover:bg-blue-50 rounded-lg transition-colors border hover:border-blue-200"
+                    onClick={() => handleSubjectSearch(subject)}
+                    className="text-left p-3 bg-gray-50 hover:bg-blue-50 rounded-lg transition-colors border hover:border-blue-200 group"
                   >
-                    <div className="font-medium text-gray-800 capitalize">
+                    <div className="font-medium text-gray-800 capitalize group-hover:text-blue-700">
                       {subject.replace(/_/g, ' ')}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      Click to find mentors
+                    <div className="text-xs text-gray-500 group-hover:text-blue-600">
+                      Click to find mentors and classes
                     </div>
                   </button>
                 ))}

@@ -469,7 +469,7 @@ def clean_data(data: Dict) -> Dict:
             "kung_fu":"https://www.shutterstock.com/image-photo/man-practises-martial-arts-dramatic-260nw-73460365.jpg",
             "malt_whisky_tasting":"https://www.worldwhiskyday.com/wp-content/uploads/2016/03/Whisky-flight.jpg",
             "3d_printing_design":"https://specials-images.forbesimg.com/imageserve/5f1a62d942a6387efb759310/960x0.jpg",
-            "bharatanatyam":"https://www.hinduamerican.org/wp-content/uploads/2022/02/nataraja.jpg",
+            "bharatanatyam_classical":"https://www.hinduamerican.org/wp-content/uploads/2022/02/nataraja.jpg",
             "hindustani_vocal":"https://themystickeys.com/wp-content/uploads/2024/12/images-30.jpg",
             "judo":"https://media.cnn.com/api/v1/images/stellar/prod/170818132444-judo-throw-baku-2017.jpg?q=w_3918,h_2578,x_0,y_0,c_fill",
             "ceilidh_music_instrumental":"https://i.scdn.co/image/ab67616d0000b273959d96d40da624c47b829dee",
