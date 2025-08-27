@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, validator
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict, Any
 from datetime import date, datetime
 
 class Schedule(BaseModel):
@@ -134,7 +134,7 @@ class ClassItem(BaseModel):
     # === METADATA FIELDS (Used by admin dashboard, rarely displayed to users) ===
     createdAt: Optional[str] = Field(None, description="ADMIN DASHBOARD - class creation date shown in admin list for chronological tracking")
     updatedAt: Optional[str] = Field(None, description="BACKEND ONLY - last modification timestamp, not displayed to users")
-    searchMetadata: Optional[dict] = Field(None, description="SEARCH & MAP FUNCTIONALITY - cultural context, keywords, pricing info, and regional data for enhanced search and map visualization")
+    searchMetadata: Optional[Dict[str, Any]] = Field(default=None, description="SEARCH & MAP FUNCTIONALITY - cultural context, keywords, pricing info, and regional data for enhanced search and map visualization")
 
 class ClassListResponse(BaseModel):
     classes: List[ClassItem]
