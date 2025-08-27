@@ -622,6 +622,28 @@ def generate_search_metadata(class_data: Dict) -> Dict:
             metadata.update(cultural_context)
         
         return metadata
+    
+    except Exception as e:
+        # Return basic metadata if generation fails
+        print(f"Warning: Failed to generate search metadata: {str(e)}")
+        return {
+            "availableDays": [],
+            "timeSlots": [],
+            "weeksDuration": 1,
+            "intensity": "low",
+            "pricePerHour": 0,
+            "hasDiscount": False,
+            "difficultyLevel": "beginner",
+            "prerequisites": [],
+            "isOnline": True,
+            "isInPerson": False,
+            "totalSessions": 1,
+            "maxStudents": 1,
+            "minStudents": 1,
+            "isWorkshop": False,
+            "isGroup": True,
+            "keywords": []
+        }
 
 def fetch_subject_from_database(subject_id: str) -> Optional[Dict]:
     """
