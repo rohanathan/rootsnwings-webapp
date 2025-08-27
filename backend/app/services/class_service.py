@@ -450,7 +450,11 @@ def clean_data(data: Dict) -> Dict:
     
     # Add subject-based class images if not present
     if not data.get("classImage"):
-        subject = data.get("subject", "").lower()
+        # Use subjectId for image matching (underscore format)
+        subject_id = data.get("subjectId", "").lower()
+        # Fallback to subject field if subjectId not present
+        if not subject_id:
+            subject_id = data.get("subject", "").lower()
         category = data.get("category", "").lower()
         
         # Subject-based images
@@ -508,39 +512,14 @@ def clean_data(data: Dict) -> Dict:
             "dance":"https://images.unsplash.com/photo-1524594152303-9fd13543fe6e?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
         }
         
-        # Try subject first, then category, then default
-        # Convert spaces to underscores for subject matching
-        subject_key = subject.replace(" ", "_")
-        
-        # Try exact match first
-        if subject in subject_images:
-            data["classImage"] = subject_images[subject]
-        elif subject_key in subject_images:
-            data["classImage"] = subject_images[subject_key]
+        # Try subjectId first, then category, then default
+        if subject_id in subject_images:
+            data["classImage"] = subject_images[subject_id]
+        # Fallback to category if no subject match
+        elif category in category_images:
+            data["classImage"] = category_images[category]
         else:
-            # Try keyword-based matching for partial matches
-            found_image = None
-            best_match_score = 0
-            
-            for key, image_url in subject_images.items():
-                # Check if any word from the key appears in the subject
-                key_words = key.replace("_", " ").split()
-                subject_words = subject.split()
-                
-                # Calculate match score based on number of matching words
-                matches = sum(1 for key_word in key_words 
-                             if len(key_word) > 3 and any(key_word in subject_word for subject_word in subject_words))
-                
-                if matches > best_match_score:
-                    best_match_score = matches
-                    found_image = image_url
-            
-            if found_image:
-                data["classImage"] = found_image
-            elif category in category_images:
-                data["classImage"] = category_images[category]
-            else:
-                data["classImage"] = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop"  # Default education image
+            data["classImage"] = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop"  # Default education image
     
     return data
 
@@ -643,27 +622,23 @@ def generate_search_metadata(class_data: Dict) -> Dict:
             metadata.update(cultural_context)
         
         return metadata
-    
+
+def fetch_subject_from_database(subject_id: str) -> Optional[Dict]:
+    """
+    Fetch subject data directly from subjects database using subjectId
+    """
+    try:
+        db = firestore.client()
+        subjects_ref = db.collection("subjects").document(subject_id)
+        subject_doc = subjects_ref.get()
+        
+        if subject_doc.exists:
+            return subject_doc.to_dict()
+        return None
+        
     except Exception as e:
-        # Return basic metadata if generation fails
-        print(f"Warning: Failed to generate search metadata: {str(e)}")
-        return {
-            "availableDays": [],
-            "timeSlots": [],
-            "weeksDuration": 1,
-            "intensity": "low",
-            "pricePerHour": 0,
-            "hasDiscount": False,
-            "difficultyLevel": "beginner",
-            "prerequisites": [],
-            "isOnline": True,
-            "isInPerson": False,
-            "totalSessions": 1,
-            "maxStudents": 1,
-            "minStudents": 1,
-            "isWorkshop": False,
-            "isGroup": True
-        }
+        print(f"Warning: Failed to fetch subject {subject_id} from database: {str(e)}")
+        return None
 
 def generate_class_keywords(class_data: Dict) -> List[str]:
     """
@@ -723,13 +698,14 @@ def generate_cultural_context(class_data: Dict) -> Dict:
     subject = class_data.get("subject", "").lower()
     category = class_data.get("category", "").lower()
     
-    # Try to match to cultural subjects using simple keyword matching
-    cultural_match = match_subject_to_cultural_data(subject, category)
+    # Fetch cultural data directly from subjects database
+    subject_id = class_data.get("subjectId", "")
+    cultural_match = fetch_subject_from_database(subject_id) if subject_id else None
     
     if cultural_match:
-        # Found cultural match - use rich cultural context
+        # Found cultural match - use data directly from subjects database
         cultural_context = {
-            "cultural_origin_region": cultural_match.get("region"),
+            "cultural_origin_region": cultural_match.get("region", "Worldwide"),
             "heritage_context": cultural_match.get("heritage_context", "folk"),
             "cultural_authenticity_score": cultural_match.get("cultural_authenticity_score", 0.5),
             "cultural_significance_level": cultural_match.get("cultural_significance_level", 0.5),
@@ -758,52 +734,6 @@ def generate_cultural_context(class_data: Dict) -> Dict:
     
     return cultural_context
 
-def match_subject_to_cultural_data(subject_text: str, category: str) -> Optional[Dict]:
-    """
-    Simple matching logic to connect free-text subjects to cultural database.
-    """
-    # Simple keyword-based mapping for common cultural subjects
-    cultural_mappings = {
-        "bharatanatyam": {
-            "region": "India", 
-            "heritage_context": "classical",
-            "cultural_authenticity_score": 0.95,
-            "cultural_significance_level": 0.9,
-            "is_culturally_rooted": True,
-            "cultural_keywords": ["classical", "traditional", "temple", "devotional", "indian"],
-            "tradition_or_school": "Tamil Nadu Classical Dance"
-        },
-        "bagpipe": {
-            "region": "Scotland",
-            "heritage_context": "folk", 
-            "cultural_authenticity_score": 0.8,
-            "cultural_significance_level": 0.7,
-            "is_culturally_rooted": True,
-            "cultural_keywords": ["scottish", "traditional", "highland", "folk music", "celtic"],
-            "tradition_or_school": "Scottish Highland Tradition"
-        },
-        "origami": {
-            "region": "Japan",
-            "heritage_context": "folk",
-            "cultural_authenticity_score": 0.8,
-            "cultural_significance_level": 0.7, 
-            "is_culturally_rooted": True,
-            "cultural_keywords": ["japanese", "traditional", "paper folding", "meditative", "zen"],
-            "tradition_or_school": "Traditional Japanese Paper Art"
-        }
-    }
-    
-    # Check for direct matches
-    for key, cultural_data in cultural_mappings.items():
-        if key in subject_text.lower():
-            return cultural_data
-    
-    # Check for broader cultural patterns
-    if any(word in subject_text.lower() for word in ["indian", "classical", "traditional"]):
-        if "dance" in subject_text.lower():
-            return cultural_mappings.get("bharatanatyam")
-    
-    return None
 
 def calculate_intensity(class_data: Dict) -> str:
     """
