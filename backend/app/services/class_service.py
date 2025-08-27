@@ -450,8 +450,8 @@ def clean_data(data: Dict) -> Dict:
     
     # Add subject-based class images if not present
     if not data.get("classImage"):
-        subject = data.get("subject", "").lower()
-        category = data.get("category", "").lower()
+        subject = data.get("subjectId", "").lower()
+        category = data.get("categoryId", "").lower()
         
         # Subject-based images
         subject_images = {
@@ -481,10 +481,12 @@ def clean_data(data: Dict) -> Dict:
             "polka_dancing":"https://images.squarespace-cdn.com/content/v1/5a18683b64b05f9f4adeb4c7/1573751591119-QJJZ9E9K7UIV68JEGWVL/polka.jpg",
             "sitar":"https://static.vecteezy.com/system/resources/previews/010/419/426/non_2x/sitar-india-music-instrument-free-vector.jpg",
             "terrarium_making":"https://i.pinimg.com/736x/c1/70/43/c1704387041c8d985b13e0e741435009.jpg",
+            "guitar_flamenco":"https://www.shutterstock.com/image-illustration/background-traditional-spanish-gypsy-music-600nw-2272701901.jpg",
             "veena":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSoDUCry3i--1iPj79Plqyyr21SHk37d6jCoUR1GMpRo5OKB6_ddB1fkl4XFpYtiY1YOUg&usqp=CAU",
             "hip_hop_dance":"https://i.etsystatic.com/16454555/r/il/1e6910/2413310801/il_1080xN.2413310801_oi8o.jpg",
             "kitemaking_indian":"https://www.shutterstock.com/editorial/image-editorial/ObTfM245McT9A8x2OTAxMg==/indian-kite-maker-jagmohan-kanojia-prepares-kites-440nw-9313323a.jpg",
             "lantern_making_hoi_an":"https://live.staticflickr.com/65535/48662393921_5ffd018797_h.jpg",
+            "tea_ceremony_japanese":"https://media.istockphoto.com/id/578833134/photo/let-me-pour-you-tome-tea.jpg?s=612x612&w=0&k=20&c=aMdr6pu6mpkSFXxPoHXNMW-g2Xxg6D3QwysU3xfDs_Q=",
             "sake_appreciation":"https://www.localwineschool.com/images/event/SakeOverflow.jpg",
             "boxing" : "https://media.gq.com/photos/59ee10b166e2d56abcd79fd3/16:9/w_2560%2Cc_limit/gq-fitness-boxing.jpg",
             "french patisserie":"https://images.immediate.co.uk/production/volatile/sites/30/2018/10/apple-tart-patisserie-c005d5c.jpg",
@@ -499,7 +501,9 @@ def clean_data(data: Dict) -> Dict:
             "music": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=600&fit=crop",
             "arts": "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=600&fit=crop",
             "fitness": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop",
-            "technology": "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=800&h=600&fit=crop"
+            "technology": "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=800&h=600&fit=crop",
+            "culinary_arts":"https://www.ecoleducasse.com/application/files/9516/5340/5679/culinary_skills.jpg",
+            "dance":"https://images.unsplash.com/photo-1524594152303-9fd13543fe6e?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
         }
         
         # Try subject first, then category, then default
