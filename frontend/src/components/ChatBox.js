@@ -461,12 +461,12 @@ const ChatbotOverlay = () => {
     }
 
     return (
-        <div className="fixed inset-0 pointer-events-none z-50">
+        <>
             {/* External Dependencies */}
             <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
             
-            {/* Chat Toggle Button - Always visible */}
-            <div className="absolute bottom-6 right-6 pointer-events-auto">
+            {/* Chat Toggle Button*/}
+            <div className="fixed bottom-6 right-6 z-40">
                 <button
                     onClick={toggleChat}
                     className={`relative w-16 h-16 rounded-full shadow-lg transform transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-200 ${
@@ -498,9 +498,9 @@ const ChatbotOverlay = () => {
                 </button>
             </div>
 
-            {/* Chat Window Overlay */}
-            <div className={`absolute bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] h-[500px] bg-white rounded-2xl shadow-2xl transform transition-all duration-300 pointer-events-auto ${
-                isOpen ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95 pointer-events-none'
+            {/* Chat Window */}
+            <div className={`fixed bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] h-[500px] bg-white rounded-2xl shadow-2xl transform transition-all duration-300 ${
+                isOpen ? 'opacity-100 translate-y-0 scale-100 z-50' : 'opacity-0 translate-y-8 scale-95 pointer-events-none z-40'
             } border border-gray-100`}>
                 
                 {/* Chat Header */}
@@ -736,7 +736,7 @@ const ChatbotOverlay = () => {
                     transition: all 0.2s ease-in-out;
                 }
             `}</style>
-        </div>
+        </>
     );
 };
 
