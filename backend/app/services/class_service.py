@@ -450,8 +450,8 @@ def clean_data(data: Dict) -> Dict:
     
     # Add subject-based class images if not present
     if not data.get("classImage"):
-        subject = data.get("subjectId", "").lower()
-        category = data.get("categoryId", "").lower()
+        subject = data.get("subject", "").lower()
+        category = data.get("category", "").lower()
         
         # Subject-based images
         subject_images = {
@@ -493,7 +493,9 @@ def clean_data(data: Dict) -> Dict:
             "swimming":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/40._Schwimmzonen-_und_Mastersmeeting_Enns_2017_100m_Brust_Herren_USC_Traun-9897.jpg/960px-40._Schwimmzonen-_und_Mastersmeeting_Enns_2017_100m_Brust_Herren_USC_Traun-9897.jpg",
             "tai_chi":"https://mstrust.org.uk/sites/default/files/styles/meta_open_graph/public/tiles/Tai%20Chi.jpg?h=0738d7e3&itok=y9AnmsnW",
             "lego_building_and_robotics": "https://www.lego.com/cdn/cs/set/assets/bltcd461a16ee553ef0/Mindstroms-Build_Bot-TRACK3R-Sidekick-Standardfa39268afb269891b21f72b189e198c6b015ff89bad95355aa044bb683546555.jpg?fit=crop&format=jpg&quality=80&width=800&height=600&dpr=1",
-            "ballet_classical" : "https://upload.wikimedia.org/wikipedia/commons/5/52/Edgar_Degas_-_The_Dance_Foyer_at_the_Opera_on_the_rue_Le_Peletier.jpg"
+            "ballet_classical" : "https://upload.wikimedia.org/wikipedia/commons/5/52/Edgar_Degas_-_The_Dance_Foyer_at_the_Opera_on_the_rue_Le_Peletier.jpg",
+            "japanese_tea_ceremony": "https://media.istockphoto.com/id/578833134/photo/let-me-pour-you-tome-tea.jpg?s=612x612&w=0&k=20&c=aMdr6pu6mpkSFXxPoHXNMW-g2Xxg6D3QwysU3xfDs_Q=",
+            "tea_ceremony": "https://media.istockphoto.com/id/578833134/photo/let-me-pour-you-tome-tea.jpg?s=612x612&w=0&k=20&c=aMdr6pu6mpkSFXxPoHXNMW-g2Xxg6D3QwysU3xfDs_Q="
         }
         
         # Category fallback images
@@ -507,12 +509,38 @@ def clean_data(data: Dict) -> Dict:
         }
         
         # Try subject first, then category, then default
+        # Convert spaces to underscores for subject matching
+        subject_key = subject.replace(" ", "_")
+        
+        # Try exact match first
         if subject in subject_images:
             data["classImage"] = subject_images[subject]
-        elif category in category_images:
-            data["classImage"] = category_images[category]
+        elif subject_key in subject_images:
+            data["classImage"] = subject_images[subject_key]
         else:
-            data["classImage"] = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop"  # Default education image
+            # Try keyword-based matching for partial matches
+            found_image = None
+            best_match_score = 0
+            
+            for key, image_url in subject_images.items():
+                # Check if any word from the key appears in the subject
+                key_words = key.replace("_", " ").split()
+                subject_words = subject.split()
+                
+                # Calculate match score based on number of matching words
+                matches = sum(1 for key_word in key_words 
+                             if len(key_word) > 3 and any(key_word in subject_word for subject_word in subject_words))
+                
+                if matches > best_match_score:
+                    best_match_score = matches
+                    found_image = image_url
+            
+            if found_image:
+                data["classImage"] = found_image
+            elif category in category_images:
+                data["classImage"] = category_images[category]
+            else:
+                data["classImage"] = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop"  # Default education image
     
     return data
 
