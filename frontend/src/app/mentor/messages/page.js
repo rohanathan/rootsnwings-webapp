@@ -3,9 +3,8 @@
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import axios from "axios";
 import { useState, useEffect, useRef } from "react";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 // Using inline SVG for FontAwesome icons as Next.js does not support direct link to CSS in components
 const HomeIcon = () => (
