@@ -14,6 +14,7 @@ def send_message(message_data: MessageCreate) -> str:
         "studentId": message_data.studentId,
         "mentorId": message_data.mentorId,
         "parentId": message_data.parentId,
+        "classId": message_data.classId,
         "message": message_data.message,
         "sentAt": datetime.now().isoformat()
     }
@@ -26,11 +27,15 @@ def send_message(message_data: MessageCreate) -> str:
     
     return message_id
 
-def get_messages_for_conversation(student_id: str, mentor_id: str, parent_id: str = None) -> List[Message]:
-    """Get all messages between student and mentor (optionally including parent)"""
+def get_messages_for_conversation(student_id: str, mentor_id: str, parent_id: str = None, class_id: str = None) -> List[Message]:
+    """Get all messages between student and mentor (optionally including parent or for specific class)"""
     
-    # Base query: messages between this student and mentor
-    query = db.collection('messages').where('studentId', '==', student_id).where('mentorId', '==', mentor_id)
+    if class_id:
+        # Group messages: get all messages for this class
+        query = db.collection('messages').where('classId', '==', class_id).where('mentorId', '==', mentor_id)
+    else:
+        # Private messages: messages between this student and mentor (no classId)
+        query = db.collection('messages').where('studentId', '==', student_id).where('mentorId', '==', mentor_id)
     
     docs = query.order_by('sentAt').stream()
     
@@ -41,6 +46,9 @@ def get_messages_for_conversation(student_id: str, mentor_id: str, parent_id: st
             message = Message(**data)
             # If parent_id specified, only show messages involving that parent
             if parent_id and data.get('parentId') != parent_id:
+                continue
+            # If requesting private messages, filter out group messages
+            if not class_id and data.get('classId'):
                 continue
             messages.append(message)
         except Exception:

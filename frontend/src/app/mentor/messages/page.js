@@ -234,6 +234,9 @@ const Messages = () => {
   const [studentMentorMsg, setStudentMentorMsg] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [typedMessage, setTypedMessage] = useState(null);
+  const [activeTab, setActiveTab] = useState('private'); // 'private' or 'group'
+  const [groupMessages, setGroupMessages] = useState([]);
+  const [selectedClassId, setSelectedClassId] = useState(null);
   const profileDropdownBtnRef = useRef(null);
 
   const [user, setUser] = useState(null);
@@ -316,20 +319,81 @@ const Messages = () => {
     }
   };
 
+  const fetchGroupMessages = async () => {
+    if (!user || !selectedStudent || !selectedClassId) return;
+    
+    try {
+      const idToken = await user.getIdToken();
+      const response = await axios.get(
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/messages/conversation?studentId=${selectedStudent?.fullUser?.uid}&mentorId=${user?.uid}&classId=${selectedClassId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      setGroupMessages(response.data.messages);
+    } catch (error) {
+      console.error('Error fetching group messages:', error);
+    }
+  };
+
+  const getClassIdForStudent = async (studentId) => {
+    if (!user) return null;
+    
+    try {
+      const idToken = await user.getIdToken();
+      const response = await axios.get(
+        `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?mentorId=${user.uid}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      const bookings = response.data.bookings;
+      const studentBooking = bookings.find(booking => booking.studentId === studentId);
+      return studentBooking ? studentBooking.classId : null;
+    } catch (error) {
+      console.error("Error fetching class ID:", error);
+      return null;
+    }
+  };
+
   useEffect(() => {
-    fetchStudentMentorMsg();
+    const initializeStudentChat = async () => {
+      if (selectedStudent) {
+        fetchStudentMentorMsg();
+        const classId = await getClassIdForStudent(selectedStudent?.fullUser?.uid);
+        setSelectedClassId(classId);
+      }
+    };
+    initializeStudentChat();
   }, [selectedStudent]);
+
+  useEffect(() => {
+    if (activeTab === 'group') {
+      fetchGroupMessages();
+    }
+  }, [activeTab, selectedClassId]);
 
   // Auto-refresh messages every 3 seconds for real-time feel
   useEffect(() => {
     if (!selectedStudent) return;
     
     const interval = setInterval(() => {
-      fetchStudentMentorMsg();
+      if (activeTab === 'private') {
+        fetchStudentMentorMsg();
+      } else {
+        fetchGroupMessages();
+      }
     }, 3000);
     
     return () => clearInterval(interval);
-  }, [selectedStudent]);
+  }, [selectedStudent, activeTab]);
 
   useEffect(() => {
     const generateConversationItems = () => {
@@ -513,15 +577,22 @@ const Messages = () => {
     
     try {
       const idToken = await user.getIdToken();
+      const messageData = {
+        senderId: user.uid,
+        studentId: selectedStudent?.fullUser?.uid,
+        mentorId: user.uid,
+        parentId: selectedStudent?.fullUser?.parentId,
+        message: typedMessage,
+      };
+
+      // If group tab is active and we have a classId, add it to the message
+      if (activeTab === 'group' && selectedClassId) {
+        messageData.classId = selectedClassId;
+      }
+
       const response = await axios.post(
         `https://rootsnwings-api-944856745086.europe-west2.run.app/messages`,
-        {
-          senderId: user.uid,
-          studentId: selectedStudent?.fullUser?.uid,
-          mentorId: user.uid,
-          parentId: selectedStudent?.fullUser?.parentId,
-          message: typedMessage,
-        },
+        messageData,
         {
           headers: {
             'Authorization': `Bearer ${idToken}`,
@@ -532,7 +603,12 @@ const Messages = () => {
 
       if (response.status === 200 && response.data?.message) {
         setTypedMessage("");
-        fetchStudentMentorMsg(); // Refresh messages after sending
+        // Refresh appropriate messages after sending
+        if (activeTab === 'private') {
+          fetchStudentMentorMsg();
+        } else {
+          fetchGroupMessages();
+        }
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -803,10 +879,40 @@ const Messages = () => {
                 </div>
               </div>
 
+              {/* Tabs */}
+              {selectedStudent && (
+                <div className="border-b border-gray-200 px-4">
+                  <div className="flex space-x-1">
+                    <button
+                      onClick={() => setActiveTab('private')}
+                      className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+                        activeTab === 'private'
+                          ? 'bg-primary text-white border-b-2 border-primary'
+                          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                      }`}
+                    >
+                      Private Chat
+                    </button>
+                    {selectedClassId && (
+                      <button
+                        onClick={() => setActiveTab('group')}
+                        className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+                          activeTab === 'group'
+                            ? 'bg-primary text-white border-b-2 border-primary'
+                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                        }`}
+                      >
+                        Class Community
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Messages */}
               <div className="flex-1 p-4 space-y-4 overflow-y-auto max-h-80">
                 <>
-                  {studentMentorMsg.map((msg, index) => {
+                  {(activeTab === 'private' ? studentMentorMsg : groupMessages).map((msg, index) => {
                     return (
                       <>
                         {msg.mentorId !== msg.senderId ? (
@@ -862,7 +968,7 @@ const Messages = () => {
                   <div className="flex-1 relative">
                     <input
                       type="text"
-                      placeholder="Type your message..."
+                      placeholder={activeTab === 'private' ? "Type your private message..." : "Type message to class community..."}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary pr-12"
                       defaultValue={typedMessage}
                       value={typedMessage}

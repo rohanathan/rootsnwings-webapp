@@ -28,14 +28,16 @@ def create_message(message_data: MessageCreate):
 def get_conversation(
     studentId: str = Query(..., description="Student ID"),
     mentorId: str = Query(..., description="Mentor ID"), 
-    parentId: Optional[str] = Query(None, description="Parent ID (optional)")
+    parentId: Optional[str] = Query(None, description="Parent ID (optional)"),
+    classId: Optional[str] = Query(None, description="Class ID - if provided, gets group messages for the class")
 ):
     """
     Get all messages in a conversation between student and mentor.
     If parentId provided, filters to only messages involving that parent.
+    If classId provided, gets group messages for that class instead of private messages.
     """
     try:
-        messages = get_messages_for_conversation(studentId, mentorId, parentId)
+        messages = get_messages_for_conversation(studentId, mentorId, parentId, classId)
         return MessageListResponse(
             messages=messages,
             total=len(messages)
