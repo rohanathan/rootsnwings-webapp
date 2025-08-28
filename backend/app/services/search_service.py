@@ -4,7 +4,6 @@ from app.models.mentor_models import Mentor, MentorSearchQuery
 from app.models.class_models import ClassItem, ClassSearchQuery
 from app.services.mentor_service import search_mentors
 from app.services.class_service import search_classes
-from app.services.cultural_ranking_service import culturally_aware_ranking
 from typing import List, Tuple
 from fastapi import HTTPException
 import re
@@ -124,10 +123,7 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
                 }
                 
                 search_results.append(search_result)
-        
-        # Apply intelligent cultural ranking
-        search_results = culturally_aware_ranking(query.q, search_results)
-        
+                
         # Apply unified filtering
         filtered_results = apply_unified_filters(search_results, query)
         
@@ -140,12 +136,9 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
         end_idx = start_idx + query.pageSize
         paginated_results = sorted_results[start_idx:end_idx]
         
-        # Convert back to SearchResult objects and clean internal scoring
+        # Convert back to SearchResult objects  
         final_results = []
         for result_dict in paginated_results:
-            # Remove internal scoring fields
-            result_dict.pop('ranking_score', None)
-            result_dict.pop('score_breakdown', None)
             final_results.append(SearchResult(**result_dict))
         
         stats = {
@@ -263,27 +256,20 @@ def apply_unified_filters(results: List[dict], query: UnifiedSearchQuery) -> Lis
     return filtered_results
 
 def sort_unified_results(results: List[dict], sort_by: str, sort_order: str) -> List[dict]:
-    """Sort unified results by specified criteria"""
+    """Sort results by basic criteria"""
     reverse = sort_order == "desc"
     
-    if sort_by == "relevance":
-        # Sort by cultural ranking score (if available)
-        results.sort(key=lambda r: r.get('ranking_score', 0), reverse=reverse)
-    elif sort_by == "rating":
+    if sort_by == "rating":
         results.sort(key=lambda r: r["rating"] or 0, reverse=reverse)
     elif sort_by == "price":
         results.sort(key=lambda r: r["price"] or 0, reverse=reverse)
-    elif sort_by == "date":
-        # Sort by creation date (classes) or mentor stats (mentors)
-        def get_date_score(r):
-            if r["type"] == "class":
-                return r["data"].createdAt or ""
-            else:
-                return r["data"].createdAt or ""
-        results.sort(key=get_date_score, reverse=reverse)
     else:
-        # Default to cultural ranking
-        results.sort(key=lambda r: r.get('ranking_score', 0), reverse=True)
+        # Default to creation date - newest first
+        def get_date_score(r):
+            created_at = r["data"].get("createdAt", "1970-01-01") if isinstance(r["data"], dict) else "1970-01-01"
+            # Ensure it's always a string for comparison
+            return str(created_at) if created_at else "1970-01-01"
+        results.sort(key=get_date_score, reverse=True)
     
     return results
 

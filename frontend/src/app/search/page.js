@@ -35,11 +35,11 @@ const SearchResults = () => {
            query.split(' ').length > 3; // More than 3 words likely natural language
   };
 
-  // Parse AI response to extract search parameters - KISS approach
+  // Parse AI response to extract search parameters
   const parseAIResponse = (aiText) => {
     const filters = {};
     
-    // Simple line-by-line parsing - much simpler than regex
+    // Simple line-by-line parsing 
     const lines = aiText.split('\n');
     
     lines.forEach(line => {
@@ -57,6 +57,18 @@ const SearchResults = () => {
       }
       if (line.includes('location:')) {
         filters.location = line.split(':')[1]?.trim().replace(/[\[\]]/g, '') || '';
+      }
+      if (line.includes('level:')) {
+        filters.level = line.split(':')[1]?.trim().replace(/[\[\]]/g, '') || '';
+      }
+      if (line.includes('mentor_qualification:')) {
+        filters.mentor_qualification = line.split(':')[1]?.trim().replace(/[\[\]]/g, '') || '';
+      }
+      if (line.includes('max_price:')) {
+        filters.max_price = line.split(':')[1]?.trim().replace(/[\[\]]/g, '') || '';
+      }
+      if (line.includes('free_trial:')) {
+        filters.free_trial = line.split(':')[1]?.trim().replace(/[\[\]]/g, '') || '';
       }
       if (line.includes('matched_subjects:')) {
         filters.matched_subjects = line.split(':')[1]?.trim().replace(/[\[\]]/g, '') || '';
@@ -79,18 +91,28 @@ const SearchResults = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          message: `Using available subjects metadata, extract and enhance search parameters from: "${userQuery}". 
+          message: `Extract clean search parameters from: "${userQuery}". 
 
-Find semantic matches using synonyms and keywords from our subjects database.
-For example: "kite making" should match "kite crafting", "3d printing" should match "additive manufacturing".
+IMPORTANT: Keep search_terms SIMPLE and CLEAN - extract the core subject/activity only.
+Don't add synonyms or expand keywords.
+
+For example:
+"ballet for teens" → search_terms: ballet, age_group: teen
+"online yoga classes" → search_terms: yoga, format: online
+"certified piano teacher under £30" → search_terms: piano, mentor_qualification: certified, max_price: 30
+"affordable guitar teacher with free trial" → search_terms: guitar, max_price: 25, free_trial: true
 
 Return exactly this format:
-search_terms: [enhanced search terms including synonyms]
-category: [subject category like music, dance, art, stem]  
+search_terms: [core subject/activity only - no synonyms]
+category: [music, dance, art, wellness, stem, cultural_arts, or null]  
 age_group: [child, teen, adult, or null]
 format: [online, in-person, hybrid, or null]
 location: [city name or null]
-matched_subjects: [list of subjects found in metadata]`
+level: [beginner, intermediate, advanced, or null]
+mentor_qualification: [certified, qualified, traditional, trained, verified, or null]
+max_price: [number only for mentor hourly rate limit, or null]
+free_trial: [true if free first lesson mentioned, false otherwise, or null]
+matched_subjects: [relevant subject if found in metadata]`
         })
       });
       
@@ -108,16 +130,36 @@ matched_subjects: [list of subjects found in metadata]`
         // Add filters if they exist and aren't null/undefined
         Object.entries(enhancedFilters).forEach(([key, value]) => {
           if (value && value !== 'null' && value !== 'undefined' && key !== 'search_terms') {
-            // Map AI keys to backend keys
-            const keyMap = {
-              'category': 'category',
-              'age_group': 'ageGroup', 
-              'format': 'format',
-              'location': 'city' // Map location to city for backend
-            };
-            
-            if (keyMap[key]) {
-              searchParams[keyMap[key]] = value;
+            // Handle mentor qualification specially
+            if (key === 'mentor_qualification') {
+              // Map qualifications to isVerified boolean
+              if (['certified', 'qualified', 'verified', 'traditional', 'trained'].includes(value)) {
+                searchParams['isVerified'] = true;
+              }
+            } else if (key === 'max_price') {
+              // Map to maxRate for mentor search
+              const price = parseInt(value);
+              if (price && price > 0) {
+                searchParams['maxRate'] = price;
+              }
+            } else if (key === 'free_trial') {
+              // Map free trial to boolean
+              if (value === 'true') {
+                searchParams['firstSessionFree'] = true;
+              }
+            } else {
+              // Map other AI keys to backend keys
+              const keyMap = {
+                'category': 'category',
+                'age_group': 'ageGroup', 
+                'format': 'format',
+                'location': 'city', // Map location to city for backend
+                'level': 'level'
+              };
+              
+              if (keyMap[key]) {
+                searchParams[keyMap[key]] = value;
+              }
             }
           }
         });
