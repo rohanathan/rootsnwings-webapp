@@ -76,11 +76,12 @@ def unified_search(query: UnifiedSearchQuery) -> Tuple[List[SearchResult], dict]
             class_query = ClassSearchQuery(
                 q=query.q,
                 category=query.category,
+                ageGroup=query.ageGroup,
+                format=query.format if query.format else ("online" if query.isOnline else None),
                 city=query.city,
                 country=query.country,
                 minRating=query.minRating,
                 maxPrice=query.maxPrice,
-                format="online" if query.isOnline else None,
                 sortBy="createdAt",
                 sortOrder="desc",
                 page=1,

@@ -115,6 +115,11 @@ class ClassItem(BaseModel):
     ageGroup: Optional[str] = Field(None, description="DISCOVERY PAGES - target age group (child/teen/adult) displayed on workshop cards and used for filtering")
     format: Optional[str] = Field(None, description="DISCOVERY PAGES - delivery format (online/in-person/hybrid) prominently displayed with icons on cards")
     
+    # === LOCATION FIELDS (Used for in-person class search and discovery) ===
+    city: Optional[str] = Field(None, description="LOCATION SEARCH - city where in-person classes are held, used for location-based filtering")
+    region: Optional[str] = Field(None, description="LOCATION SEARCH - region/state for broader location search capabilities") 
+    country: Optional[str] = Field(None, description="LOCATION SEARCH - country for international class filtering")
+    
     # === SCHEDULING FIELDS (Used by all pages for time/date display) ===
     schedule: Optional[Schedule] = Field(None, description="Schedule details - startDate/endDate shown on cards, weeklySchedule used for 'next session' displays")
     

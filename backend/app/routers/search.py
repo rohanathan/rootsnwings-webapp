@@ -11,6 +11,8 @@ def unified_search_endpoint(
     q: str = Query(None, description="Search text across mentors and classes"),
     type: str = Query(None, description="Filter by result type: mentor, class"),
     category: str = Query(None, description="Filter by category"),
+    ageGroup: str = Query(None, description="Filter by age group: child, teen, adult"),
+    format: str = Query(None, description="Filter by format: online, in-person, hybrid"),
     city: str = Query(None, description="Filter by city"),
     country: str = Query(None, description="Filter by country"),
     minRating: float = Query(None, ge=0, le=5, description="Minimum rating"),
@@ -46,6 +48,8 @@ def unified_search_endpoint(
             q=q,
             type=type,
             category=category,
+            ageGroup=ageGroup,
+            format=format,
             city=city,
             country=country,
             minRating=minRating,
@@ -67,6 +71,8 @@ def unified_search_endpoint(
         if q: active_filters["q"] = q
         if type: active_filters["type"] = type
         if category: active_filters["category"] = category
+        if ageGroup: active_filters["ageGroup"] = ageGroup
+        if format: active_filters["format"] = format
         if city: active_filters["city"] = city
         if country: active_filters["country"] = country
         if minRating: active_filters["minRating"] = minRating

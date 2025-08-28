@@ -103,12 +103,16 @@ def search_classes(query: ClassSearchQuery) -> Tuple[List[ClassItem], int]:
             if not should_include:
                 continue
             
-            # Apply location filters
-            if query.city and data.get("location", {}).get("city") != query.city:
-                continue
+            # Apply location filters (check both top-level fields and nested location object)
+            if query.city:
+                class_city = data.get("city") or data.get("location", {}).get("city")
+                if class_city != query.city:
+                    continue
                 
-            if query.country and data.get("location", {}).get("country") != query.country:
-                continue
+            if query.country:
+                class_country = data.get("country") or data.get("location", {}).get("country")
+                if class_country != query.country:
+                    continue
             
             # Apply rating filter
             if query.minRating and data.get("mentorRating", 0) < query.minRating:
@@ -470,7 +474,6 @@ def clean_data(data: Dict) -> Dict:
             "cooking": "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop",
             "anime_character_drawing":"https://i.pinimg.com/736x/f5/cf/e3/f5cfe3103f2184921d567db80068bdd0.jpg",
             "bagpipes_playing" : "https://c.files.bbci.co.uk/6288/production/_127342252_paul_burns_reuters.jpg",
-            "yoga":"https://images.indianexpress.com/2015/06/shilpa-shetty-yoga-759.jpg?w=600",
             "kung_fu":"https://www.shutterstock.com/image-photo/man-practises-martial-arts-dramatic-260nw-73460365.jpg",
             "malt_whisky_tasting":"https://www.worldwhiskyday.com/wp-content/uploads/2016/03/Whisky-flight.jpg",
             "3d_printing_design":"https://specials-images.forbesimg.com/imageserve/5f1a62d942a6387efb759310/960x0.jpg",
@@ -490,16 +493,14 @@ def clean_data(data: Dict) -> Dict:
             "hip_hop_dance":"https://i.etsystatic.com/16454555/r/il/1e6910/2413310801/il_1080xN.2413310801_oi8o.jpg",
             "kitemaking_indian":"https://www.shutterstock.com/editorial/image-editorial/ObTfM245McT9A8x2OTAxMg==/indian-kite-maker-jagmohan-kanojia-prepares-kites-440nw-9313323a.jpg",
             "lantern_making_hoi_an":"https://live.staticflickr.com/65535/48662393921_5ffd018797_h.jpg",
-            "tea_ceremony_japanese":"https://media.istockphoto.com/id/578833134/photo/let-me-pour-you-tome-tea.jpg?s=612x612&w=0&k=20&c=aMdr6pu6mpkSFXxPoHXNMW-g2Xxg6D3QwysU3xfDs_Q=",
+            "tea_ceremony_japanese":"https://en.wikipedia.org/wiki/Japanese_tea_ceremony#/media/File:Outdoor_Tea_Ceremony.jpg",
             "sake_appreciation":"https://www.localwineschool.com/images/event/SakeOverflow.jpg",
             "boxing" : "https://media.gq.com/photos/59ee10b166e2d56abcd79fd3/16:9/w_2560%2Cc_limit/gq-fitness-boxing.jpg",
             "french patisserie":"https://images.immediate.co.uk/production/volatile/sites/30/2018/10/apple-tart-patisserie-c005d5c.jpg",
             "swimming":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/40._Schwimmzonen-_und_Mastersmeeting_Enns_2017_100m_Brust_Herren_USC_Traun-9897.jpg/960px-40._Schwimmzonen-_und_Mastersmeeting_Enns_2017_100m_Brust_Herren_USC_Traun-9897.jpg",
             "tai_chi":"https://mstrust.org.uk/sites/default/files/styles/meta_open_graph/public/tiles/Tai%20Chi.jpg?h=0738d7e3&itok=y9AnmsnW",
             "lego_building_and_robotics": "https://www.lego.com/cdn/cs/set/assets/bltcd461a16ee553ef0/Mindstroms-Build_Bot-TRACK3R-Sidekick-Standardfa39268afb269891b21f72b189e198c6b015ff89bad95355aa044bb683546555.jpg?fit=crop&format=jpg&quality=80&width=800&height=600&dpr=1",
-            "ballet_classical" : "https://upload.wikimedia.org/wikipedia/commons/5/52/Edgar_Degas_-_The_Dance_Foyer_at_the_Opera_on_the_rue_Le_Peletier.jpg",
-            "japanese_tea_ceremony": "https://media.istockphoto.com/id/578833134/photo/let-me-pour-you-tome-tea.jpg?s=612x612&w=0&k=20&c=aMdr6pu6mpkSFXxPoHXNMW-g2Xxg6D3QwysU3xfDs_Q=",
-            "tea_ceremony": "https://media.istockphoto.com/id/578833134/photo/let-me-pour-you-tome-tea.jpg?s=612x612&w=0&k=20&c=aMdr6pu6mpkSFXxPoHXNMW-g2Xxg6D3QwysU3xfDs_Q="
+            "ballet_classical" : "https://upload.wikimedia.org/wikipedia/commons/5/52/Edgar_Degas_-_The_Dance_Foyer_at_the_Opera_on_the_rue_Le_Peletier.jpg"
         }
         
         # Category fallback images

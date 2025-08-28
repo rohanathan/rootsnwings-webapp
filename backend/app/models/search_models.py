@@ -28,6 +28,8 @@ class UnifiedSearchQuery(BaseModel):
     q: Optional[str] = Field(None, description="Search text across mentors and classes")
     type: Optional[str] = Field(None, description="Filter by result type: mentor, class")
     category: Optional[str] = Field(None, description="Filter by category")
+    ageGroup: Optional[str] = Field(None, description="Filter by age group: child, teen, adult")
+    format: Optional[str] = Field(None, description="Filter by format: online, in-person, hybrid")
     city: Optional[str] = Field(None, description="Filter by city")
     country: Optional[str] = Field(None, description="Filter by country")
     minRating: Optional[float] = Field(None, ge=0, le=5, description="Minimum rating")
