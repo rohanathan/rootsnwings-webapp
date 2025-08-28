@@ -3,8 +3,9 @@
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import axios from "axios";
 import { useState, useEffect, useRef } from "react";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 // Using inline SVG for FontAwesome icons as Next.js does not support direct link to CSS in components
 const HomeIcon = () => (
@@ -316,9 +317,32 @@ const Messages = () => {
     }
   };
 
+  // Real-time Firebase listener for messages
   useEffect(() => {
-    fetchStudentMentorMsg();
-  }, [selectedStudent]);
+    if (!selectedStudent || !user) return;
+    
+    console.log('Setting up Firebase listener for mentor:', user.uid, selectedStudent.fullUser.uid);
+    
+    const messagesRef = collection(db, 'messages');
+    const q = query(
+      messagesRef,
+      where('mentorId', '==', user.uid),
+      where('studentId', '==', selectedStudent.fullUser.uid),
+      orderBy('sentAt', 'asc')
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const messages = snapshot.docs.map(doc => doc.data());
+      console.log('Firebase messages updated for mentor:', messages.length);
+      setStudentMentorMsg(messages);
+    }, (error) => {
+      console.error('Firebase listener error:', error);
+      // Fallback to API call
+      fetchStudentMentorMsg();
+    });
+    
+    return unsubscribe;
+  }, [selectedStudent, user]);
 
   useEffect(() => {
     const generateConversationItems = () => {
@@ -521,7 +545,7 @@ const Messages = () => {
 
       if (response.status === 200 && response.data?.message) {
         setTypedMessage("");
-        fetchStudentMentorMsg();
+        // fetchStudentMentorMsg(); // Backup: commented out - Firebase listener will auto-update
       }
     } catch (error) {
       console.error('Error sending message:', error);
