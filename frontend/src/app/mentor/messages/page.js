@@ -317,32 +317,20 @@ const Messages = () => {
     }
   };
 
-  // Real-time Firebase listener for messages
   useEffect(() => {
-    if (!selectedStudent || !user) return;
+    fetchStudentMentorMsg();
+  }, [selectedStudent]);
+
+  // Auto-refresh messages every 3 seconds for real-time feel
+  useEffect(() => {
+    if (!selectedStudent) return;
     
-    console.log('Setting up Firebase listener for mentor:', user.uid, selectedStudent.fullUser.uid);
-    
-    const messagesRef = collection(db, 'messages');
-    const q = query(
-      messagesRef,
-      where('mentorId', '==', user.uid),
-      where('studentId', '==', selectedStudent.fullUser.uid),
-      orderBy('sentAt', 'asc')
-    );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map(doc => doc.data());
-      console.log('Firebase messages updated for mentor:', messages.length);
-      setStudentMentorMsg(messages);
-    }, (error) => {
-      console.error('Firebase listener error:', error);
-      // Fallback to API call
+    const interval = setInterval(() => {
       fetchStudentMentorMsg();
-    });
+    }, 3000);
     
-    return unsubscribe;
-  }, [selectedStudent, user]);
+    return () => clearInterval(interval);
+  }, [selectedStudent]);
 
   useEffect(() => {
     const generateConversationItems = () => {
@@ -545,7 +533,7 @@ const Messages = () => {
 
       if (response.status === 200 && response.data?.message) {
         setTypedMessage("");
-        // fetchStudentMentorMsg(); // Backup: commented out - Firebase listener will auto-update
+        fetchStudentMentorMsg(); // Refresh messages after sending
       }
     } catch (error) {
       console.error('Error sending message:', error);
