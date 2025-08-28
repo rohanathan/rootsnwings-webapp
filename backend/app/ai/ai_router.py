@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
 from app.ai.ai_service import generate_ai_response
+from app.services.auth_service import AuthService
 # from app.models.analytics_models import AIAnalyticsSummary, AnalyticsResponse
 
 router = APIRouter()
@@ -17,22 +18,40 @@ class ChatResponse(BaseModel):
     conversation_history: list
     error: Optional[str] = None
 
+async def get_optional_current_user_uid(authorization: Optional[str] = Header(None)) -> Optional[str]:
+    """Get current user UID if authenticated, None if not authenticated"""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    try:
+        return AuthService.get_current_user_uid(authorization)
+    except:
+        return None
+
 @router.post("/chat", response_model=ChatResponse)
 async def ai_chat(
     chat_request: ChatRequest,
     authorization: Optional[str] = Header(None)
 ):
     """
-    Single AI chat endpoint - handles both public and authenticated users.
-    Simple if/else for auth levels.
+    Single AI chat endpoint - handles both public and authenticated users with booking capabilities.
     """
     try:
-        # Simple auth check - if Authorization header exists, user is authenticated
-        is_authenticated = authorization is not None and authorization.startswith("Bearer ")
+        # Get user authentication context
+        current_user_uid = await get_optional_current_user_uid(authorization)
+        is_authenticated = current_user_uid is not None
+        
+        # Build user context for AI
+        user_context = None
+        if current_user_uid:
+            user_context = {
+                "userId": current_user_uid,
+                "canMakeBookings": True
+            }
         
         result = generate_ai_response(
             user_message=chat_request.message,
             is_authenticated=is_authenticated,
+            user_context=user_context,
             conversation_history=chat_request.conversation_history,
             context=chat_request.context
         )

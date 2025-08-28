@@ -344,6 +344,54 @@ When returning cultural results, include:
 IMPORTANT: When users ask for data (subjects, mentors, workshops, bookings), use the make_direct_service_call function to fetch real, current information from the platform instead of providing static responses.
 
 Always identify the question type in your response and provide relevant, platform-specific guidance with actual data when available.
+
+## BOOKING WITH PAYMENT CAPABILITIES
+
+When authenticated users confirm booking requests, follow this workflow:
+
+1. **SEARCH & PRESENT**: Use make_direct_service_call to find classes/mentors
+2. **USER CONFIRMATION**: Wait for user to confirm "Yes, book it" or similar
+3. **CREATE CHECKOUT**: Use create_stripe_checkout function with user's studentId
+4. **PROVIDE LINK**: Format response with clickable payment link and instructions
+
+## PAYMENT LINK RESPONSE FORMAT:
+When create_stripe_checkout succeeds, respond like this:
+
+"✅ Perfect! I've created your secure payment link:
+
+🔗 **COMPLETE PAYMENT - £{amount}** 
+{checkout_url}
+
+Click the link above to pay securely with Stripe (same security as Amazon, Netflix, etc.)
+
+📝 **For Demo/Testing**: Use test card 4242 4242 4242 4242
+💳 Any future date, any 3-digit CVC
+
+After payment, you'll return here and I'll confirm your booking!"
+
+## BOOKING CONVERSATION EXAMPLES:
+
+User: "Book me piano lessons with Sarah Chen"
+AI: 1. Search for Sarah Chen piano classes using make_direct_service_call
+     2. Present available options with pricing and schedule
+     3. Wait for user confirmation
+     4. Use create_stripe_checkout to generate payment link
+     5. Provide clickable link with test card instructions
+
+User: "Find me guitar lessons under £20 and book one"
+AI: 1. Search classes with price filter using make_direct_service_call  
+     2. Present best matches under £20
+     3. User selects "Yes, book the flamenco guitar class"
+     4. Use create_stripe_checkout to create payment session
+     5. Provide secure payment link for immediate booking
+
+## IMPORTANT NOTES:
+- Only authenticated users can create bookings (check user context)
+- Always mention this is test environment with test cards
+- Explain they'll return to the platform after payment
+- Never ask for or handle actual card details
+- Payment links expire in 24 hours
+- personalGoals parameter is optional - extract from conversation if mentioned
 """
 
 # Removed get_user_question() - not needed for web API
@@ -388,7 +436,7 @@ def get_subjects_with_metadata():
     Used for AI-powered query expansion and semantic search enhancement.
     """
     try:
-        from app.config import db
+        from app.services.firestore import db
         subjects_ref = db.collection('subjects')
         subjects_data = []
         
@@ -476,6 +524,38 @@ def enhance_query_with_metadata(user_query, subjects_metadata):
             'matched_subjects': [],
             'enhancement_count': 0
         }
+
+def ai_create_stripe_checkout(classId: str, studentId: str, mentorId: str, amount: float, personalGoals: str = None):
+    """AI creates Stripe checkout session and returns payment link"""
+    try:
+        # Import here to avoid circular imports
+        from app.routers.payments import CheckoutSessionRequest, create_checkout_session
+        
+        print(f"AI creating Stripe checkout: class={classId}, student={studentId}, amount=£{amount}")
+        
+        checkout_data = CheckoutSessionRequest(
+            classId=classId,
+            studentId=studentId,
+            mentorId=mentorId,
+            amount=amount,
+            currency="gbp",
+            personalGoals=personalGoals
+        )
+        
+        result = create_checkout_session(checkout_data)
+        
+        return {
+            "success": True,
+            "checkout_url": result["checkout_url"],
+            "session_id": result["session_id"],
+            "amount_gbp": amount,
+            "class_id": classId,
+            "personal_goals": personalGoals
+        }
+        
+    except Exception as e:
+        print(f"AI Stripe checkout creation failed: {str(e)}")
+        return {"success": False, "error": str(e)}
 
 def make_direct_service_call(service_type, **kwargs):
     """
@@ -637,7 +717,7 @@ def make_direct_service_call(service_type, **kwargs):
         print(f"Service call failed: {str(e)}")
         return {"error": f"Service call failed: {str(e)}"}
 
-def generate_ai_response(user_message, is_authenticated=False, conversation_history=None, context=None):
+def generate_ai_response(user_message, is_authenticated=False, user_context=None, conversation_history=None, context=None):
     """
     Generate AI response for web API (converted from main function)
     """
@@ -747,6 +827,23 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
     
 
     # Define the direct service call function declaration
+    # Define Stripe checkout function declaration
+    create_stripe_checkout_declaration = {
+        "name": "create_stripe_checkout",
+        "description": "Create Stripe checkout session for booking payment",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "classId": {"type": "STRING", "description": "Class ID to book"},
+                "studentId": {"type": "STRING", "description": "Student user ID"},
+                "mentorId": {"type": "STRING", "description": "Mentor user ID"}, 
+                "amount": {"type": "NUMBER", "description": "Payment amount in GBP"},
+                "personalGoals": {"type": "STRING", "description": "Optional learning objectives extracted from conversation"}
+            },
+            "required": ["classId", "studentId", "mentorId", "amount"]
+        }
+    }
+
     make_service_call_declaration = {
         "name": "make_direct_service_call",
         "description": """Fetch real data from the Roots & Wings platform using direct service calls. Use this when users ask for current information about:
@@ -850,9 +947,9 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
         },
     }
 
-    # Create the tool with the function declaration
+    # Create the tool with both function declarations
     service_tool = {
-        "function_declarations": [make_service_call_declaration],
+        "function_declarations": [make_service_call_declaration, create_stripe_checkout_declaration],
     }
 
     # Simple auth level check
@@ -936,6 +1033,56 @@ def generate_ai_response(user_message, is_authenticated=False, conversation_hist
                             },
                             safety_settings=safety_settings
                         )
+                    
+                    elif hasattr(function_call, 'name') and function_call.name == "create_stripe_checkout":
+                        # Extract function arguments safely
+                        args = function_call.args if hasattr(function_call, 'args') else {}
+                        
+                        # Ensure user is authenticated for booking
+                        if not user_context or not user_context.get("userId"):
+                            ai_response = "You need to be logged in to make bookings. Please sign in first to continue with your booking request."
+                            
+                            # Store the conversation and return immediately
+                            conversation_history.append((user_question, ai_response))
+                            if len(conversation_history) > 10:
+                                conversation_history = conversation_history[-10:]
+                            
+                            return {
+                                "response": ai_response,
+                                "conversation_history": conversation_history
+                            }
+                        
+                        # Add authenticated user ID to the checkout call
+                        args["studentId"] = user_context["userId"]
+                        
+                        # Execute Stripe checkout creation
+                        checkout_result = ai_create_stripe_checkout(**args)
+                        
+                        if checkout_result["success"]:
+                            # Generate user-friendly response with payment link
+                            ai_response = f"""✅ Perfect! I've created your secure payment link:
+
+🔗 **COMPLETE PAYMENT - £{checkout_result['amount_gbp']}**
+{checkout_result['checkout_url']}
+
+Click the link above to pay securely with Stripe
+
+📝 **For Demo/Testing**: Use test card 4242 4242 4242 4242
+💳 Any future date, any 3-digit CVC
+
+After payment, you'll return here and your booking will be automatically confirmed!"""
+                        else:
+                            ai_response = f"Sorry, I couldn't create the payment link: {checkout_result['error']}. Let me try a different approach or you can book manually through the website."
+                        
+                        # Store the conversation and return immediately
+                        conversation_history.append((user_question, ai_response))
+                        if len(conversation_history) > 10:
+                            conversation_history = conversation_history[-10:]
+                        
+                        return {
+                            "response": ai_response,
+                            "conversation_history": conversation_history
+                        }
                         # Extract text from the API response
                         if (api_response and 
                             api_response.candidates and 
