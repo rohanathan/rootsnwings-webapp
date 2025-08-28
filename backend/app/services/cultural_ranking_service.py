@@ -138,30 +138,48 @@ def calculate_trust_score(item: Dict) -> float:
 
 def calculate_text_relevance(query: str, item: Dict) -> float:
     """
-    Basic keyword matching using the enhanced keywords we generated.
+    Improved keyword matching that handles AI-enhanced queries better.
     """
     if not query:
         return 0.5
     
-    query_lower = query.lower()
+    # Split query into individual words for better matching
+    query_words = set(word.lower().strip() for word in query.split() if len(word.strip()) > 2)
+    if not query_words:
+        return 0.5
+    
     score = 0.0
     
     # Use the keywords we already generated in searchMetadata
     keywords = item.get('searchMetadata', {}).get('keywords', [])
     if keywords:
-        matches = sum(1 for keyword in keywords if keyword in query_lower)
-        if matches > 0:
-            score += min(matches * 0.2, 0.8)  # Up to 0.8 for keyword matches
+        keyword_matches = 0
+        for keyword in keywords:
+            keyword_lower = keyword.lower()
+            # Check if any query word matches this keyword
+            for query_word in query_words:
+                if query_word in keyword_lower or keyword_lower in query_word:
+                    keyword_matches += 1
+                    break  # Only count each keyword once
+        
+        if keyword_matches > 0:
+            score += min(keyword_matches * 0.15, 0.6)  # Up to 0.6 for keyword matches
     
-    # Check title and subject directly
+    # Check title and subject with individual word matching
     title = item.get('title', '') or item.get('data', {}).get('title', '')
     subject = item.get('subject', '') or item.get('data', {}).get('subject', '')
     
-    if title and query_lower in title.lower():
-        score += 0.5
+    if title:
+        title_words = set(word.lower() for word in title.split() if len(word) > 2)
+        title_matches = len(query_words & title_words)  # Intersection
+        if title_matches > 0:
+            score += min(title_matches * 0.2, 0.5)  # Up to 0.5 for title matches
     
-    if subject and query_lower in subject.lower():
-        score += 0.4
+    if subject:
+        subject_words = set(word.lower() for word in subject.split() if len(word) > 2)
+        subject_matches = len(query_words & subject_words)  # Intersection
+        if subject_matches > 0:
+            score += min(subject_matches * 0.15, 0.4)  # Up to 0.4 for subject matches
     
     return min(score, 1.0)
 
