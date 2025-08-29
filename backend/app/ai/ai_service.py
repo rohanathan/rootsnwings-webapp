@@ -1034,6 +1034,16 @@ def generate_ai_response(user_message, is_authenticated=False, user_context=None
                             safety_settings=safety_settings
                         )
                     
+                        # Extract text from the API response
+                        if (api_response and 
+                            api_response.candidates and 
+                            len(api_response.candidates) > 0 and 
+                            api_response.candidates[0].content and 
+                            api_response.candidates[0].content.parts):
+                            ai_response = api_response.candidates[0].content.parts[0].text
+                        else:
+                            ai_response = "I received data but couldn't format it properly."
+                            
                     elif hasattr(function_call, 'name') and function_call.name == "create_stripe_checkout":
                         # Extract function arguments safely
                         args = function_call.args if hasattr(function_call, 'args') else {}
@@ -1041,26 +1051,16 @@ def generate_ai_response(user_message, is_authenticated=False, user_context=None
                         # Ensure user is authenticated for booking
                         if not user_context or not user_context.get("userId"):
                             ai_response = "You need to be logged in to make bookings. Please sign in first to continue with your booking request."
+                        else:
+                            # Add authenticated user ID to the checkout call
+                            args["studentId"] = user_context["userId"]
                             
-                            # Store the conversation and return immediately
-                            conversation_history.append((user_question, ai_response))
-                            if len(conversation_history) > 10:
-                                conversation_history = conversation_history[-10:]
+                            # Execute Stripe checkout creation
+                            checkout_result = ai_create_stripe_checkout(**args)
                             
-                            return {
-                                "response": ai_response,
-                                "conversation_history": conversation_history
-                            }
-                        
-                        # Add authenticated user ID to the checkout call
-                        args["studentId"] = user_context["userId"]
-                        
-                        # Execute Stripe checkout creation
-                        checkout_result = ai_create_stripe_checkout(**args)
-                        
-                        if checkout_result["success"]:
-                            # Generate user-friendly response with payment link
-                            ai_response = f"""✅ Perfect! I've created your secure payment link:
+                            if checkout_result["success"]:
+                                # Generate user-friendly response with payment link
+                                ai_response = f"""✅ Perfect! I've created your secure payment link:
 
 🔗 **COMPLETE PAYMENT - £{checkout_result['amount_gbp']}**
 {checkout_result['checkout_url']}
@@ -1071,27 +1071,8 @@ Click the link above to pay securely with Stripe
 💳 Any future date, any 3-digit CVC
 
 After payment, you'll return here and your booking will be automatically confirmed!"""
-                        else:
-                            ai_response = f"Sorry, I couldn't create the payment link: {checkout_result['error']}. Let me try a different approach or you can book manually through the website."
-                        
-                        # Store the conversation and return immediately
-                        conversation_history.append((user_question, ai_response))
-                        if len(conversation_history) > 10:
-                            conversation_history = conversation_history[-10:]
-                        
-                        return {
-                            "response": ai_response,
-                            "conversation_history": conversation_history
-                        }
-                        # Extract text from the API response
-                        if (api_response and 
-                            api_response.candidates and 
-                            len(api_response.candidates) > 0 and 
-                            api_response.candidates[0].content and 
-                            api_response.candidates[0].content.parts):
-                            ai_response = api_response.candidates[0].content.parts[0].text
-                        else:
-                            ai_response = "I received data but couldn't format it properly."
+                            else:
+                                ai_response = f"Sorry, I couldn't create the payment link: {checkout_result['error']}. Let me try a different approach or you can book manually through the website."
                     else:
                         # Regular text response - extract from parts
                         if hasattr(first_part, 'text') and first_part.text:

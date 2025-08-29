@@ -18,15 +18,6 @@ class ChatResponse(BaseModel):
     conversation_history: list
     error: Optional[str] = None
 
-async def get_optional_current_user_uid(authorization: Optional[str] = Header(None)) -> Optional[str]:
-    """Get current user UID if authenticated, None if not authenticated"""
-    if not authorization or not authorization.startswith("Bearer "):
-        return None
-    try:
-        return AuthService.get_current_user_uid(authorization)
-    except:
-        return None
-
 @router.post("/chat", response_model=ChatResponse)
 async def ai_chat(
     chat_request: ChatRequest,
@@ -36,22 +27,23 @@ async def ai_chat(
     Single AI chat endpoint - handles both public and authenticated users with booking capabilities.
     """
     try:
-        # Get user authentication context
-        current_user_uid = await get_optional_current_user_uid(authorization)
-        is_authenticated = current_user_uid is not None
+        # Simple auth check - if Authorization header exists, user is authenticated
+        is_authenticated = authorization is not None and authorization.startswith("Bearer ")
         
-        # Build user context for AI
-        user_context = None
-        if current_user_uid:
-            user_context = {
-                "userId": current_user_uid,
-                "canMakeBookings": True
-            }
+        # Extract user ID for booking functionality
+        user_id = None
+        if is_authenticated:
+            try:
+                # Simple token parsing for user ID extraction
+                from app.services.auth_service import AuthService
+                user_id = AuthService.get_current_user_uid(authorization)
+            except:
+                user_id = None  # Fallback gracefully if token parsing fails
         
         result = generate_ai_response(
             user_message=chat_request.message,
             is_authenticated=is_authenticated,
-            user_context=user_context,
+            user_context={"userId": user_id} if user_id else None,
             conversation_history=chat_request.conversation_history,
             context=chat_request.context
         )

@@ -44,7 +44,10 @@ const CulturalWorldMap = () => {
     'Turkey': [38.9637, 35.2433],
     'Poland': [51.9194, 19.1451],
     'Morocco': [31.7917, -7.0926]
-  };
+    // 'USA': [39.8283, -98.5795],
+    // 'United States': [39.8283, -98.5795],
+    // 'Canada': [56.1304, -106.3468],
+    // 'Jamaica': [18.1096, -77.2975]
 
   // Country flag emojis
   const countryFlags = {
