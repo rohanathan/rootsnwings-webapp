@@ -334,20 +334,21 @@ const ChatbotOverlay = () => {
     };
 
     // Format timestamp
-    // Parse button patterns in AI messages and render as clickable buttons
+    // Parse markdown and button patterns in AI messages
     const parseMessageWithButtons = (messageText) => {
-        // Regex to match [BUTTON:TYPE:ID:LABEL] patterns
+        // First, handle buttons
         const buttonPattern = /\[BUTTON:([^:]+):([^:]*):([^\]]+)\]/g;
         const parts = [];
         let lastIndex = 0;
         let match;
 
         while ((match = buttonPattern.exec(messageText)) !== null) {
-            // Add text before button
+            // Add text before button (with markdown parsing)
             if (match.index > lastIndex) {
+                const textContent = messageText.slice(lastIndex, match.index);
                 parts.push({
                     type: 'text',
-                    content: messageText.slice(lastIndex, match.index)
+                    content: textContent
                 });
             }
 
@@ -381,6 +382,30 @@ const ChatbotOverlay = () => {
         }
 
         return parts;
+    };
+
+    // Simple markdown parser for chat messages
+    const parseMarkdown = (text) => {
+        if (!text) return [];
+        
+        // Split by **bold** patterns
+        const parts = text.split(/(\*\*[^*]+\*\*)/g);
+        
+        return parts.map((part, index) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                // Bold text
+                return {
+                    type: 'bold',
+                    content: part.slice(2, -2)
+                };
+            } else {
+                // Regular text
+                return {
+                    type: 'text',
+                    content: part
+                };
+            }
+        }).filter(part => part.content); // Remove empty parts
     };
 
     // Get button styling based on type
@@ -682,7 +707,17 @@ const ChatbotOverlay = () => {
                                                     {part.buttonLabel}
                                                 </button>
                                             ) : (
-                                                <span key={partIndex}>{part.content}</span>
+                                                <span key={partIndex}>
+                                                    {parseMarkdown(part.content).map((mdPart, mdIndex) => (
+                                                        mdPart.type === 'bold' ? (
+                                                            <strong key={mdIndex} className="font-semibold">
+                                                                {mdPart.content}
+                                                            </strong>
+                                                        ) : (
+                                                            <span key={mdIndex} className="whitespace-pre-line">{mdPart.content}</span>
+                                                        )
+                                                    ))}
+                                                </span>
                                             )
                                         ))}
                                     </div>

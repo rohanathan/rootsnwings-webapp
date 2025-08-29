@@ -16,6 +16,8 @@ const CulturalWorldMap = () => {
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(null);
+  const [worldwideSubjects, setWorldwideSubjects] = useState([]);
+  const [showFilter, setShowFilter] = useState('all'); // 'cultural', 'worldwide', 'all'
 
   // Country coordinates for map markers
   const countryCoordinates = {
@@ -44,10 +46,17 @@ const CulturalWorldMap = () => {
     'Turkey': [38.9637, 35.2433],
     'Poland': [51.9194, 19.1451],
     'Morocco': [31.7917, -7.0926]
-    // 'USA': [39.8283, -98.5795],
-    // 'United States': [39.8283, -98.5795],
-    // 'Canada': [56.1304, -106.3468],
-    // 'Jamaica': [18.1096, -77.2975]
+    'USA': [39.8283, -98.5795],
+    'United States': [39.8283, -98.5795],
+    'Jamaica': [18.1096, -77.2975],
+    'Brazil': [-14.2350, -51.9253],
+    'Indonesia': [-0.7893, 113.9213],
+    'Thailand': [15.8700, 100.9925],
+    'Turkey': [38.9637, 35.2433],
+    'Saudi Arabia': [23.8859, 45.0792],
+    'UAE': [23.4241, 53.8478],
+    'Jordan': [30.5852, 36.2384],
+    'Lebanon': [33.8547, 35.8623]
 
   // Country flag emojis
   const countryFlags = {
@@ -75,7 +84,17 @@ const CulturalWorldMap = () => {
     'Iran': '🇮🇷',
     'Turkey': '🇹🇷',
     'Poland': '🇵🇱',
-    'Morocco': '🇲🇦'
+    'Morocco': '🇲🇦',
+    'USA': '🇺🇸',
+    'United States': '🇺🇸',
+    'Jamaica': '🇯🇲',
+    'Indonesia': '🇮🇩',
+    'Thailand': '🇹🇭',
+    'Turkey': '🇹🇷',
+    'Saudi Arabia': '🇸🇦',
+    'UAE': '🇦🇪',
+    'Jordan': '🇯🇴',
+    'Lebanon': '🇱🇧'
   };
 
   // Parse region and country from cultural_origin_region string
@@ -132,11 +151,29 @@ const CulturalWorldMap = () => {
         const culturalMap = {};
         const locationPromises = [];
         
+        // Separate arrays for cultural and worldwide subjects
+        const worldwideSubjectsData = [];
+        
         // Process each approved class
         (data.classes || []).forEach(classItem => {
           const regionString = classItem.searchMetadata?.cultural_origin_region;
           
-          if (regionString && regionString !== 'Worldwide' && regionString.toLowerCase() !== 'worldwide') {
+          // Handle worldwide subjects separately
+          if (regionString === 'Worldwide' || regionString?.toLowerCase() === 'worldwide') {
+            const subjectName = classItem.subject;
+            const existingWorldwide = worldwideSubjectsData.find(item => item.subject === subjectName);
+            
+            if (!existingWorldwide) {
+              worldwideSubjectsData.push({
+                subject: subjectName,
+                count: 1,
+                classes: [classItem]
+              });
+            } else {
+              existingWorldwide.count++;
+              existingWorldwide.classes.push(classItem);
+            }
+          } else if (regionString && regionString !== 'Worldwide' && regionString.toLowerCase() !== 'worldwide') {
             const { region, country } = parseLocation(regionString);
             
             if (country) {
@@ -199,6 +236,7 @@ const CulturalWorldMap = () => {
         });
         
         setCulturalData(culturalMap);
+        setWorldwideSubjects(worldwideSubjectsData);
         setError(null);
       } catch (err) {
         console.error('Error fetching cultural data:', err);
@@ -211,9 +249,21 @@ const CulturalWorldMap = () => {
     fetchCulturalData();
   }, []);
 
+  // Filter cultural data based on current filter
+  const filteredCulturalData = useMemo(() => {
+    if (showFilter === 'worldwide') return {};
+    return culturalData;
+  }, [culturalData, showFilter]);
+
+  // Filter worldwide subjects based on current filter
+  const filteredWorldwideSubjects = useMemo(() => {
+    if (showFilter === 'cultural') return [];
+    return worldwideSubjects;
+  }, [worldwideSubjects, showFilter]);
+
   // Create markers for locations (regions/countries) with cultural classes
   const markers = useMemo(() => {
-    return Object.entries(culturalData).map(([locationKey, data]) => {
+    return Object.entries(filteredCulturalData).map(([locationKey, data]) => {
       const coords = data.coordinates;
       if (!coords) return null;
 
@@ -230,7 +280,7 @@ const CulturalWorldMap = () => {
         color
       };
     }).filter(Boolean);
-  }, [culturalData]);
+  }, [filteredCulturalData]);
 
   const handleMarkerClick = (locationKey) => {
     setSelectedCountry(locationKey);
@@ -271,93 +321,175 @@ const CulturalWorldMap = () => {
             Discover traditional arts and cultural subjects from around the world, taught by UK-based mentors. 
             Click on any marker to explore cultural offerings.
           </p>
+          
+          {/* Filter Controls */}
+          <div className="mt-4 flex justify-center space-x-4">
+            <button
+              onClick={() => setShowFilter('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showFilter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              All Subjects
+            </button>
+            <button
+              onClick={() => setShowFilter('cultural')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showFilter === 'cultural'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Cultural Heritage
+            </button>
+            <button
+              onClick={() => setShowFilter('worldwide')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showFilter === 'worldwide'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Global Skills
+            </button>
+          </div>
         </div>
 
-        {Object.keys(culturalData).length === 0 ? (
+        {Object.keys(filteredCulturalData).length === 0 && filteredWorldwideSubjects.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-6xl mb-4">🏛️</div>
-            <p className="text-gray-600">No cultural heritage classes found with approved status</p>
+            <p className="text-gray-600">
+              {showFilter === 'cultural' 
+                ? 'No cultural heritage classes found with approved status'
+                : showFilter === 'worldwide'
+                ? 'No global skill classes found with approved status'
+                : 'No classes found with approved status'}
+            </p>
           </div>
         ) : (
           <>
-            {/* Interactive World Map */}
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ height: '400px' }}>
-              <MapContainer
-                center={[30, 0]}
-                zoom={2}
-                style={{ height: '100%', width: '100%' }}
-                className="z-10"
-              >
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                />
-                
-                {markers.map(({ locationKey, displayName, position, data, color }, index) => (
-                  <CircleMarker
-                    key={`${locationKey}-${index}`}
-                    center={position}
-                    radius={Math.min(20, 8 + data.count * 2)}
-                    fillColor={color}
-                    color="white"
-                    weight={2}
-                    opacity={0.9}
-                    fillOpacity={0.7}
-                    eventHandlers={{
-                      click: () => handleMarkerClick(locationKey),
-                    }}
-                  >
-                    <Popup>
-                      <div className="text-center p-2">
-                        <div className="text-2xl mb-1">{data.flag}</div>
-                        <div className="font-semibold text-gray-800">{displayName}</div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          {data.count} cultural class{data.count !== 1 ? 'es' : ''}
+            {/* Interactive World Map - Only show if we have cultural data or showing all */}
+            {(showFilter === 'all' || showFilter === 'cultural') && Object.keys(filteredCulturalData).length > 0 && (
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-6" style={{ height: '400px' }}>
+                <MapContainer
+                  center={[30, 0]}
+                  zoom={2}
+                  style={{ height: '100%', width: '100%' }}
+                  className="z-10"
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  
+                  {markers.map(({ locationKey, displayName, position, data, color }, index) => (
+                    <CircleMarker
+                      key={`${locationKey}-${index}`}
+                      center={position}
+                      radius={Math.min(20, 8 + data.count * 2)}
+                      fillColor={color}
+                      color="white"
+                      weight={2}
+                      opacity={0.9}
+                      fillOpacity={0.7}
+                      eventHandlers={{
+                        click: () => handleMarkerClick(locationKey),
+                      }}
+                    >
+                      <Popup>
+                        <div className="text-center p-2">
+                          <div className="text-2xl mb-1">{data.flag}</div>
+                          <div className="font-semibold text-gray-800">{displayName}</div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            {data.count} cultural class{data.count !== 1 ? 'es' : ''}
+                          </div>
+                          <div className="text-xs text-blue-600 mt-1">
+                            {data.subjects.length} subject{data.subjects.length !== 1 ? 's' : ''} • Authenticity: {(data.avgAuthenticity * 100).toFixed(0)}%
+                          </div>
+                          <button 
+                            onClick={() => handleMarkerClick(locationKey)}
+                            className="mt-2 px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                          >
+                            Explore {data.region || data.country} Arts
+                          </button>
                         </div>
-                        <div className="text-xs text-blue-600 mt-1">
-                          {data.subjects.length} subject{data.subjects.length !== 1 ? 's' : ''} • Authenticity: {(data.avgAuthenticity * 100).toFixed(0)}%
-                        </div>
-                        <button 
-                          onClick={() => handleMarkerClick(locationKey)}
-                          className="mt-2 px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
-                        >
-                          Explore {data.region || data.country} Arts
-                        </button>
-                      </div>
-                    </Popup>
-                  </CircleMarker>
-                ))}
-              </MapContainer>
-            </div>
+                      </Popup>
+                    </CircleMarker>
+                  ))}
+                </MapContainer>
+              </div>
+            )}
 
-            {/* Legend */}
-            <div className="mt-4 flex flex-wrap justify-center items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-red-600"></div>
-                <span>High Authenticity (80%+)</span>
+            {/* Global Skills Section - Only show if we have worldwide subjects */}
+            {(showFilter === 'all' || showFilter === 'worldwide') && filteredWorldwideSubjects.length > 0 && (
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 mt-6">
+                <h4 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  🌍 Global Skills Available
+                </h4>
+                <p className="text-gray-600 mb-4 text-sm">
+                  Universal subjects taught by our mentors, not tied to specific cultural traditions.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredWorldwideSubjects.map((subjectData, index) => (
+                    <div
+                      key={index}
+                      onClick={() => handleSubjectSearch(subjectData.subject)}
+                      className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer border hover:border-green-300"
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-lg">
+                          🌍
+                        </div>
+                        <div>
+                          <h5 className="font-semibold text-gray-800 capitalize">
+                            {subjectData.subject.replace(/_/g, ' ')}
+                          </h5>
+                          <p className="text-xs text-gray-500">
+                            {subjectData.count} class{subjectData.count !== 1 ? 'es' : ''} available
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-green-600 hover:text-green-700">
+                        Click to explore mentors and classes
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-orange-600"></div>
-                <span>Medium Authenticity (60-80%)</span>
+            )}
+
+            {/* Legend - Only show for cultural heritage view */}
+            {(showFilter === 'all' || showFilter === 'cultural') && Object.keys(filteredCulturalData).length > 0 && (
+              <div className="mt-4 flex flex-wrap justify-center items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-red-600"></div>
+                  <span>High Authenticity (80%+)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-orange-600"></div>
+                  <span>Medium Authenticity (60-80%)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-blue-600"></div>
+                  <span>General Cultural (60%)</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-blue-600"></div>
-                <span>General Cultural (60%)</span>
-              </div>
-            </div>
+            )}
           </>
         )}
       </div>
 
       {/* Cultural Subjects Modal */}
-      {showModal && selectedCountry && culturalData[selectedCountry] && (
+      {showModal && selectedCountry && filteredCulturalData[selectedCountry] && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-96 overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  {culturalData[selectedCountry].flag} 
-                  {culturalData[selectedCountry].displayName} Cultural Heritage
+                  {filteredCulturalData[selectedCountry].flag} 
+                  {filteredCulturalData[selectedCountry].displayName} Cultural Heritage
                 </h3>
                 <button
                   onClick={() => setShowModal(false)}
@@ -370,25 +502,25 @@ const CulturalWorldMap = () => {
               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="font-semibold">Classes Available:</span> {culturalData[selectedCountry].count}
+                    <span className="font-semibold">Classes Available:</span> {filteredCulturalData[selectedCountry].count}
                   </div>
                   <div>
-                    <span className="font-semibold">Cultural Authenticity:</span> {(culturalData[selectedCountry].avgAuthenticity * 100).toFixed(0)}%
+                    <span className="font-semibold">Cultural Authenticity:</span> {(filteredCulturalData[selectedCountry].avgAuthenticity * 100).toFixed(0)}%
                   </div>
                 </div>
-                {culturalData[selectedCountry].region && (
+                {filteredCulturalData[selectedCountry].region && (
                   <div className="mt-2 text-sm">
-                    <span className="font-semibold">Region:</span> {culturalData[selectedCountry].region}, {culturalData[selectedCountry].country}
+                    <span className="font-semibold">Region:</span> {filteredCulturalData[selectedCountry].region}, {filteredCulturalData[selectedCountry].country}
                   </div>
                 )}
               </div>
               
               <p className="text-gray-600 mb-4 text-sm">
-                Cultural subjects from {culturalData[selectedCountry].displayName} available on our platform:
+                Cultural subjects from {filteredCulturalData[selectedCountry].displayName} available on our platform:
               </p>
               
               <div className="grid grid-cols-1 gap-2">
-                {culturalData[selectedCountry].subjects.map((subject, index) => (
+                {filteredCulturalData[selectedCountry].subjects.map((subject, index) => (
                   <button
                     key={index}
                     onClick={() => handleSubjectSearch(subject)}

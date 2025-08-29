@@ -88,3 +88,7 @@ CLAUDE.md
 .claude/
 E2E_TESTING_PLAN.md
 
+frontend/playwright-report/
+frontend/playwright.config.js
+frontend/test-results/
+frontend/tests/
