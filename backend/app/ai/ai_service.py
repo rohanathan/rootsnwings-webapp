@@ -531,6 +531,7 @@ def ai_create_stripe_checkout(classId: str, studentId: str, mentorId: str, amoun
         from app.routers.payments import CheckoutSessionRequest, create_checkout_session
         
         print(f"AI creating Stripe checkout: class={classId}, student={studentId}, amount=£{amount}")
+        print(f"DEBUG: Function called with args - classId: {classId}, studentId: {studentId}, mentorId: {mentorId}, amount: {amount}")
         
         checkout_data = CheckoutSessionRequest(
             classId=classId,
@@ -541,7 +542,11 @@ def ai_create_stripe_checkout(classId: str, studentId: str, mentorId: str, amoun
             personalGoals=personalGoals
         )
         
+        print(f"DEBUG: Created checkout data: {checkout_data}")
+        
         result = create_checkout_session(checkout_data)
+        
+        print(f"DEBUG: Stripe checkout result: {result}")
         
         return {
             "success": True,
@@ -554,6 +559,7 @@ def ai_create_stripe_checkout(classId: str, studentId: str, mentorId: str, amoun
         
     except Exception as e:
         print(f"AI Stripe checkout creation failed: {str(e)}")
+        print(f"DEBUG: Exception details: {type(e).__name__}: {str(e)}")
         return {"success": False, "error": str(e)}
 
 def make_direct_service_call(service_type, **kwargs):
@@ -1002,9 +1008,12 @@ def generate_ai_response(user_message, is_authenticated=False, user_context=None
                 
                 # Check if there's a function call in any part
                 function_call_part = None
-                for part in response.candidates[0].content.parts:
+                print(f"DEBUG: Checking for function calls in {len(response.candidates[0].content.parts)} parts")
+                for i, part in enumerate(response.candidates[0].content.parts):
+                    print(f"DEBUG: Part {i}: has function_call: {hasattr(part, 'function_call')}")
                     if hasattr(part, 'function_call') and part.function_call:
                         function_call_part = part.function_call
+                        print(f"DEBUG: Found function call: {function_call_part}")
                         break
                 
                 if function_call_part:
@@ -1047,6 +1056,9 @@ def generate_ai_response(user_message, is_authenticated=False, user_context=None
                     elif hasattr(function_call, 'name') and function_call.name == "create_stripe_checkout":
                         # Extract function arguments safely
                         args = function_call.args if hasattr(function_call, 'args') else {}
+                        
+                        print(f"DEBUG: Function call detected: {function_call.name}")
+                        print(f"DEBUG: Function call args: {args}")
                         
                         # Ensure user is authenticated for booking
                         if not user_context or not user_context.get("userId"):
