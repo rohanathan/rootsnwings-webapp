@@ -344,29 +344,31 @@ IMPORTANT: When users ask for data (subjects, mentors, workshops, bookings), use
 
 Always identify the question type in your response and provide relevant, platform-specific guidance with actual data when available.
 
-## BOOKING WITH PAYMENT CAPABILITIES
+## BOOKING GUIDANCE
 
-When authenticated users confirm booking requests, follow this workflow:
+When authenticated users want to book classes, follow this workflow:
 
 1. **SEARCH & PRESENT**: Use make_direct_service_call to find classes/mentors
-2. **USER CONFIRMATION**: Wait for user to confirm "Yes, book it" or similar
-3. **CREATE CHECKOUT**: Use create_stripe_checkout function with user's studentId
-4. **PROVIDE LINK**: Format response with clickable payment link and instructions
+2. **USER CONFIRMATION**: Wait for user to confirm "Yes, book it" or similar  
+3. **REDIRECT TO BOOKING**: Direct them to the booking confirmation page
+4. **PROVIDE GUIDANCE**: Explain the booking process and next steps
 
-## PAYMENT LINK RESPONSE FORMAT:
-When create_stripe_checkout succeeds, respond like this:
+## BOOKING RESPONSE FORMAT:
+When users confirm they want to book a class, respond like this:
 
-"✅ Perfect! I've created your secure payment link:
+"✅ Perfect! I've found your class and I'm ready to help you book it.
 
-🔗 **COMPLETE PAYMENT - £{amount}** 
-{checkout_url}
+[BUTTON:BOOK_CLASS:{classId}:Complete Booking - £{amount}]
 
-Click the link above to pay securely with Stripe (same security as Amazon, Netflix, etc.)
+This will take you to a secure booking page where you can:
+- Review class details and pricing
+- Add personal learning goals  
+- Complete secure payment with Stripe
+- Confirm your booking
 
-📝 **For Demo/Testing**: Use test card 4242 4242 4242 4242
-💳 Any future date, any 3-digit CVC
+📝 **For Demo/Testing**: Use test card 4242 4242 4242 4242 with any future date and 3-digit CVC
 
-After payment, you'll return here and I'll confirm your booking!"
+After payment, your booking will be confirmed and you'll receive confirmation details!"
 
 ## BOOKING CONVERSATION EXAMPLES:
 
@@ -374,23 +376,31 @@ User: "Book me piano lessons with Sarah Chen"
 AI: 1. Search for Sarah Chen piano classes using make_direct_service_call
      2. Present available options with pricing and schedule
      3. Wait for user confirmation
-     4. Use create_stripe_checkout to generate payment link
-     5. Provide clickable link with test card instructions
+     4. Direct to booking confirmation page with class ID
+     5. Explain the booking completion process
 
 User: "Find me guitar lessons under £20 and book one"
 AI: 1. Search classes with price filter using make_direct_service_call  
      2. Present best matches under £20
      3. User selects "Yes, book the flamenco guitar class"
-     4. Use create_stripe_checkout to create payment session
-     5. Provide secure payment link for immediate booking
+     4. Provide booking confirmation page link
+     5. Guide through secure booking process
+
+## BUTTON FORMATTING GUIDE:
+Use these special button formats in responses (frontend will render as clickable buttons):
+
+- **Booking Button**: [BUTTON:BOOK_CLASS:{classId}:Complete Booking - £{amount}]
+- **View Profile**: [BUTTON:VIEW_MENTOR:{mentorId}:View {mentorName}'s Profile]  
+- **Browse Classes**: [BUTTON:BROWSE_WORKSHOPS::Browse All Workshops]
+- **Search More**: [BUTTON:SEARCH:{query}:Find More {subject} Classes]
 
 ## IMPORTANT NOTES:
-- Only authenticated users can create bookings (check user context)
+- Only authenticated users can access booking pages (check user context)
 - Always mention this is test environment with test cards
-- Explain they'll return to the platform after payment
+- Explain they'll complete payment on the secure booking page
 - Never ask for or handle actual card details
-- Payment links expire in 24 hours
-- personalGoals parameter is optional - extract from conversation if mentioned
+- Use button formatting instead of showing raw URLs
+- Extract actual class IDs and amounts from search results for buttons
 """
 
 # Removed get_user_question() - not needed for web API
@@ -832,23 +842,6 @@ def generate_ai_response(user_message, is_authenticated=False, user_context=None
     
 
     # Define the direct service call function declaration
-    # Define Stripe checkout function declaration
-    create_stripe_checkout_declaration = {
-        "name": "create_stripe_checkout",
-        "description": "Create Stripe checkout session for booking payment",
-        "parameters": {
-            "type": "OBJECT",
-            "properties": {
-                "classId": {"type": "STRING", "description": "Class ID to book"},
-                "studentId": {"type": "STRING", "description": "Student user ID"},
-                "mentorId": {"type": "STRING", "description": "Mentor user ID"}, 
-                "amount": {"type": "NUMBER", "description": "Payment amount in GBP"},
-                "personalGoals": {"type": "STRING", "description": "Optional learning objectives extracted from conversation"}
-            },
-            "required": ["classId", "studentId", "mentorId", "amount"]
-        }
-    }
-
     make_service_call_declaration = {
         "name": "make_direct_service_call",
         "description": """Fetch real data from the Roots & Wings platform using direct service calls. Use this when users ask for current information about:
@@ -952,9 +945,9 @@ def generate_ai_response(user_message, is_authenticated=False, user_context=None
         },
     }
 
-    # Create the tool with both function declarations
+    # Create the tool with service call function only
     service_tool = {
-        "function_declarations": [make_service_call_declaration, create_stripe_checkout_declaration],
+        "function_declarations": [make_service_call_declaration],
     }
 
     # Simple auth level check
@@ -1053,43 +1046,6 @@ def generate_ai_response(user_message, is_authenticated=False, user_context=None
                             print(f"ERROR: API response parsing failed. Response: {api_response}")
                             ai_response = "I had trouble processing that request. Let me try a different approach."
                             
-                    elif hasattr(function_call, 'name') and function_call.name == "create_stripe_checkout":
-                        # Extract function arguments safely
-                        args = function_call.args if hasattr(function_call, 'args') else {}
-                        
-                        print(f"DEBUG: Function call detected: {function_call.name}")
-                        print(f"DEBUG: Function call args: {args}")
-                        
-                        # Ensure user is authenticated for booking
-                        if not user_context or not user_context.get("userId"):
-                            ai_response = "You need to be logged in to make bookings. Please sign in first to continue with your booking request."
-                        else:
-                            # Add authenticated user ID to the checkout call
-                            args["studentId"] = user_context["userId"]
-                            
-                            print(f"DEBUG: Creating Stripe checkout with args: {args}")
-                            
-                            # Execute Stripe checkout creation
-                            checkout_result = ai_create_stripe_checkout(**args)
-                            
-                            print(f"DEBUG: Checkout result: {checkout_result}")
-                            
-                            if checkout_result.get("success"):
-                                # Generate user-friendly response with payment link
-                                ai_response = f"""✅ Perfect! I've created your secure payment link:
-
-🔗 **COMPLETE PAYMENT - £{checkout_result.get('amount_gbp', 'Amount')}**
-{checkout_result.get('checkout_url', 'Payment link')}
-
-Click the link above to pay securely with Stripe
-
-📝 **For Demo/Testing**: Use test card 4242 4242 4242 4242
-💳 Any future date, any 3-digit CVC
-
-After payment, you'll return here and your booking will be automatically confirmed!"""
-                            else:
-                                error_msg = checkout_result.get('error', 'Unknown error')
-                                ai_response = f"Sorry, I couldn't create the payment link: {error_msg}. Let me try a different approach or you can book manually through the website."
                     else:
                         # Regular text response - extract from parts
                         if hasattr(first_part, 'text') and first_part.text:

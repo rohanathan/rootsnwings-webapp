@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 
 // Dynamically import analytics to avoid SSR issues - graceful fallback if it fails
 const AnalyticsModule = dynamic(() => 
@@ -14,6 +15,7 @@ const AnalyticsModule = dynamic(() =>
 );
 
 const ChatbotOverlay = () => {
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
         {
@@ -332,6 +334,103 @@ const ChatbotOverlay = () => {
     };
 
     // Format timestamp
+    // Parse button patterns in AI messages and render as clickable buttons
+    const parseMessageWithButtons = (messageText) => {
+        // Regex to match [BUTTON:TYPE:ID:LABEL] patterns
+        const buttonPattern = /\[BUTTON:([^:]+):([^:]*):([^\]]+)\]/g;
+        const parts = [];
+        let lastIndex = 0;
+        let match;
+
+        while ((match = buttonPattern.exec(messageText)) !== null) {
+            // Add text before button
+            if (match.index > lastIndex) {
+                parts.push({
+                    type: 'text',
+                    content: messageText.slice(lastIndex, match.index)
+                });
+            }
+
+            // Add button
+            const [fullMatch, buttonType, buttonId, buttonLabel] = match;
+            parts.push({
+                type: 'button',
+                buttonType,
+                buttonId,
+                buttonLabel,
+                fullMatch
+            });
+
+            lastIndex = match.index + fullMatch.length;
+        }
+
+        // Add remaining text
+        if (lastIndex < messageText.length) {
+            parts.push({
+                type: 'text',
+                content: messageText.slice(lastIndex)
+            });
+        }
+
+        // If no buttons found, return original text
+        if (parts.length === 0) {
+            parts.push({
+                type: 'text',
+                content: messageText
+            });
+        }
+
+        return parts;
+    };
+
+    // Get button styling based on type
+    const getButtonStyle = (buttonType) => {
+        const baseStyle = "inline-block px-3 py-1 rounded-lg text-xs font-medium mx-1 my-1 transition-colors duration-200 shadow-sm hover:shadow-md";
+        
+        switch (buttonType) {
+            case 'BOOK_CLASS':
+                return `${baseStyle} bg-green-500 hover:bg-green-600 text-white`;
+            case 'VIEW_MENTOR':
+                return `${baseStyle} bg-purple-500 hover:bg-purple-600 text-white`;
+            case 'BROWSE_WORKSHOPS':
+                return `${baseStyle} bg-blue-500 hover:bg-blue-600 text-white`;
+            case 'SEARCH':
+                return `${baseStyle} bg-gray-500 hover:bg-gray-600 text-white`;
+            default:
+                return `${baseStyle} bg-blue-500 hover:bg-blue-600 text-white`;
+        }
+    };
+
+    // Handle button clicks
+    const handleButtonClick = (buttonType, buttonId, buttonLabel) => {
+        console.log('Button clicked:', { buttonType, buttonId, buttonLabel });
+
+        switch (buttonType) {
+            case 'BOOK_CLASS':
+                if (buttonId) {
+                    router.push(`/booking/confirmbooking/${buttonId}`);
+                }
+                break;
+            case 'VIEW_MENTOR':
+                if (buttonId) {
+                    router.push(`/mentor/detailpage?mentorId=${buttonId}`);
+                }
+                break;
+            case 'BROWSE_WORKSHOPS':
+                router.push('/explore/workshops');
+                break;
+            case 'SEARCH':
+                // You can trigger a new search or navigate to search page
+                if (buttonId) {
+                    // Option 1: Navigate to search with query
+                    router.push(`/search?q=${encodeURIComponent(buttonId)}`);
+                }
+                break;
+            default:
+                console.log('Unknown button type:', buttonType);
+        }
+    };
+
     const formatTime = (timestamp) => {
         return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
@@ -572,7 +671,21 @@ const ChatbotOverlay = () => {
                                         ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-md border border-blue-400'
                                         : 'bg-white text-gray-800 rounded-bl-md border border-gray-200 shadow-sm'
                                 }`}>
-                                    <p className="text-sm leading-relaxed">{message.text}</p>
+                                    <div className="text-sm leading-relaxed">
+                                        {parseMessageWithButtons(message.text).map((part, partIndex) => (
+                                            part.type === 'button' ? (
+                                                <button
+                                                    key={partIndex}
+                                                    onClick={() => handleButtonClick(part.buttonType, part.buttonId, part.buttonLabel)}
+                                                    className={getButtonStyle(part.buttonType)}
+                                                >
+                                                    {part.buttonLabel}
+                                                </button>
+                                            ) : (
+                                                <span key={partIndex}>{part.content}</span>
+                                            )
+                                        ))}
+                                    </div>
                                     <div className={`text-xs mt-1 opacity-70 ${
                                         message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
                                     }`}>
