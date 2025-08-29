@@ -497,6 +497,7 @@ def clean_data(data: Dict) -> Dict:
             "sake_appreciation":"https://www.localwineschool.com/images/event/SakeOverflow.jpg",
             "boxing" : "https://media.gq.com/photos/59ee10b166e2d56abcd79fd3/16:9/w_2560%2Cc_limit/gq-fitness-boxing.jpg",
             "french patisserie":"https://images.immediate.co.uk/production/volatile/sites/30/2018/10/apple-tart-patisserie-c005d5c.jpg",
+            "tango_social_dance_basics":"https://en.wikipedia.org/wiki/Tango#/media/File:Tango_dancers_in_Montevideo.png",
             "swimming":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/40._Schwimmzonen-_und_Mastersmeeting_Enns_2017_100m_Brust_Herren_USC_Traun-9897.jpg/960px-40._Schwimmzonen-_und_Mastersmeeting_Enns_2017_100m_Brust_Herren_USC_Traun-9897.jpg",
             "tai_chi":"https://mstrust.org.uk/sites/default/files/styles/meta_open_graph/public/tiles/Tai%20Chi.jpg?h=0738d7e3&itok=y9AnmsnW",
             "lego_building_and_robotics": "https://www.lego.com/cdn/cs/set/assets/bltcd461a16ee553ef0/Mindstroms-Build_Bot-TRACK3R-Sidekick-Standardfa39268afb269891b21f72b189e198c6b015ff89bad95355aa044bb683546555.jpg?fit=crop&format=jpg&quality=80&width=800&height=600&dpr=1",
