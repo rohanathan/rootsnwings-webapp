@@ -8,7 +8,6 @@ class Message(BaseModel):
     studentId: str  # Required - the student in the conversation
     mentorId: str   # Required - the mentor in the conversation  
     parentId: Optional[str] = None  # Optional - only if parent is involved
-    classId: Optional[str] = None  # Optional - if set, this is a group message for the class
     message: str
     sentAt: str
 
@@ -17,7 +16,6 @@ class MessageCreate(BaseModel):
     studentId: str
     mentorId: str
     parentId: Optional[str] = None
-    classId: Optional[str] = None
     message: str
 
 class MessageListResponse(BaseModel):
