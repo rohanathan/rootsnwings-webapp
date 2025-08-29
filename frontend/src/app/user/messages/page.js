@@ -431,10 +431,11 @@ const Messages = () => {
 
       return mentorList?.map((user, index) => {
         const mentor = user.user;
-        const initials = `${mentor.firstName
-          .charAt(0)
-          .toUpperCase()}${mentor.lastName.charAt(0).toUpperCase()}`;
-        const name = `${mentor.firstName} ${mentor.lastName}`;
+        // Safe access to mentor data with fallbacks to displayName
+        const firstName = mentor?.firstName || mentor?.displayName?.split(' ')[0] || mentor?.displayName || 'M';
+        const lastName = mentor?.lastName || mentor?.displayName?.split(' ')[1] || '';
+        const initials = `${firstName.charAt(0).toUpperCase()}${lastName ? lastName.charAt(0).toUpperCase() : mentor?.displayName?.charAt(1)?.toUpperCase() || 'M'}`;
+        const name = `${firstName} ${lastName}`.trim() || mentor?.displayName || 'Mentor';
         const status = statuses[Math.floor(Math.random() * statuses.length)];
         const message =
           studentMentorMsg.length > 0
