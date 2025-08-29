@@ -53,6 +53,7 @@ const CulturalWorldMap = () => {
     'UAE': [23.4241, 53.8478],
     'Jordan': [30.5852, 36.2384],
     'Lebanon': [33.8547, 35.8623]
+  };
 
   // Country flag emojis
   const countryFlags = {
