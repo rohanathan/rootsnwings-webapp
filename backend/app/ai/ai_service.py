@@ -1041,7 +1041,8 @@ def generate_ai_response(user_message, is_authenticated=False, user_context=None
                             api_response.candidates[0].content.parts):
                             ai_response = api_response.candidates[0].content.parts[0].text
                         else:
-                            ai_response = "I received data but couldn't format it properly."
+                            print(f"ERROR: API response parsing failed. Response: {api_response}")
+                            ai_response = "I had trouble processing that request. Let me try a different approach."
                             
                     elif hasattr(function_call, 'name') and function_call.name == "create_stripe_checkout":
                         # Extract function arguments safely
@@ -1054,15 +1055,19 @@ def generate_ai_response(user_message, is_authenticated=False, user_context=None
                             # Add authenticated user ID to the checkout call
                             args["studentId"] = user_context["userId"]
                             
+                            print(f"DEBUG: Creating Stripe checkout with args: {args}")
+                            
                             # Execute Stripe checkout creation
                             checkout_result = ai_create_stripe_checkout(**args)
                             
-                            if checkout_result["success"]:
+                            print(f"DEBUG: Checkout result: {checkout_result}")
+                            
+                            if checkout_result.get("success"):
                                 # Generate user-friendly response with payment link
                                 ai_response = f"""✅ Perfect! I've created your secure payment link:
 
-🔗 **COMPLETE PAYMENT - £{checkout_result['amount_gbp']}**
-{checkout_result['checkout_url']}
+🔗 **COMPLETE PAYMENT - £{checkout_result.get('amount_gbp', 'Amount')}**
+{checkout_result.get('checkout_url', 'Payment link')}
 
 Click the link above to pay securely with Stripe
 
@@ -1071,7 +1076,8 @@ Click the link above to pay securely with Stripe
 
 After payment, you'll return here and your booking will be automatically confirmed!"""
                             else:
-                                ai_response = f"Sorry, I couldn't create the payment link: {checkout_result['error']}. Let me try a different approach or you can book manually through the website."
+                                error_msg = checkout_result.get('error', 'Unknown error')
+                                ai_response = f"Sorry, I couldn't create the payment link: {error_msg}. Let me try a different approach or you can book manually through the website."
                     else:
                         # Regular text response - extract from parts
                         if hasattr(first_part, 'text') and first_part.text:
