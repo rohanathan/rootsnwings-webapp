@@ -142,7 +142,7 @@ const CulturalWorldMap = () => {
       try {
         setLoading(true);
         // Fetch only approved classes
-        const response = await fetch('https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?status=approved');
+        const response = await fetch('https://rootsnwings-api-944856745086.europe-west2.run.app/classes/?status=approved&pageSize=100');
         const data = await response.json();
         
         const culturalMap = {};
