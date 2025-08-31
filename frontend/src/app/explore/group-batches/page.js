@@ -593,14 +593,31 @@ export default function GroupBatches() {
 
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold primary-dark mb-2 min-h-[2rem] max-h-[2rem] overflow-hidden text-ellipsis line-clamp-1">{batch.title}</h3>
-                        <div className="flex items-center gap-2 mb-3">
+                        <h3 className="text-xl font-bold primary-dark mb-2 leading-tight">{batch.title}</h3>
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
                           <span className={`px-3 py-1 text-sm font-medium rounded-full whitespace-nowrap inline-block ${ageBadge.color}`}>
                             {ageBadge.icon} {ageBadge.label}
                           </span>
                           <span className={`px-3 py-1 text-sm font-medium rounded-full whitespace-nowrap inline-block ${levelBadge.color}`}>
                             {levelBadge.icon} {levelBadge.label}
                           </span>
+                          {batch.searchMetadata?.cultural_authenticity_score >= 0.7 && (
+                            <span className="px-3 py-1 text-sm font-medium rounded-full whitespace-nowrap inline-block bg-purple-100 text-purple-800">
+                              🌍 {batch.searchMetadata.cultural_origin_region || 'Traditional'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          with {batch.mentorName}
+                          {batch.avgRating && (
+                            <span className="ml-2">
+                              <span className="text-yellow-400">★</span>
+                              <span className="ml-1">{batch.avgRating}</span>
+                              {batch.totalReviews && (
+                                <span className="text-gray-500 ml-1">({batch.totalReviews} reviews)</span>
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right">
@@ -626,8 +643,8 @@ export default function GroupBatches() {
                     </div>
 
                     {/* Description */}
-                    <p className="text-gray-600 text-sm mb-4 leading-relaxed h-12 line-clamp-2 overflow-hidden">
-                      {batch.description?.length > 40 ? `${batch.description.substring(0, 80)}...` : batch.description}
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                      {batch.description}
                     </p>
 
                     {/* Schedule Info */}
@@ -636,10 +653,10 @@ export default function GroupBatches() {
                         <span className="text-xl mr-3">📅</span>
                         <div>
                           <div className="font-semibold">
-                            {formatDate(batch.schedule.startDate)} - {formatDate(batch.schedule.endDate)}
+                            Starts {formatDate(batch.schedule.startDate)}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {Math.ceil((new Date(batch.schedule.endDate) - new Date(batch.schedule.startDate)) / (1000 * 60 * 60 * 24 * 7))} weeks program
+                            {Math.ceil((new Date(batch.schedule.endDate) - new Date(batch.schedule.startDate)) / (1000 * 60 * 60 * 24 * 7))} weeks program • Ends {formatDate(batch.schedule.endDate)}
                           </div>
                         </div>
                       </div>
@@ -656,8 +673,8 @@ export default function GroupBatches() {
                           <div className="font-semibold capitalize">{batch.format}</div>
                           <div className="text-sm text-gray-500">
                             {batch.format === 'online' && 'Interactive virtual sessions'}
-                            {batch.format === 'in-person' && 'Physical studio location'}
-                            {batch.format === 'hybrid' && 'Online + in-person combined'}
+                            {batch.format === 'in-person' && (batch.city ? `${batch.city}, ${batch.region || batch.country || 'UK'}` : 'Physical studio location')}
+                            {batch.format === 'hybrid' && (batch.city ? `Online + ${batch.city} sessions` : 'Online + in-person combined')}
                           </div>
                         </div>
                       </div>

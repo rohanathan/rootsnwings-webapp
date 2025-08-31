@@ -17,3 +17,4 @@ def test_get_mentor_by_id(client, mock_firestore, mentor_data):
     response = client.get("/mentors/test_mentor_001")
     # Endpoint exists but returns 404 without real data - that's fine for basic testing
     assert response.status_code == 404
+

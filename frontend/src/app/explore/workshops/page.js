@@ -653,13 +653,30 @@ export default function Workshops() {
                     <div className="flex items-start justify-between mb-4 mt-2">
                       <div className="flex-1">
                         <h3 className="text-xl font-bold primary-dark mb-2">{workshop.title}</h3>
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
                           <span className={`px-3 py-1 text-sm font-medium rounded-full ${ageBadge.color}`}>
                             {ageBadge.icon} {ageBadge.label}
                           </span>
                           <span className={`px-3 py-1 text-sm font-medium rounded-full ${levelBadge.color}`}>
                             {levelBadge.icon} {levelBadge.label}
                           </span>
+                          {workshop.searchMetadata?.cultural_authenticity_score >= 0.7 && (
+                            <span className="px-3 py-1 text-sm font-medium rounded-full whitespace-nowrap inline-block bg-purple-100 text-purple-800">
+                              🌍 {workshop.searchMetadata.cultural_origin_region || 'Traditional'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          with {workshop.mentorName}
+                          {workshop.avgRating && (
+                            <span className="ml-2">
+                              <span className="text-yellow-400">★</span>
+                              <span className="ml-1">{workshop.avgRating}</span>
+                              {workshop.totalReviews && (
+                                <span className="text-gray-500 ml-1">({workshop.totalReviews} reviews)</span>
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right">
@@ -718,8 +735,8 @@ export default function Workshops() {
                           <div className="font-semibold capitalize">{workshop.format}</div>
                           <div className="text-sm text-gray-500">
                             {workshop.format === 'online' && 'Interactive virtual workshop'}
-                            {workshop.format === 'in-person' && 'Physical workshop space'}
-                            {workshop.format === 'hybrid' && 'Online + in-person combined'}
+                            {workshop.format === 'in-person' && (workshop.city ? `${workshop.city}, ${workshop.region || workshop.country || 'UK'}` : 'Physical workshop space')}
+                            {workshop.format === 'hybrid' && (workshop.city ? `Online + ${workshop.city} sessions` : 'Online + in-person combined')}
                           </div>
                         </div>
                       </div>

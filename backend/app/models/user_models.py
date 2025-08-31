@@ -39,7 +39,6 @@ class PrivacySettings(BaseModel):
     showProfileInSearch: bool = Field(True, description="DIRECTORY VISIBILITY - whether user appears in search results and public directories")
     allowDirectMessages: bool = Field(True, description="MESSAGING CONTROL - whether other users can send direct messages")
     showOnlineStatus: bool = Field(False, description="SOCIAL FEATURES - whether online/offline status is visible to others")
-    shareDataForAnalytics: bool = Field(True, description="DATA USAGE - consent for using behavior data for platform analytics and improvements")
 
 class Preferences(BaseModel):
     language: str = "en"

@@ -2,17 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-
-// Dynamically import analytics to avoid SSR issues - graceful fallback if it fails
-const AnalyticsModule = dynamic(() => 
-    import('@/utils/analytics').catch(() => ({ 
-        default: null, 
-        chatAnalytics: null 
-    })), 
-    { ssr: false }
-);
 
 const ChatbotOverlay = () => {
     const router = useRouter();
@@ -30,7 +20,6 @@ const ChatbotOverlay = () => {
     const [conversationHistory, setConversationHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [showAnalytics, setShowAnalytics] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -55,29 +44,6 @@ const ChatbotOverlay = () => {
     useEffect(() => {
         setIsMounted(true);
     }, []);
-
-    // Helper function to safely call analytics
-    const safeAnalyticsCall = (callback) => {
-        if (!isMounted || typeof window === 'undefined') return;
-        
-        try {
-            if (AnalyticsModule && AnalyticsModule.chatAnalytics) {
-                callback(AnalyticsModule.chatAnalytics);
-            }
-        } catch (error) {
-            console.warn('Analytics call failed:', error);
-        }
-    };
-
-    // Track page view when chat opens
-    useEffect(() => {
-        if (isOpen && isMounted && typeof window !== 'undefined') {
-            const pageContext = getPageContext();
-            safeAnalyticsCall(analytics => {
-                analytics.trackPageView(window.location.pathname, pageContext);
-            });
-        }
-    }, [isOpen, isMounted]);
 
     // Toggle chat visibility
     const toggleChat = () => {
@@ -222,18 +188,6 @@ const ChatbotOverlay = () => {
                 { role: 'user', content: userMessage },
                 { role: 'assistant', content: response.data.response }
             ]);
-
-            // Track successful conversation for analytics
-            const responseTime = Date.now() - startTime;
-            safeAnalyticsCall(analytics => {
-                analytics.trackConversation(
-                    userMessage, 
-                    response.data.response, 
-                    pageContext, 
-                    responseTime, 
-                    false
-                );
-            });
             
         } catch (error) {
             console.error('AI API Error:', error);
@@ -260,18 +214,6 @@ const ChatbotOverlay = () => {
             
             setMessages(prev => [...prev, fallbackMessage]);
             setError(errorMessage);
-
-            // Track fallback response for analytics
-            const responseTime = Date.now() - startTime;
-            safeAnalyticsCall(analytics => {
-                analytics.trackConversation(
-                    userMessage, 
-                    fallbackMessage.text, 
-                    pageContext, 
-                    responseTime, 
-                    true
-                );
-            });
         } finally {
             setIsLoading(false);
             setIsTyping(false);
@@ -501,70 +443,9 @@ const ChatbotOverlay = () => {
         return actions.slice(0, 6); // Limit to 6 actions
     };
 
-    // Analytics Dashboard Component
-    const AnalyticsDashboard = () => {
-        const [analytics, setAnalytics] = useState(null);
-
-        useEffect(() => {
-            safeAnalyticsCall(analyticsModule => {
-                setAnalytics(analyticsModule.getAnalyticsSummary());
-            });
-        }, []);
-
-        const sendAnalytics = () => {
-            safeAnalyticsCall(analyticsModule => {
-                analyticsModule.sendAnalyticsToBackend();
-            });
-        };
-
-        if (!analytics) {
-            return (
-                <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="text-sm font-semibold text-blue-800">Analytics unavailable</h4>
-                </div>
-            );
-        }
-
-        return (
-            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <h4 className="text-sm font-semibold text-blue-800 mb-2">AI Performance Insights</h4>
-                <div className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                        <span className="text-blue-700">Success Rate:</span>
-                        <span className="font-semibold">{analytics.successRate}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-blue-700">Avg Response:</span>
-                        <span className="font-semibold">{analytics.averageResponseTime}ms</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-blue-700">Conversations:</span>
-                        <span className="font-semibold">{analytics.totalConversations}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-blue-700">Quick Actions:</span>
-                        <span className="font-semibold">{analytics.totalQuickActions}</span>
-                    </div>
-                </div>
-                <button
-                    onClick={sendAnalytics}
-                    className="w-full mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                >
-                    Send Analytics to Backend
-                </button>
-            </div>
-        );
-    };
-
     // Handle quick action buttons
     const handleQuickAction = (message) => {
         setInputMessage(message);
-        
-        // Track quick action usage for analytics
-        const pageContext = getPageContext();
-        safeAnalyticsCall(analytics => {
-            analytics.trackQuickAction(message, pageContext);
-        });
         
         // Auto-send quick action messages
         setTimeout(() => {
@@ -653,13 +534,6 @@ const ChatbotOverlay = () => {
                                 )}
                             </p>
                         </div>
-                        <button
-                            onClick={() => setShowAnalytics(!showAnalytics)}
-                            className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors backdrop-blur-sm mr-2"
-                            title="View Analytics"
-                        >
-                            <i className="fas fa-chart-bar text-white text-sm"></i>
-                        </button>
                         <button
                             onClick={toggleChat}
                             className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors backdrop-blur-sm"
@@ -826,11 +700,6 @@ const ChatbotOverlay = () => {
                                 </button>
                             ))}
                         </div>
-                    )}
-                    
-                    {/* Analytics Dashboard */}
-                    {showAnalytics && isMounted && typeof window !== 'undefined' && (
-                        <AnalyticsDashboard />
                     )}
                     
                     {/* Powered by indicator */}

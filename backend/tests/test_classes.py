@@ -36,3 +36,4 @@ def test_get_class_not_found(client, mock_firestore):
     
     response = client.get("/classes/nonexistent")
     assert response.status_code == 404
+

@@ -84,8 +84,7 @@ def create_user(user_data: Dict[str, Any]):
                 "showLocation": True,
                 "showProfileInSearch": True,
                 "allowDirectMessages": True,
-                "showOnlineStatus": False,
-                "shareDataForAnalytics": True
+                "showOnlineStatus": False
             }
         })
         

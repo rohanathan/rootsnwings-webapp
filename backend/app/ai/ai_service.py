@@ -579,45 +579,7 @@ def enhance_query_with_metadata(user_query, subjects_metadata):
             'matched_subjects': [],
             'enhancement_count': 0
         }
-
-def ai_create_stripe_checkout(classId: str, studentId: str, mentorId: str, amount: float, personalGoals: str = None):
-    """AI creates Stripe checkout session and returns payment link"""
-    try:
-        # Import here to avoid circular imports
-        from app.routers.payments import CheckoutSessionRequest, create_checkout_session
-        
-        print(f"AI creating Stripe checkout: class={classId}, student={studentId}, amount=£{amount}")
-        print(f"DEBUG: Function called with args - classId: {classId}, studentId: {studentId}, mentorId: {mentorId}, amount: {amount}")
-        
-        checkout_data = CheckoutSessionRequest(
-            classId=classId,
-            studentId=studentId,
-            mentorId=mentorId,
-            amount=amount,
-            currency="gbp",
-            personalGoals=personalGoals
-        )
-        
-        print(f"DEBUG: Created checkout data: {checkout_data}")
-        
-        result = create_checkout_session(checkout_data)
-        
-        print(f"DEBUG: Stripe checkout result: {result}")
-        
-        return {
-            "success": True,
-            "checkout_url": result["checkout_url"],
-            "session_id": result["session_id"],
-            "amount_gbp": amount,
-            "class_id": classId,
-            "personal_goals": personalGoals
-        }
-        
-    except Exception as e:
-        print(f"AI Stripe checkout creation failed: {str(e)}")
-        print(f"DEBUG: Exception details: {type(e).__name__}: {str(e)}")
-        return {"success": False, "error": str(e)}
-
+    
 def make_direct_service_call(service_type, **kwargs):
     """
     Make direct service calls instead of HTTP requests to avoid deadlock.

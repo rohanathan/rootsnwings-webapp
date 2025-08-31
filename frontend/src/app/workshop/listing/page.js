@@ -104,7 +104,9 @@ export default function Home() {
         description: cls.description,
         date: formatDate(cls.schedule),
         duration: `${cls.schedule.sessionDuration} minutes`,
-        location: cls.format === 'online' ? 'Online' : 'In-person',
+        location: cls.format === 'online' ? 'Online' : 
+                  cls.format === 'hybrid' ? (cls.city ? `Online + ${cls.city}` : 'Hybrid') :
+                  cls.city ? `${cls.city}, ${cls.region || cls.country || 'UK'}` : 'In-person',
         subject: getSubjectCategory(cls.subject),
         age: cls.ageGroup,
         mode: cls.format,
@@ -112,6 +114,7 @@ export default function Home() {
         dateFilter: getDateFilter(cls.schedule),
         badges: getBadges(cls),
         skills: getSkills(cls),
+        rating: cls.avgRating,
         icon: getIcon(cls.subject),
         classImage: cls.classImage,  // Pass through classImage from API
         capacity: cls.capacity.maxStudents - cls.capacity.currentEnrollment,
@@ -260,6 +263,14 @@ export default function Home() {
     const levelText = cls.level.charAt(0).toUpperCase() + cls.level.slice(1);
     skills.push({ text: levelText, color: levelColors[cls.level] || 'bg-gray-100 text-gray-700' });
     
+    // Cultural heritage badge for high authenticity classes
+    if (cls.searchMetadata?.cultural_authenticity_score >= 0.7 && cls.searchMetadata?.cultural_origin_region) {
+      skills.push({ 
+        text: `🌍 ${cls.searchMetadata.cultural_origin_region}`, 
+        color: 'bg-purple-100 text-purple-800' 
+      });
+    }
+    
     return skills;
   };
 
@@ -402,7 +413,9 @@ export default function Home() {
         description: cls.description,
         date: formatDate(cls.schedule),
         duration: `${cls.schedule.sessionDuration} minutes`,
-        location: cls.format === 'online' ? 'Online' : 'In-person',
+        location: cls.format === 'online' ? 'Online' : 
+                  cls.format === 'hybrid' ? (cls.city ? `Online + ${cls.city}` : 'Hybrid') :
+                  cls.city ? `${cls.city}, ${cls.region || cls.country || 'UK'}` : 'In-person',
         subject: getSubjectCategory(cls.subject),
         age: cls.ageGroup,
         mode: cls.format,
@@ -410,6 +423,7 @@ export default function Home() {
         dateFilter: getDateFilter(cls.schedule),
         badges: getBadges(cls),
         skills: getSkills(cls),
+        rating: cls.avgRating,
         icon: getIcon(cls.subject),
         classImage: cls.classImage,
         capacity: cls.capacity.maxStudents - cls.capacity.currentEnrollment,
@@ -923,7 +937,15 @@ export default function Home() {
                     </div>
                     <div>
                       <div className="font-semibold text-gray-800">{workshop.mentor}</div>
-                      <div className="text-sm text-gray-500">🎓 Certified Mentor</div>
+                      <div className="text-sm text-gray-500">
+                        🎓 Certified Mentor
+                        {workshop.rating && (
+                          <span className="ml-2">
+                            <span className="text-yellow-400">★</span>
+                            <span className="ml-1">{workshop.rating}</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
