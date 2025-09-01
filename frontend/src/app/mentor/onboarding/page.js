@@ -201,7 +201,7 @@ const OnBoarding = () => {
         }
         setFormData((prev) => ({ ...prev, [name]: newArray }));
       } else {
-        // Handle boolean checkboxes (dbsCheck, firstsessionfree)
+        // Handle boolean checkboxes (dbsCheck, firstSessionFree)
         setFormData((prev) => ({ ...prev, [name]: checked }));
       }
     } else {
@@ -217,7 +217,7 @@ const OnBoarding = () => {
       ...prev,
       pricing: {
         ...prev.pricing,
-        [field]: field === "firstsessionfree" ? value : parseFloat(value) || 0,
+        [field]: field === "firstSessionFree" ? value : parseFloat(value) || 0,
       },
     }));
   };
@@ -470,7 +470,7 @@ const OnBoarding = () => {
       case 6:
         return true; // Photo is optional
       case 7:
-        return formData.pricing.oneOnOneRate > 0 || formData.pricing.group > 0;
+        return formData.pricing.oneOnOneRate > 0 || formData.pricing.groupRate > 0;
       default:
         return true;
     }
@@ -1269,11 +1269,11 @@ const OnBoarding = () => {
                     <input
                       type="checkbox"
                       className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                      name="firstsessionfree"
-                      checked={formData.pricing.firstsessionfree}
+                      name="firstSessionFree"
+                      checked={formData.pricing.firstSessionFree}
                       onChange={(e) =>
                         handlePricingChange(
-                          "firstsessionfree",
+                          "firstSessionFree",
                           e.target.checked
                         )
                       }
