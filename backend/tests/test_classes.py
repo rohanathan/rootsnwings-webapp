@@ -115,3 +115,4 @@ def test_get_classes_invalid_type(client, mock_firestore):
     response = client.get("/classes/?type=invalid_type")
     assert response.status_code in [200, 400]  # Should handle gracefully
 
+
