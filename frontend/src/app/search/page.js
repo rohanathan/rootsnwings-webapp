@@ -118,9 +118,13 @@ matched_subjects: [relevant subject if found in metadata]`
       
       const aiData = await response.json();
       
-      if (response.ok && aiData.response) {
-        const enhancedFilters = parseAIResponse(aiData.response);
-        console.log('AI enhanced filters:', enhancedFilters);
+              if (response.ok && aiData.response) {
+          console.log('AI response received:', aiData.response);
+          console.log('Response type:', typeof aiData.response);
+          
+          // Parse the text response from AI service
+          const enhancedFilters = parseAIResponse(aiData.response);
+          console.log('AI enhanced filters:', enhancedFilters);
         
         // Build final search parameters - KISS approach
         const searchParams = {
@@ -176,13 +180,15 @@ matched_subjects: [relevant subject if found in metadata]`
         setEnhancementMessage(message);
         
         return searchParams;
+      } else {
+        console.error('AI service error:', aiData.error || 'Unknown error');
+        throw new Error(aiData.error || 'AI service failed');
       }
     } catch (error) {
       console.error('AI enhancement failed:', error);
+      // Return original query on error
+      return { q: userQuery };
     }
-    
-    // Fallback to original query
-    return { q: userQuery };
   };
 
   useEffect(() => {
@@ -320,6 +326,82 @@ matched_subjects: [relevant subject if found in metadata]`
             </div>
           </section>
         )}
+
+        {/* Debug Test Button */}
+        <section className="bg-gray-50 border-b border-gray-200">
+          <div className="max-w-6xl mx-auto px-5 py-4">
+            <div className="flex gap-4 flex-wrap">
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`${API_BASE_URL}/ai/chat`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ 
+                        message: 'Extract search parameters from: "terrarium workshops for adults"'
+                      })
+                    });
+                    const data = await response.json();
+                    console.log('Debug AI Response:', data);
+                    alert(`AI Response Type: ${typeof data.response}\nResponse: ${data.response.substring(0, 300)}...`);
+                  } catch (error) {
+                    console.error('Debug test failed:', error);
+                    alert('Debug test failed: ' + error.message);
+                  }
+                }}
+                className="bg-gray-600 text-white px-4 py-2 rounded text-sm hover:bg-gray-700"
+              >
+                🧪 Test: "terrarium workshops for adults"
+              </button>
+              
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`${API_BASE_URL}/ai/chat`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ 
+                        message: 'Extract search parameters from: "swimming lessons for kids in London"'
+                      })
+                    });
+                    const data = await response.json();
+                    console.log('Debug AI Response:', data);
+                    alert(`AI Response Type: ${typeof data.response}\nResponse: ${data.response.substring(0, 300)}...`);
+                  } catch (error) {
+                    console.error('Debug test failed:', error);
+                    alert('Debug test failed: ' + error.message);
+                  }
+                }}
+                className="bg-gray-600 text-white px-4 py-2 rounded text-sm hover:bg-gray-700"
+              >
+                🧪 Test: "swimming lessons for kids in London"
+              </button>
+              
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`${API_BASE_URL}/ai/chat`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ 
+                        message: 'Extract search parameters from: "affordable swimming classes under £30"'
+                      })
+                    });
+                    const data = await response.json();
+                    console.log('Debug AI Response:', data);
+                    alert(`AI Response Type: ${typeof data.response}\nResponse: ${data.response.substring(0, 300)}...`);
+                  } catch (error) {
+                    console.error('Debug test failed:', error);
+                    alert('Debug test failed: ' + error.message);
+                  }
+                }}
+                className="bg-gray-600 text-white px-4 py-2 rounded text-sm hover:bg-gray-700"
+              >
+                🧪 Test: "affordable swimming classes under £30"
+              </button>
+            </div>
+          </div>
+        </section>
 
         {/* Error Message */}
         {error && (

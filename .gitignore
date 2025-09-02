@@ -84,8 +84,4 @@ ai/__pycache__/*
 secrets/*
 backend/secrets/*
 
-frontend/playwright-report/
-frontend/playwright.config.js
-frontend/test-results/
-frontend/tests/
 test-results/
