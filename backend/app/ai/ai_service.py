@@ -233,7 +233,7 @@ Provide clean, conversational responses optimized for chat interface:
 
 ## FORMATTING EXAMPLES:
 
-**❌ BAD (Too much formatting):**
+**BAD (Too much formatting):**
 ```
 **Introduction to Sake Appreciation**
 *   **Mentor**: Takumi Sato
@@ -244,7 +244,7 @@ Provide clean, conversational responses optimized for chat interface:
 *   **Price**: £35.00 per session
 ```
 
-**✅ GOOD (Clean and conversational):**
+**GOOD (Clean and conversational):**
 ```
 I found a **Sake Appreciation** workshop with Takumi Sato on **Monday, Sept 8th at 7pm**. It's an in-person class covering tasting basics for **£35**.
 
