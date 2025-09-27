@@ -72,7 +72,7 @@ steps:
         git config --global --add safe.directory /workspace/rootsnwings-k8s-config
 
         # --- Inputs (Uses recommended substitutions) ---
-        CONFIG_REPO="git@github.com:YOUR_GITHUB_USERNAME/rootsnwings-k8s-config.git" # Replace with your config repo URL
+        CONFIG_REPO="git@github.com:rohanathan/rohanathan-rootsnwings-k8s-config.git" # Replace with your config repo URL
         CONFIG_BRANCH="main"
         VALUES_PATH="backend/values.yaml"
         IMAGE_TAG="${SHORT_SHA}" # Use SHORT_SHA for a cleaner tag
