@@ -20,7 +20,7 @@ import logging
 import firebase_admin
 from firebase_admin import credentials
 
-# Set up a logger
+# Set up a loggers
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

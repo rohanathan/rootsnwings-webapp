@@ -1,3 +1,34 @@
+# steps:
+#   # Step 1: Build the Docker Image
+#   - name: 'gcr.io/cloud-builders/docker'
+#     dir: 'backend'
+#     args: ['build', '-t', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA', '.']
+
+
+#   # Step 2: Push the Docker Image to Artifact Registry
+#   - name: 'gcr.io/cloud-builders/docker'
+#     args: ['push', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA']
+
+#   # Step 3: Deploy the Image to Cloud Run
+#   # Using the modern, recommended builder for gcloud
+#   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+#     entrypoint: gcloud
+#     args:
+#       - 'run'
+#       - 'deploy'
+#       - 'rootsnwings-api'
+#       - '--image'
+#       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA'
+#       - '--region'
+#       - 'europe-west2'
+#       - '--service-account'
+#       - 'rootsnwings-cloud-build@${PROJECT_ID}.iam.gserviceaccount.com'
+#       - '--set-secrets=STRIPE_SECRET_KEY=stripe-secret:latest,RESEND_API_KEY=resend-api-key:latest,GOOGLE_AI_API_KEY=google-ai-api-key:latest'
+#       - '--set-env-vars=FROM_EMAIL=onboarding@resend.dev,FRONTEND_URL=https://frontend-944856745086.europe-west2.run.app,BACKEND_URL=https://rootsnwings-api-944856745086.europe-west2.run.app,ALLOWED_ORIGINS=http://localhost:3000'
+
+# # For Logging added
+# logsBucket: 'gs://rootsnwings-build-logs-rootsnwings-465610'
+
 # cloudbuild-backend.yaml
 steps:
   # Step 1: Build the Docker Image for the backend
@@ -40,8 +71,9 @@ steps:
         git config --global user.name "Cloud Build"
       
         # --- Clone config repo ---
+        # CORRECTED: Clones into a consistent directory name
         git clone --branch "${_CONFIG_BRANCH}" --depth 1 "${_CONFIG_REPO}" /workspace/config-repo
-        cd /workspace/config-repo
+        cd /workspace/config-repo # CORRECTED: CD into the directory we just cloned
         git config --global --add safe.directory /workspace/config-repo
 
         # Check for the values file
@@ -52,12 +84,12 @@ steps:
 
         # --- Commit only if there are changes ---
         if ! git diff --quiet; then
-          git add "${_VALUES_PATH}"
+          git add "${_VALUES_PATH}" # CORRECTED
           git commit -m "ci: update backend image tag to $SHORT_SHA"
-          git push origin "${_CONFIG_BRANCH}"
-          echo "Pushed ${_VALUES_PATH} with tag $SHORT_SHA"
+          git push origin "${_CONFIG_BRANCH}" # CORRECTED
+          echo "Pushed ${_VALUES_PATH} with tag $SHORT_SHA" # CORRECTED
         else
-          echo "No change in ${_VALUES_PATH}; skipping commit."
+          echo "No change in ${_VALUES_PATH}; skipping commit." # CORRECTED
         fi
 
 # --- Secret Manager Configuration (Required for SSH access to config repo) ---
@@ -74,3 +106,4 @@ substitutions:
 
 # Optional logging bucket
 logsBucket: 'gs://rootsnwings-build-logs-rootsnwings-465610'
+
