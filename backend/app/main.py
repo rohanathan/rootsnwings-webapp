@@ -31,7 +31,7 @@ app = FastAPI(
     redirect_slashes=False  # Disable auto trailing slash redirects
 )
 
-# --- Firebase Initialisation ---
+# --- Firebase Initialization ---
 def initialize_firebase():
     """Initialize Firebase Admin SDK based on the environment."""
     import os
