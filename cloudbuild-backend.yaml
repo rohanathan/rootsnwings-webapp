@@ -30,7 +30,6 @@
 # logsBucket: 'gs://rootsnwings-build-logs-rootsnwings-465610'
 
 # cloudbuild-backend.yaml
-# cloudbuild-backend.yaml
 steps:
   # Step 1: Build the Docker Image for the backend
   - name: 'gcr.io/cloud-builders/docker'
@@ -71,15 +70,10 @@ steps:
         git config --global user.email "gcp-cloud-build@${PROJECT_ID}.iam.gserviceaccount.com"
         git config --global user.name "Cloud Build"
         git config --global --add safe.directory /workspace/rootsnwings-k8s-config
-
-        # --- Inputs (direct values since substitutions don't work in shell scripts) ---
-        CONFIG_REPO="git@github.com:rohanathan/rohanathan-rootsnwings-k8s-config.git"
-        CONFIG_BRANCH="main"
-        VALUES_PATH="backend/values.yaml"
-        IMAGE_TAG="${SHORT_SHA}"
     
         # --- Clone config repo ---
-        git clone --branch "$CONFIG_BRANCH" --depth 1 "$CONFIG_REPO" /workspace/rootsnwings-k8s-config
+        git clone --branch "${_CONFIG_BRANCH}" --depth 1 "${_CONFIG_REPO}" /workspace/config-repo
+
         cd /workspace/rootsnwings-k8s-config
 
         # Check for the values file
@@ -104,5 +98,12 @@ availableSecrets:
   - versionName: projects/${PROJECT_ID}/secrets/github-ssh-key/versions/latest
     env: 'SSH_KEY'
 
+# Custom substitutions (must start with underscore)
+substitutions:
+  _CONFIG_REPO: git@github.com:rohanathan/rohanathan-rootsnwings-k8s-config.git
+  _CONFIG_BRANCH: main
+  _VALUES_PATH: backend/values.yaml
+
 # Optional logging bucket
 logsBucket: 'gs://rootsnwings-build-logs-rootsnwings-465610'
+
