@@ -34,17 +34,30 @@ app = FastAPI(
 # --- Firebase Initialisation ---
 def initialize_firebase():
     """Initialize Firebase Admin SDK based on the environment."""
+    import os
+    import firebase_admin
+    from firebase_admin import credentials
+    
+    # KUBERNETES_SERVICE_HOST is always present in a GKE pod.
+    is_kubernetes_env = os.getenv('KUBERNETES_SERVICE_HOST')
+    
+    # GOOGLE_CLOUD_PROJECT is usually set in GCP environments.
+    is_gcp_project = os.getenv('GOOGLE_CLOUD_PROJECT')
+
+    # Define the environment as 'production' if it's running in Kubernetes or Cloud Run.
+    is_production = is_kubernetes_env or os.getenv('K_SERVICE')
+
     try:
         # Check if the app is already initialized to prevent errors.
         if not firebase_admin._apps:
             
-            # Use K_SERVICE as the primary indicator of a Cloud Run environment.
-            # This is more reliable than GOOGLE_CLOUD_PROJECT if env vars are being overwritten.
-            is_production = os.getenv('K_SERVICE') or os.getenv('GOOGLE_CLOUD_PROJECT')
-
             if is_production:
-                # --- PRODUCTION PATH (ON CLOUD RUN) ---
-                logger.info(f"Production environment detected (K_SERVICE: {os.getenv('K_SERVICE')}). Initializing Firebase SDK automatically...")
+                # --- PRODUCTION PATH (ON GKE/CLOUD RUN) ---
+                # On GKE, this path uses Application Default Credentials (ADC)
+                # provided by Workload Identity.
+                logger.info(f"Production environment detected. Initializing Firebase SDK automatically...")
+                
+                # The service account is inferred automatically from the environment (Workload Identity)
                 firebase_admin.initialize_app()
             else:
                 # --- LOCAL DEVELOPMENT PATH ---

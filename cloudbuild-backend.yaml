@@ -1,30 +1,104 @@
-steps:
-  # Step 1: Build the Docker Image
-  - name: 'gcr.io/cloud-builders/docker'
-    dir: 'backend'
-    args: ['build', '-t', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA', '.']
+# steps:
+#   # Step 1: Build the Docker Image
+#   - name: 'gcr.io/cloud-builders/docker'
+#     dir: 'backend'
+#     args: ['build', '-t', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA', '.']
 
+
+#   # Step 2: Push the Docker Image to Artifact Registry
+#   - name: 'gcr.io/cloud-builders/docker'
+#     args: ['push', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA']
+
+#   # Step 3: Deploy the Image to Cloud Run
+#   # Using the modern, recommended builder for gcloud
+#   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+#     entrypoint: gcloud
+#     args:
+#       - 'run'
+#       - 'deploy'
+#       - 'rootsnwings-api'
+#       - '--image'
+#       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA'
+#       - '--region'
+#       - 'europe-west2'
+#       - '--service-account'
+#       - 'rootsnwings-cloud-build@${PROJECT_ID}.iam.gserviceaccount.com'
+#       - '--set-secrets=STRIPE_SECRET_KEY=stripe-secret:latest,RESEND_API_KEY=resend-api-key:latest,GOOGLE_AI_API_KEY=google-ai-api-key:latest'
+#       - '--set-env-vars=FROM_EMAIL=onboarding@resend.dev,FRONTEND_URL=https://frontend-944856745086.europe-west2.run.app,BACKEND_URL=https://rootsnwings-api-944856745086.europe-west2.run.app,ALLOWED_ORIGINS=http://localhost:3000'
+
+# # For Logging added
+# logsBucket: 'gs://rootsnwings-build-logs-rootsnwings-465610'
+
+# cloudbuild-backend.yaml
+steps:
+  # Step 1: Build the Docker Image for the backend
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: 'backend' # Run this step inside the backend folder
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$SHORT_SHA'
+      - '.'
 
   # Step 2: Push the Docker Image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA']
-
-  # Step 3: Deploy the Image to Cloud Run
-  # Using the modern, recommended builder for gcloud
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
     args:
-      - 'run'
-      - 'deploy'
-      - 'rootsnwings-api'
-      - '--image'
-      - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$COMMIT_SHA'
-      - '--region'
-      - 'europe-west2'
-      - '--service-account'
-      - 'rootsnwings-cloud-build@${PROJECT_ID}.iam.gserviceaccount.com'
-      - '--set-secrets=STRIPE_SECRET_KEY=stripe-secret:latest,RESEND_API_KEY=resend-api-key:latest,GOOGLE_AI_API_KEY=google-ai-api-key:latest'
-      - '--set-env-vars=FROM_EMAIL=onboarding@resend.dev,FRONTEND_URL=https://frontend-944856745086.europe-west2.run.app,BACKEND_URL=https://rootsnwings-api-944856745086.europe-west2.run.app,ALLOWED_ORIGINS=http://localhost:3000'
+      - 'push'
+      - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$SHORT_SHA'
 
-# For Logging added
-logsBucket: 'gs://rootsnwings-build-logs-rootsnwings-465610'
+  # Step 3: GitOps Hand-off (Update config repo using yq)
+  - name: 'alpine:3.19'
+    id: 'update-config-repo'
+    entrypoint: 'sh'
+    secretEnv: ['SSH_KEY']
+    args:
+      - -ceu
+      - |
+        # Install Git, SSH, and yq
+        apk add --no-cache git openssh yq
+        
+        # --- SSH setup (Uses private key stored in Secret Manager) ---
+        mkdir -p /root/.ssh
+        echo "$$SSH_KEY" > /root/.ssh/id_rsa
+        chmod 600 /root/.ssh/id_rsa
+        ssh-keyscan -t rsa github.com > /root/.ssh/known_hosts
+        
+        # Force SSH to use our injected key
+        export GIT_SSH_COMMAND='ssh -i /root/.ssh/id_rsa -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes'
+        
+        # --- Git identity and safety config ---
+        git config --global user.email "gcp-cloud-build@${PROJECT_ID}.iam.gserviceaccount.com"
+        git config --global user.name "Cloud Build"
+        git config --global --add safe.directory /workspace/rootsnwings-k8s-config
+
+        # --- Inputs (Uses recommended substitutions) ---
+        CONFIG_REPO="git@github.com:YOUR_GITHUB_USERNAME/rootsnwings-k8s-config.git" # Replace with your config repo URL
+        CONFIG_BRANCH="main"
+        VALUES_PATH="backend/values.yaml"
+        IMAGE_TAG="${SHORT_SHA}" # Use SHORT_SHA for a cleaner tag
+        
+        # --- Clone config repo ---
+        git clone --branch "$CONFIG_BRANCH" --depth 1 "$CONFIG_REPO" /workspace/rootsnwings-k8s-config
+        cd /workspace/rootsnwings-k8s-config
+
+        # Check for the values file
+        test -f "$VALUES_PATH" || { echo "ERROR: values file not found: $VALUES_PATH"; exit 1; }
+
+        # --- Update YAML (image.tag) safely with yq ---
+        yq -i ".image.tag = \"${IMAGE_TAG}\"" "$VALUES_PATH"
+
+        # --- Commit only if there are changes ---
+        if ! git diff --quiet; then
+          git add "$VALUES_PATH"
+          git commit -m "ci: update backend image tag to ${IMAGE_TAG}"
+          git push origin "$CONFIG_BRANCH"
+          echo "Pushed ${VALUES_PATH} with tag ${IMAGE_TAG}"
+        else
+          echo "No change in ${VALUES_PATH}; skipping commit."
+        fi
+
+# --- Secret Manager Configuration (Required for SSH access to config repo) ---
+availableSecrets:
+  secretManager:
+  - versionName: projects/${PROJECT_ID}/secrets/github-ssh-key/versions/latest
+    env: 'SSH_KEY'
