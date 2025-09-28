@@ -40,7 +40,7 @@ steps:
         git config --global user.name "Cloud Build"
                
         # --- Clone config repo ---
-        git clone --branch "${_CONFIG_BRANCH}" --depth 1 "${_CONFIG_REPO}"/workspace/config-repo
+        git clone --branch "${_CONFIG_BRANCH}" --depth 1 "${_CONFIG_REPO}" /workspace/config-repo
         cd /workspace/config-repo
         git config --global --add safe.directory /workspace/config-repo
 

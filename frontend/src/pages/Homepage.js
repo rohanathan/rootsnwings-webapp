@@ -14,7 +14,7 @@ const Homepage = () => {
   const [selectedCategory, setSelectedCategory] = useState("🎯 All Categories");
   const [selectedLocation, setSelectedLocation] = useState("📍 All Locations");
 
-  // State for workshop dates, initialized as empty array
+  // State for workshop dates, initialized as an empty array
   const [workshopDates, setWorkshopDates] = useState([]);
   const [featuredMentors, setFeaturedMentors] = useState([]);
 
