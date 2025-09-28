@@ -1,0 +1,73 @@
+# Grant Cloud Build access to Secret Manager secrets
+availableSecrets:
+  secretManager:
+  - versionName: projects/$PROJECT_ID/secrets/next-public-firebase-api-key/versions/latest
+    env: 'NEXT_PUBLIC_FIREBASE_API_KEY'
+  - versionName: projects/$PROJECT_ID/secrets/next-public-firebase-auth-domain/versions/latest
+    env: 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN'
+  - versionName: projects/$PROJECT_ID/secrets/next-public-firebase-project-id/versions/latest
+    env: 'NEXT_PUBLIC_FIREBASE_PROJECT_ID'
+  - versionName: projects/$PROJECT_ID/secrets/next-public-firebase-storage-bucket/versions/latest
+    env: 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET'
+  - versionName: projects/$PROJECT_ID/secrets/next-public-firebase-messaging-sender-id/versions/latest
+    env: 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'
+  - versionName: projects/$PROJECT_ID/secrets/next-public-firebase-app-id/versions/latest
+    env: 'NEXT_PUBLIC_FIREBASE_APP_ID'
+  - versionName: projects/$PROJECT_ID/secrets/next-public-firebase-measurement-id/versions/latest
+    env: 'NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID'
+  - versionName: projects/$PROJECT_ID/secrets/next-public-stripe-publishable-key/versions/latest
+    env: 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'
+
+steps:
+  # Step 1: Build the Docker image using bash to handle environment variables
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    secretEnv:
+      - 'NEXT_PUBLIC_FIREBASE_API_KEY'
+      - 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN'
+      - 'NEXT_PUBLIC_FIREBASE_PROJECT_ID'
+      - 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET'
+      - 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'
+      - 'NEXT_PUBLIC_FIREBASE_APP_ID'
+      - 'NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID'
+      - 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'
+    args:
+      - '-c'
+      - |
+        PROJECT_ID_LOWER=$$(echo $PROJECT_ID | tr "[:upper:]" "[:lower:]")
+        docker build \
+          #--build-arg NEXT_PUBLIC_FIREBASE_API_KEY=$$NEXT_PUBLIC_FIREBASE_API_KEY \
+          #--build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN \
+          #--build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=$$NEXT_PUBLIC_FIREBASE_PROJECT_ID \
+          #--build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET \
+          #--build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID \
+          #--build-arg NEXT_PUBLIC_FIREBASE_APP_ID=$$NEXT_PUBLIC_FIREBASE_APP_ID \
+          #--build-arg NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=$$NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID \
+          #--build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY \
+          -t "europe-west2-docker.pkg.dev/$$PROJECT_ID_LOWER/rootsnwings-repo/rootsnwings-frontend:$COMMIT_SHA" \
+          ./frontend
+
+  # Step 2: Push the Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        PROJECT_ID_LOWER=$$(echo $PROJECT_ID | tr "[:upper:]" "[:lower:]")
+        docker push "europe-west2-docker.pkg.dev/$$PROJECT_ID_LOWER/rootsnwings-repo/rootsnwings-frontend:$COMMIT_SHA"
+
+  # Step 3: Deploy to Cloud Run with secrets
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        PROJECT_ID_LOWER=$$(echo $PROJECT_ID | tr "[:upper:]" "[:lower:]")
+        gcloud run deploy frontend \
+          --image=europe-west2-docker.pkg.dev/$$PROJECT_ID_LOWER/rootsnwings-repo/rootsnwings-frontend:$COMMIT_SHA \
+          --platform=managed \
+          --region=europe-west2 \
+          --allow-unauthenticated \
+          --update-secrets=NEXT_PUBLIC_FIREBASE_API_KEY=next-public-firebase-api-key:latest,NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=next-public-firebase-auth-domain:latest,NEXT_PUBLIC_FIREBASE_PROJECT_ID=next-public-firebase-project-id:latest,NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=next-public-firebase-storage-bucket:latest,NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=next-public-firebase-messaging-sender-id:latest,NEXT_PUBLIC_FIREBASE_APP_ID=next-public-firebase-app-id:latest,NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=next-public-firebase-measurement-id:latest,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=next-public-stripe-publishable-key:latest
+
+logsBucket: 'gs://rootsnwings-build-logs-rootsnwings-465610'

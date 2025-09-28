@@ -27,14 +27,14 @@ const Homepage = () => {
   useEffect(() => {
     const fetchMentors = async () => {
       const response = await axios.get(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/?featured=true&pageSize=6"
+        "/api/mentors/?featured=true&pageSize=6"
       );
       setFeaturedMentors(response.data.mentors);
     };
 
     const fetchWorkshop = async () => {
       const response = await axios.get(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/classes?type=workshop&upcoming=true&pageSize=3"
+        "/api/classes?type=workshop&upcoming=true&pageSize=3"
       );
 
       setWorkshop(response.data.classes);
@@ -42,21 +42,21 @@ const Homepage = () => {
 
     const fetchTestimonials = async () => {
        const response = await axios.get(
-         "https://rootsnwings-api-944856745086.europe-west2.run.app/reviews?type=testimonials&limit=10"
+         "/api/reviews?type=testimonials&limit=10"
        );
        setTestimonials(response.data.testimonials);
     };
 
     const fetchCategories = async () => {
       const response = await axios.get(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/categories"
+        "/api/metadata/categories"
       );
       setCategories(response.data.categories);
     };
 
     const fetchCities = async () => {
       const response = await axios.get(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/"
+        "/api/mentors/"
       );
       const uniqueCities = [...new Set(response.data.mentors.map(mentor => mentor.city))].sort();
       setCities(uniqueCities);
