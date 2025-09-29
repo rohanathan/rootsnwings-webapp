@@ -13,6 +13,7 @@ router = APIRouter(
     tags=["Mentors"]
 )
 
+@router.get("", response_model=MentorListResponse)
 @router.get("/", response_model=MentorListResponse)
 def get_mentors(
     # Search & Filter Parameters
@@ -107,6 +108,7 @@ def get_mentors(
     }
 
 @router.get("/{mentor_id}")
+@router.get("/{mentor_id}/")
 def get_mentor_by_id(
     mentor_id: str,
     include_classes: bool = Query(False, description="Include mentor's classes in response - USED BY: Admin dashboard for mentor management")
@@ -146,6 +148,7 @@ def get_mentor_by_id(
     return response
 
 @router.put("/{mentor_id}")
+@router.put("/{mentor_id}/")
 def update_mentor_profile(mentor_id: str, update_data: dict):
     """
     Pure MongoDB-style flexible mentor updates.

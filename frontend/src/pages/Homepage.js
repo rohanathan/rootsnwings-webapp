@@ -25,16 +25,17 @@ const Homepage = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
+    const API_PREFIX = '/api';
     const fetchMentors = async () => {
       const response = await axios.get(
-        "/api/mentors/?featured=true&pageSize=6"
+        `${API_PREFIX}/mentors/?featured=true&pageSize=6`
       );
       setFeaturedMentors(response.data.mentors);
     };
 
     const fetchWorkshop = async () => {
       const response = await axios.get(
-        "/api/classes?type=workshop&upcoming=true&pageSize=3"
+        `${API_PREFIX}/classes?type=workshop&upcoming=true&pageSize=3`
       );
 
       setWorkshop(response.data.classes);
@@ -42,21 +43,21 @@ const Homepage = () => {
 
     const fetchTestimonials = async () => {
        const response = await axios.get(
-         "/api/reviews?type=testimonials&limit=10"
+         `${API_PREFIX}/reviews?type=testimonials&limit=10`
        );
        setTestimonials(response.data.testimonials);
     };
 
     const fetchCategories = async () => {
       const response = await axios.get(
-        "/api/metadata/categories"
+        `${API_PREFIX}/metadata/categories`
       );
       setCategories(response.data.categories);
     };
 
     const fetchCities = async () => {
       const response = await axios.get(
-        "/api/mentors/"
+        `${API_PREFIX}/mentors/?pageSize=100`
       );
       const uniqueCities = [...new Set(response.data.mentors.map(mentor => mentor.city))].sort();
       setCities(uniqueCities);
