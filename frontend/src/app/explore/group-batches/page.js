@@ -246,7 +246,7 @@ export default function GroupBatches() {
         }
         
         // Build API URL with query parameters
-        let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${mentorId}`;
+        let apiUrl = `/api/classes?mentorId=${mentorId}`;
         if (urlType) {
           apiUrl += `&type=${urlType}`;
         }
@@ -260,7 +260,7 @@ export default function GroupBatches() {
         // If we have URL params, also try to fetch mentor info for display
         if (urlMentorId && !mentor) {
           try {
-            const mentorResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${urlMentorId}`);
+            const mentorResponse = await axios.get(`/api/mentors/${urlMentorId}`);
             if (mentorResponse.data?.mentor) {
               localStorage.setItem('mentor', JSON.stringify(mentorResponse.data.mentor));
               setMentorData(mentorResponse.data.mentor);
@@ -290,7 +290,7 @@ export default function GroupBatches() {
         try {
           const idToken = await currentUser.getIdToken();
           const profileResponse = await axios.get(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${currentUser.uid}`,
+            `/api/users/${currentUser.uid}`,
             {
               headers: {
                 Authorization: `Bearer ${idToken}`,

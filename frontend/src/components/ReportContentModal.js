@@ -56,7 +56,7 @@ const ReportContentModal = ({ isOpen, onClose, contentType, contentId, contentTi
       console.log("Submitting report:", reportData);
       
       // In a real implementation, this would be:
-      // await axios.post("https://rootsnwings-api-944856745086.europe-west2.run.app/reports", reportData);
+      // await axios.post("/api/reports", reportData);
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));

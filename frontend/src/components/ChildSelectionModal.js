@@ -14,7 +14,7 @@ const ChildSelectionModal = ({
   const [error, setError] = useState(null);
 
   // API Configuration
-  const API_BASE_URL = 'https://rootsnwings-api-944856745086.europe-west2.run.app';
+  const API_BASE_URL = '/api';
 
   // Fetch children when modal opens
   useEffect(() => {

@@ -154,7 +154,7 @@ const ChatbotOverlay = () => {
             const pageContext = getPageContext();
             
             const response = await axios.post(
-                'https://rootsnwings-api-944856745086.europe-west2.run.app/ai/chat',
+                '/api/ai/chat',
                 {
                     message: userMessage,
                     conversation_history: history,

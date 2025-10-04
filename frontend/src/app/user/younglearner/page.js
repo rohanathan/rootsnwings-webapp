@@ -29,7 +29,7 @@ const YoungLearnerPage = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const API_BASE_URL = 'https://rootsnwings-api-944856745086.europe-west2.run.app';
+  const API_BASE_URL = '/api';
   const optionsMenuRef = useRef(null);
 
   // Firebase auth listener

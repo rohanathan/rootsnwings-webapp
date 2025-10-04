@@ -19,7 +19,7 @@ const MentorAvailability = ({  showTitle = true, compact = false }) => {
 
   const fetchAvailability = async () => {
     try {
-      const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/availability/mentors/${mentorId}`);
+      const response = await axios.get(`/api/availability/mentors/${mentorId}`);
       setAvailability(response.data.availability);
     } catch (err) {
       console.error('Error fetching availability:', err);

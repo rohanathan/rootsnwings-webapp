@@ -244,7 +244,7 @@ const Messages = () => {
       
       const idToken = await currentUser.getIdToken();
       const response = await axios.get(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${currentUser.uid}`,
+        `/api/classes?mentorId=${currentUser.uid}`,
         {
           headers: {
             'Authorization': `Bearer ${idToken}`,
@@ -254,7 +254,7 @@ const Messages = () => {
       );
       const studentPromises = response.data.classes.map(async (classItem) => {
         const bookingsResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classItem.classId}`,
+          `/api/bookings?classId=${classItem.classId}`,
           {
             headers: {
               'Authorization': `Bearer ${idToken}`,
@@ -265,7 +265,7 @@ const Messages = () => {
         const userPromises = bookingsResponse.data.bookings.map(
           async (booking) => {
             const userResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${booking.studentId}`,
+              `/api/users/${booking.studentId}`,
               {
                 headers: {
                   'Authorization': `Bearer ${idToken}`,
@@ -302,7 +302,7 @@ const Messages = () => {
     try {
       const idToken = await user.getIdToken();
       const response = await axios.get(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/messages/conversation?studentId=${selectedStudent?.fullUser?.uid}&mentorId=${user?.uid}`,
+        `/api/messages/conversation?studentId=${selectedStudent?.fullUser?.uid}&mentorId=${user?.uid}`,
         {
           headers: {
             'Authorization': `Bearer ${idToken}`,
@@ -514,7 +514,7 @@ const Messages = () => {
     try {
       const idToken = await user.getIdToken();
       const response = await axios.post(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/messages`,
+        `/api/messages`,
         {
           senderId: user.uid,
           studentId: selectedStudent?.fullUser?.uid,

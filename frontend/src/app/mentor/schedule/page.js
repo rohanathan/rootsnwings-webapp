@@ -43,7 +43,7 @@ export default function Schedule() {
     try {
       const idToken = await user.getIdToken();
       const response = await fetch(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/availability/mentors/${mentorId}`,
+        `/api/availability/mentors/${mentorId}`,
         {
           headers: {
             'Authorization': `Bearer ${idToken}`,
@@ -83,7 +83,7 @@ export default function Schedule() {
     try {
       const idToken = await user.getIdToken();
       const response = await fetch(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/availability/mentors/${mentorId}`,
+        `/api/availability/mentors/${mentorId}`,
         {
           method: "PUT",
           headers: {

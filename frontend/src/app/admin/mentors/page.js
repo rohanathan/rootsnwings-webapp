@@ -63,7 +63,7 @@ const AdminMentorsPage = () => {
         if (categoryFilter !== "all") params.append("category", categoryFilter);
 
         const response = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/?${params}`
+          `/api/mentors/?${params}`
         );
         
         if (response.data?.mentors) {
@@ -86,7 +86,7 @@ const AdminMentorsPage = () => {
   const handleStatusChange = async (mentorId, newStatus) => {
     try {
       await axios.put(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${mentorId}`,
+        `/api/mentors/${mentorId}`,
         { status: newStatus }
       );
       

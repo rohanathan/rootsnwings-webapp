@@ -16,7 +16,7 @@ const AuthPages = () => {
   
   // API URL - use localhost for local testing
   const API_BASE_URL = process.env.NODE_ENV === 'production' 
-    ? 'https://rootsnwings-api-944856745086.europe-west2.run.app'
+    ? '/api'
     : 'http://localhost:8000';
   
   // States for password visibility

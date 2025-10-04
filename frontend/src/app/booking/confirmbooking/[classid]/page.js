@@ -78,7 +78,7 @@ export default function BookingConfirmation() {
         // Then fetch live data from API using classId
         if (classId) {
           const classResponse = await axios.get(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${classId}`
+            `/api/classes/${classId}`
           );
           if (classResponse.data?.class) {
             const classData = classResponse.data.class;
@@ -92,7 +92,7 @@ export default function BookingConfirmation() {
             // Fetch mentor data if we have mentorId
             if (classData.mentorId) {
               const mentorResponse = await axios.get(
-                `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${classData.mentorId}`
+                `/api/mentors/${classData.mentorId}`
               );
               if (mentorResponse.data?.mentor) {
                 setMentor(mentorResponse.data.mentor);
@@ -206,7 +206,7 @@ export default function BookingConfirmation() {
       if (bookingTotal === 0) {
         // For free bookings, create booking directly
         const bookingResponse = await axios.post(
-          "https://rootsnwings-api-944856745086.europe-west2.run.app/bookings",
+          "/api/bookings",
           {
             mentorId: mentor.uid,
             classId: selectedMentorClass.classId,
@@ -235,7 +235,7 @@ export default function BookingConfirmation() {
 
       // For paid bookings: Create Stripe Checkout Session (no booking created yet)
       const checkoutResponse = await axios.post(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/payments/create-checkout-session",
+        "/api/payments/create-checkout-session",
         {
           classId: selectedMentorClass.classId,
           studentId: user.uid,

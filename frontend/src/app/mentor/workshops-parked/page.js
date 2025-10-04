@@ -96,7 +96,7 @@ export default function App() {
 
         // Fetch workshops (type=workshop only)
         const response = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${user.user.uid}&type=workshop`
+          `/api/classes?mentorId=${user.user.uid}&type=workshop`
         );
         const workshops = response.data.classes || [];
 
@@ -117,7 +117,7 @@ export default function App() {
           try {
             // Fetch bookings for this workshop
             const bookingsResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${workshop.classId}`
+              `/api/bookings?classId=${workshop.classId}`
             );
             const bookings = bookingsResponse.data.bookings || [];
 

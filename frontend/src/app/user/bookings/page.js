@@ -65,7 +65,7 @@ const Dashboard = () => {
     try {
       const idToken = await user.getIdToken();
       await axios.post(
-        'https://rootsnwings-api-944856745086.europe-west2.run.app/reviews',
+        '/api/reviews',
         {
           classId: selectedBooking.classId,
           rating: reviewRating,
@@ -153,7 +153,7 @@ const Dashboard = () => {
           // Fallback: Try to fetch from API
           try {
             const profileResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}`,
+              `/api/users/${user.uid}`,
               {
                 headers: {
                   Authorization: `Bearer ${idToken}`,
@@ -200,7 +200,7 @@ const Dashboard = () => {
           try {
             const idToken = await user.getIdToken();
             const bookingsResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=${user.uid}`,
+              `/api/bookings?studentId=${user.uid}`,
               {
                 headers: {
                   Authorization: `Bearer ${idToken}`,
@@ -212,7 +212,7 @@ const Dashboard = () => {
             bookingsResponse.data?.bookings.forEach(async (booking) => {
               try {
                 const classResponse = await axios.get(
-                  `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${booking.classId}`
+                  `/api/classes/${booking.classId}`
                 );
                 setBookingsClasses((prev) => [
                   ...prev,
@@ -248,7 +248,7 @@ const Dashboard = () => {
       try {
         const idToken = await user.getIdToken();
         const response = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/young-learners?parent_uid=${user.uid}`,
+          `/api/young-learners?parent_uid=${user.uid}`,
           {
             headers: {
               Authorization: `Bearer ${idToken}`,

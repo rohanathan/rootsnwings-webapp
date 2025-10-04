@@ -58,7 +58,7 @@ const AdminDashboard = () => {
           }
 
           const classResponse = await axios.get(
-            "https://rootsnwings-api-944856745086.europe-west2.run.app/classes?status=pending_approval&pageSize=50",
+            "/api/classes?status=pending_approval&pageSize=50",
             config
           );
           
@@ -67,7 +67,7 @@ const AdminDashboard = () => {
           }
 
           const allClassesResponse = await axios.get(
-            "https://rootsnwings-api-944856745086.europe-west2.run.app/classes?pageSize=100",
+            "/api/classes?pageSize=100",
             config
           );
           
@@ -230,7 +230,7 @@ const AdminDashboard = () => {
       const status = action === 'approve' ? 'approved' : 'rejected';
       
       await axios.put(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${classId}`,
+        `/api/classes/${classId}`,
         { status }
       );
       

@@ -310,7 +310,7 @@ class ChatAnalytics {
     try {
       const summary = this.getAnalyticsSummary();
       
-      const response = await fetch('https://rootsnwings-api-944856745086.europe-west2.run.app/ai/analytics', {
+      const response = await fetch('/api/ai/analytics', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

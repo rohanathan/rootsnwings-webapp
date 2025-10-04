@@ -63,7 +63,7 @@ export default function BookingSuccess() {
           // Payment came from Stripe Checkout - process the session
           const idToken = await user.getIdToken();
           const successResponse = await axios.get(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/payments/success?session_id=${sessionId}`,
+            `/api/payments/success?session_id=${sessionId}`,
             {
               headers: {
                 Authorization: `Bearer ${idToken}`,

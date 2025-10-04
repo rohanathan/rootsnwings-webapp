@@ -135,7 +135,7 @@ const OnBoarding = () => {
       try {
         setLoadingCategories(true);
         const response = await fetch(
-          "https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/categories"
+          "/api/metadata/categories"
         );
         if (response.ok) {
           const data = await response.json();
@@ -391,7 +391,7 @@ const OnBoarding = () => {
 
       // Make API call to submit the onboarding data with Firebase auth
       const response = await axios.post(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/user-onboarding/mentor",
+        "/api/user-onboarding/mentor",
         requestBody,
         {
           headers: {
@@ -408,7 +408,7 @@ const OnBoarding = () => {
         // Mark onboarding as complete in Firebase backend
         try {
           await axios.post(
-            "https://rootsnwings-api-944856745086.europe-west2.run.app/firebase-auth/complete-onboarding",
+            "/api/firebase-auth/complete-onboarding",
             {},
             {
               headers: {

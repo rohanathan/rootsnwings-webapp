@@ -102,7 +102,7 @@ export default function Students() {
 
         // Step 1: Fetch all mentor's classes
         const classesResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${currentUser.uid}`,
+          `/api/classes?mentorId=${currentUser.uid}`,
           {
             headers: {
               'Authorization': `Bearer ${idToken}`,
@@ -126,7 +126,7 @@ export default function Students() {
         for (const classObj of mentorClasses) {
           try {
             const bookingsResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`,
+              `/api/bookings?classId=${classObj.classId}`,
               {
                 headers: {
                   'Authorization': `Bearer ${idToken}`,
@@ -164,7 +164,7 @@ export default function Students() {
                   // Try to fetch detailed student profile
                   try {
                     const studentResponse = await axios.get(
-                      `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${booking.studentId}`,
+                      `/api/users/${booking.studentId}`,
                       {
                         headers: {
                           'Authorization': `Bearer ${idToken}`,

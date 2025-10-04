@@ -43,7 +43,7 @@ const UserOnboardingFlow = () => {
       try {
         setLoadingCategories(true);
         const response = await fetch(
-          "https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/categories"
+          "/api/metadata/categories"
         );
         if (response.ok) {
           const data = await response.json();
@@ -372,7 +372,7 @@ const UserOnboardingFlow = () => {
 
       // Make API call to complete onboarding
       const response = await axios.post(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/user-onboarding",
+        "/api/user-onboarding",
         userOnboardingData,
         {
           headers: {

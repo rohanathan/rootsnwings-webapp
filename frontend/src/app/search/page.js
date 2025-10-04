@@ -16,7 +16,7 @@ const SearchResults = () => {
   const [user, setUser] = useState({});
 
   const router = useRouter();
-  const API_BASE_URL = 'https://rootsnwings-api-944856745086.europe-west2.run.app';
+  const API_BASE_URL = '/api';
 
   // Check if query looks like natural language that needs AI enhancement
   const isNaturalLanguageQuery = (query) => {

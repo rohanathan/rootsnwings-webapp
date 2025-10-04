@@ -96,7 +96,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchMentorClasses = async (uid, idToken) => {
       try {
-        let apiUrl = `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${uid}`;
+        let apiUrl = `/api/classes?mentorId=${uid}`;
         const response = await axios.get(apiUrl, {
           headers: {
             'Authorization': `Bearer ${idToken}`,
@@ -119,7 +119,7 @@ const Dashboard = () => {
         const updatedClasses = await Promise.all(classes.map(async (classObj) => {
           try {
             // Fetch bookings for this class
-            const bookingsResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`, {
+            const bookingsResponse = await axios.get(`/api/bookings?classId=${classObj.classId}`, {
               headers: {
                 'Authorization': `Bearer ${idToken}`,
                 'Content-Type': 'application/json'
@@ -202,7 +202,7 @@ const Dashboard = () => {
       try {
         if (user?.uid) {
           const response = await axios.get(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${user.uid}`,
+            `/api/mentors/${user.uid}`,
             {
               headers: {
                 'Authorization': `Bearer ${idToken}`,
@@ -264,7 +264,7 @@ const Dashboard = () => {
           // Verify user is a mentor by calling Firebase auth endpoint
           try {
             const userProfileResponse = await axios.get(
-              'https://rootsnwings-api-944856745086.europe-west2.run.app/firebase-auth/me',
+              '/api/firebase-auth/me',
               {
                 headers: {
                   'Authorization': `Bearer ${idToken}`,

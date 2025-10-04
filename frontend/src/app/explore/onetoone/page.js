@@ -79,7 +79,7 @@ export default function OneOnOneSessions() {
         
         // Load mentor details
         console.log('Fetching mentor details...');
-        const mentorResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${urlMentorId}`);
+        const mentorResponse = await axios.get(`/api/mentors/${urlMentorId}`);
         console.log('Mentor response:', mentorResponse.data);
         if (mentorResponse.data?.mentor) {
           setMentor(mentorResponse.data.mentor);
@@ -89,7 +89,7 @@ export default function OneOnOneSessions() {
         // Load mentor availability
         try {
           console.log('Fetching mentor availability...');
-          const availabilityResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/availability/mentors/${urlMentorId}`);
+          const availabilityResponse = await axios.get(`/api/availability/mentors/${urlMentorId}`);
           console.log('Availability response:', availabilityResponse.data);
           if (availabilityResponse.data) {
             setAvailability(availabilityResponse.data.availability);
@@ -107,7 +107,7 @@ export default function OneOnOneSessions() {
 
         // Load student's previous bookings (for first session detection)
         // TODO: Replace with actual student ID from auth
-        const bookingsResponse = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=user031`);
+        const bookingsResponse = await axios.get(`/api/bookings?studentId=user031`);
         if (bookingsResponse.data) {
           setStudentBookings(bookingsResponse.data.bookings || []);
         }
@@ -149,7 +149,7 @@ export default function OneOnOneSessions() {
         try {
           const idToken = await currentUser.getIdToken();
           const profileResponse = await axios.get(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${currentUser.uid}`,
+            `/api/users/${currentUser.uid}`,
             {
               headers: {
                 Authorization: `Bearer ${idToken}`,
@@ -370,7 +370,7 @@ export default function OneOnOneSessions() {
       }
 
       // Create one-on-one class
-      const response = await axios.post('https://rootsnwings-api-944856745086.europe-west2.run.app/classes/one-on-one/create', requestPayload);
+      const response = await axios.post('/api/classes/one-on-one/create', requestPayload);
 
       if (response.data?.classId) {
         // Store class data for booking confirmation page

@@ -65,7 +65,7 @@ const AdminClassesPage = () => {
         if (typeFilter !== "all") params.append("type", typeFilter);
 
         const response = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?${params}`
+          `/api/classes?${params}`
         );
         
         if (response.data?.classes) {
@@ -148,7 +148,7 @@ const AdminClassesPage = () => {
       console.log("Sending update payload:", updatePayload);
       
       await axios.put(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${selectedClass.classId}`,
+        `/api/classes/${selectedClass.classId}`,
         updatePayload
       );
       
@@ -173,7 +173,7 @@ const AdminClassesPage = () => {
   const handleStatusChange = async (classId, newStatus) => {
     try {
       await axios.put(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/classes/${classId}`,
+        `/api/classes/${classId}`,
         { status: newStatus }
       );
       

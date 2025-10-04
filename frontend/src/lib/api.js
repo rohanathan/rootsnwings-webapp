@@ -7,7 +7,7 @@ import { auth } from './firebase';
 
 // Environment-based API URL detection
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://rootsnwings-api-944856745086.europe-west2.run.app'
+  ? '/api'
   : 'http://localhost:8000';
 
 console.log('API Base URL:', API_BASE_URL);

@@ -37,7 +37,7 @@ const SavedMentorsPage = () => {
           // Fetch full user profile with roles
           const idToken = await currentUser.getIdToken();
           const profileResponse = await axios.get(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${currentUser.uid}`,
+            `/api/users/${currentUser.uid}`,
             {
               headers: {
                 Authorization: `Bearer ${idToken}`,
@@ -78,7 +78,7 @@ const SavedMentorsPage = () => {
       try {
         const idToken = await user.getIdToken();
         const response = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/young-learners?parent_uid=${user.uid}`,
+          `/api/young-learners?parent_uid=${user.uid}`,
           {
             headers: {
               Authorization: `Bearer ${idToken}`,
@@ -110,7 +110,7 @@ const SavedMentorsPage = () => {
         const idToken = await user.getIdToken();
         // Get saved mentor IDs from student profile
         const profileResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=student`,
+          `/api/users/${user.uid}?profile_type=student`,
           {
             headers: {
               Authorization: `Bearer ${idToken}`,
@@ -124,7 +124,7 @@ const SavedMentorsPage = () => {
         if (mentorIds.length > 0) {
           // Fetch all mentors and filter by saved IDs
           const mentorsResponse = await axios.get(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/`
+            `/api/mentors/`
           );
           
           const filteredMentors = mentorsResponse.data?.mentors?.filter(mentor => 
@@ -142,7 +142,7 @@ const SavedMentorsPage = () => {
     const fetchCategories = async () => {
       try {
         const response = await axios.get(
-          "https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/categories"
+          "/api/metadata/categories"
         );
         setCategories(response.data?.categories || []);
       } catch (error) {
@@ -206,7 +206,7 @@ const SavedMentorsPage = () => {
       
       // Update backend
       await axios.put(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=student`,
+        `/api/users/${user.uid}?profile_type=student`,
         { savedMentors: updatedMentorIds },
         {
           headers: {

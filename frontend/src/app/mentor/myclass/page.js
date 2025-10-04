@@ -33,7 +33,7 @@ export default function MyClass() {
 
         // Fetch mentor classes using the same endpoint as dashboard
         const classesResponse = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${currentUser.uid}`,
+          `/api/classes?mentorId=${currentUser.uid}`,
           {
             headers: {
               'Authorization': `Bearer ${idToken}`,
@@ -56,7 +56,7 @@ export default function MyClass() {
         for (const classObj of classes) {
           try {
             const bookingsResponse = await axios.get(
-              `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?classId=${classObj.classId}`,
+              `/api/bookings?classId=${classObj.classId}`,
               {
                 headers: {
                   'Authorization': `Bearer ${idToken}`,

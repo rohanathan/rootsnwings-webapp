@@ -261,7 +261,7 @@ const Messages = () => {
       try {
         const idToken = await user.getIdToken();
         const response = await axios.get(
-          `https://rootsnwings-api-944856745086.europe-west2.run.app/bookings?studentId=${user.uid}`,
+          `/api/bookings?studentId=${user.uid}`,
           {
             headers: {
               Authorization: `Bearer ${idToken}`,
@@ -272,7 +272,7 @@ const Messages = () => {
         const bookings = response.data.bookings;
         const studentPromises = bookings.map(async (booking) => {
           const userResponse = await axios.get(
-            `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${booking.mentorId}`
+            `/api/users/${booking.mentorId}`
           );
           return userResponse.data;
         });
@@ -291,7 +291,7 @@ const Messages = () => {
     try {
       const idToken = await user.getIdToken();
       const response = await axios.get(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/messages/conversation?studentId=${user.uid}&mentorId=${selectedMentor?.fullUser?.uid}`,
+        `/api/messages/conversation?studentId=${user.uid}&mentorId=${selectedMentor?.fullUser?.uid}`,
         {
           headers: {
             Authorization: `Bearer ${idToken}`,
@@ -501,7 +501,7 @@ const Messages = () => {
     try {
       const idToken = await user.getIdToken();
       await axios.post(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/messages`,
+        `/api/messages`,
         {
           senderId: user.uid,
           studentId: user.uid,
