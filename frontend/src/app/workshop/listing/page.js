@@ -10,7 +10,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import ChildSelectionModal from '@/components/ChildSelectionModal';
 
 // API Configuration
-const API_BASE_URL = 'https://rootsnwings-api-944856745086.europe-west2.run.app';
+const API_BASE_URL = '/api';
 
 export default function Home() {
   const router = useRouter();

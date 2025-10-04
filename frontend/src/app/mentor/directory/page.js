@@ -54,7 +54,7 @@ const MentorDirectory = () => {
       params.append('pageSize', '50');
       
       const response = await axios.get(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/?${params.toString()}`
+        `/api/mentors/?${params.toString()}`
       );
       
       if (response.data && response.data.mentors) {
@@ -76,7 +76,7 @@ const MentorDirectory = () => {
   const fetchCategories = async () => {
     try {
       const response = await axios.get(
-        "https://rootsnwings-api-944856745086.europe-west2.run.app/metadata/categories"
+        "/api/metadata/categories"
       );
       if (response.data && response.data.categories) {
         setCategories(response.data.categories);
@@ -92,7 +92,7 @@ const MentorDirectory = () => {
     setLoadingSaved(true);
     try {
       const response = await axios.get(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=student`
+        `/api/users/${user.uid}?profile_type=student`
       );
       
       if (response.data && response.data.profile && response.data.profile.savedMentors) {
@@ -123,7 +123,7 @@ const MentorDirectory = () => {
 
       // Update backend
       await axios.put(
-        `https://rootsnwings-api-944856745086.europe-west2.run.app/users/${user.uid}?profile_type=student`,
+        `/api/users/${user.uid}?profile_type=student`,
         {
           savedMentors: newSavedMentors
         }
