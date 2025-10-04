@@ -271,7 +271,7 @@ const Dashboard = () => {
             // Verify user is a mentor by calling Firebase auth endpoint
             try {
               const userProfileResponse = await axios.get(
-                'https://rootsnwings-api-944856745086.europe-west2.run.app/firebase-auth/me',
+                '/api/firebase-auth/me',
                 {
                   headers: {
                     'Authorization': `Bearer ${idToken}`,
