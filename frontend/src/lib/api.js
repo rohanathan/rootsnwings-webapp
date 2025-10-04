@@ -3,7 +3,7 @@
  * Handles authentication, base URLs, error handling, and retry logic
  */
 
-import { auth } from './firebase';
+import { getFirebaseAuth } from './firebase';
 
 // Environment-based API URL detection
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
@@ -18,10 +18,11 @@ console.log('API Base URL:', API_BASE_URL);
 const getFirebaseToken = async () => {
   try {
     // Guard against server-side rendering and missing auth
-    if (!auth || typeof window === 'undefined') {
+    const auth = getFirebaseAuth();
+    if (!auth) {
       throw new Error('Firebase auth not available (SSR or missing config)');
     }
-    
+
     const user = auth.currentUser;
     if (!user) {
       throw new Error('No authenticated user found');

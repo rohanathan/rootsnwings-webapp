@@ -1,10 +1,9 @@
 // frontend/src/lib/firebase.ts
 
-// Import the functions you need from the SDKs
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 // Firebase config from .env.local (automatically pulled via NEXT_PUBLIC_*)
 const firebaseConfig = {
@@ -17,21 +16,64 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Only initialize Firebase on the client side with valid config
-let app, auth, db, storage;
+let firebaseApp: FirebaseApp | null = null;
+let firebaseAuth: Auth | null = null;
+let firestore: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 
-if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
-  // Client-side initialization with valid config
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
-} else {
-  // Server-side or missing config - create placeholder objects
-  app = null;
-  auth = null;
-  db = null;
-  storage = null;
-}
+const hasValidConfig = Boolean(firebaseConfig.apiKey);
 
-export { app, auth, db, storage };
+export const getFirebaseApp = (): FirebaseApp | null => {
+  if (!hasValidConfig) {
+    return null;
+  }
+
+  if (!firebaseApp) {
+    firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  }
+
+  return firebaseApp;
+};
+
+export const getFirebaseAuth = (): Auth | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const app = getFirebaseApp();
+  if (!app) {
+    return null;
+  }
+
+  if (!firebaseAuth) {
+    firebaseAuth = getAuth(app);
+  }
+
+  return firebaseAuth;
+};
+
+export const getFirebaseFirestore = (): Firestore | null => {
+  const app = getFirebaseApp();
+  if (!app) {
+    return null;
+  }
+
+  if (!firestore) {
+    firestore = getFirestore(app);
+  }
+
+  return firestore;
+};
+
+export const getFirebaseStorage = (): FirebaseStorage | null => {
+  const app = getFirebaseApp();
+  if (!app) {
+    return null;
+  }
+
+  if (!storage) {
+    storage = getStorage(app);
+  }
+
+  return storage;
+};
