@@ -136,7 +136,7 @@ const MentorDetail = () => {
         // Get mentor's classes
         const fetchMentorClasses = async (mentorId) => {
             try {
-                const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/classes?mentorId=${mentorId}`);
+                const response = await axios.get(`/api/classes?mentorId=${mentorId}`);
                 if (response.data?.classes) {
                     // Store classes in localStorage for use in other pages
                     localStorage.setItem('availableMentorClass', JSON.stringify(response.data.classes));
@@ -179,7 +179,7 @@ const MentorDetail = () => {
         try {
             console.log('Starting to load reviews for mentor:', mentorId);
             setReviewsLoading(true);
-            const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/reviews?type=mentor&id=${mentorId}`);
+            const response = await axios.get(`/api/reviews?type=mentor&id=${mentorId}`);
             console.log('Reviews API response:', response.data);
             console.log('Reviews array:', response.data.reviews);
             console.log('Reviews count:', response.data.reviews?.length || 0);
@@ -197,7 +197,7 @@ const MentorDetail = () => {
     const loadFreshMentorData = async (mentorId) => {
         try {
             console.log('Fetching mentor data for ID:', mentorId);
-            const response = await axios.get(`https://rootsnwings-api-944856745086.europe-west2.run.app/mentors/${mentorId}`);
+            const response = await axios.get(`/api/mentors/${mentorId}`);
             if (response.data.mentor) {
                 console.log('Fresh mentor data structure:', response.data.mentor);
                 console.log('Qualifications field:', response.data.mentor.qualifications);
