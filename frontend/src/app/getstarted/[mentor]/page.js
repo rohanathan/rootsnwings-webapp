@@ -4,7 +4,7 @@ import Head from 'next/head';
 import axios from 'axios';
 // Firebase imports
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '../../../lib/firebase';
+import { getFirebaseAuth } from '../../../lib/firebase';
 
 const AuthPages = () => {
   // State to manage which tab is active: 'signin' or 'signup'
@@ -41,7 +41,15 @@ const AuthPages = () => {
   // State to track form validation errors
   const [signupFormErrors, setSignupFormErrors] = useState({});
   const [signinFormErrors, setSigninFormErrors] = useState({});
-  
+
+  const getAuthOrThrow = () => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      throw new Error('Firebase auth not available');
+    }
+    return authInstance;
+  };
+
   // Check URL parameters and set the active tab on component mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -82,6 +90,7 @@ const AuthPages = () => {
   // Helper function to make authenticated API calls to backend
   const makeAuthenticatedAPICall = async (endpoint, method = 'GET', data = null) => {
     try {
+      const auth = getAuthOrThrow();
       const user = auth.currentUser;
       console.log('API Call - Current user:', user?.uid);
       
@@ -155,6 +164,11 @@ const AuthPages = () => {
     try {
       console.log('Starting Firebase mentor signup process...');
       
+      const auth = getFirebaseAuth();
+      if (!auth) {
+        throw new Error('Firebase auth not available');
+      }
+
       // Step 1: Create Firebase user
       const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
       const firebaseUser = userCredential.user;
@@ -237,6 +251,11 @@ const AuthPages = () => {
     try {
       console.log('Starting Firebase mentor signin process...');
       
+      const auth = getFirebaseAuth();
+      if (!auth) {
+        throw new Error('Firebase auth not available');
+      }
+
       // Step 1: Sign in with Firebase
       const userCredential = await signInWithEmailAndPassword(auth, signinEmail, signinPassword);
       const firebaseUser = userCredential.user;

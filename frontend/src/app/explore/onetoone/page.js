@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { auth } from '@/lib/firebase';
+import { getFirebaseAuth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import ChildSelectionModal from '@/components/ChildSelectionModal';
 
@@ -142,10 +142,15 @@ export default function OneOnOneSessions() {
 
   // Firebase auth listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        
+
         try {
           const idToken = await currentUser.getIdToken();
           const profileResponse = await axios.get(

@@ -6,7 +6,7 @@ import { calculateTotalHoursTaught, getUpcomingSessionsCount, navItems } from "@
 import axios from "axios";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import { useRouter } from 'next/navigation';
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 // Re-creating the Tailwind config for use in the component
@@ -252,55 +252,64 @@ const Dashboard = () => {
     };
 
     // Firebase auth state listener
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      try {
-        setUser(currentUser);
-        setAuthLoading(false);
-        
-        if (currentUser) {
-          // Get Firebase ID token
-          const idToken = await currentUser.getIdToken();
-          
-          // Verify user is a mentor by calling Firebase auth endpoint
-          try {
-            const userProfileResponse = await axios.get(
-              'https://rootsnwings-api-944856745086.europe-west2.run.app/firebase-auth/me',
-              {
-                headers: {
-                  'Authorization': `Bearer ${idToken}`,
-                  'Content-Type': 'application/json'
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(
+      authInstance,
+      async (currentUser) => {
+        try {
+          setUser(currentUser);
+          setAuthLoading(false);
+
+          if (currentUser) {
+            // Get Firebase ID token
+            const idToken = await currentUser.getIdToken();
+
+            // Verify user is a mentor by calling Firebase auth endpoint
+            try {
+              const userProfileResponse = await axios.get(
+                'https://rootsnwings-api-944856745086.europe-west2.run.app/firebase-auth/me',
+                {
+                  headers: {
+                    'Authorization': `Bearer ${idToken}`,
+                    'Content-Type': 'application/json'
+                  }
                 }
+              );
+
+              const userProfile = userProfileResponse.data;
+              if (!userProfile.roles.includes('mentor')) {
+                router.push('/');
+                return;
               }
-            );
-            
-            const userProfile = userProfileResponse.data;
-            if (!userProfile.roles.includes('mentor')) {
-              router.push('/');
-              return;
+
+              // Fetch mentor details with Firebase auth
+              await fetchMentorDetails(currentUser, idToken);
+
+            } catch (profileError) {
+              console.error('Error fetching user profile:', profileError);
+              if (profileError.response?.status === 401) {
+                router.push('/getstarted');
+                return;
+              }
+              setAuthError(profileError);
             }
-            
-            // Fetch mentor details with Firebase auth
-            await fetchMentorDetails(currentUser, idToken);
-            
-          } catch (profileError) {
-            console.error('Error fetching user profile:', profileError);
-            if (profileError.response?.status === 401) {
-              router.push('/getstarted');
-              return;
-            }
-            setAuthError(profileError);
           }
+        } catch (error) {
+          console.error('Firebase auth error:', error);
+          setAuthError(error);
+          setAuthLoading(false);
         }
-      } catch (error) {
-        console.error('Firebase auth error:', error);
+      },
+      (error) => {
+        console.error('Firebase auth listener error:', error);
         setAuthError(error);
         setAuthLoading(false);
       }
-    }, (error) => {
-      console.error('Firebase auth listener error:', error);
-      setAuthError(error);
-      setAuthLoading(false);
-    });
+    );
 
     const handleResize = () => {
       if (window.innerWidth >= 768) {

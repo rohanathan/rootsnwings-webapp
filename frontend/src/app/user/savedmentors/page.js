@@ -3,7 +3,7 @@ import UserSidebar from "@/components/UserSidebar";
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 const SavedMentorsPage = () => {
@@ -29,10 +29,15 @@ const SavedMentorsPage = () => {
 
   // Firebase auth listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        
+
         try {
           // Fetch full user profile with roles
           const idToken = await currentUser.getIdToken();

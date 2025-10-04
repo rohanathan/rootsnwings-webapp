@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import axios from "axios";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 const UserOnboardingFlow = () => {
@@ -20,7 +20,12 @@ const UserOnboardingFlow = () => {
 
   // Firebase auth listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         setFormData((prev) => ({

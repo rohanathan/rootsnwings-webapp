@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import { getSessionsSummary } from "@/app/utils";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 const Dashboard = () => {
@@ -93,7 +93,12 @@ const Dashboard = () => {
 
   // Firebase auth listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         setUserProfile({
