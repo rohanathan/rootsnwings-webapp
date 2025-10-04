@@ -6,7 +6,7 @@ import MentorSideBase from "@/components/MentorSideBase";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import { navItems } from "@/app/utils";
 import axios from "axios";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function Students() {
@@ -42,7 +42,12 @@ export default function Students() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
       if (!currentUser) {
         // Not authenticated, redirect to login
         window.location.href = '/getstarted';
@@ -270,7 +275,12 @@ export default function Students() {
       }
     };
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
       if (currentUser) {
         fetchStudents(currentUser);
       } else {

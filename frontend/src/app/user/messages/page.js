@@ -3,7 +3,7 @@
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import axios from "axios";
 import { useState, useEffect, useRef } from "react";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 // Using inline SVG for FontAwesome icons as Next.js does not support direct link to CSS in components
@@ -241,7 +241,12 @@ const Messages = () => {
 
   // Firebase auth listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         setLoading(false);

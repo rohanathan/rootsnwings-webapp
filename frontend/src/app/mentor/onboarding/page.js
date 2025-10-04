@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import axios from "axios";
 
@@ -93,7 +93,13 @@ const OnBoarding = () => {
 
   // Firebase auth state listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
       if (currentUser) {

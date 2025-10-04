@@ -4,7 +4,7 @@ import Head from "next/head";
 import MentorSideBase from "@/components/MentorSideBase";
 import { navItems } from "@/app/utils";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 // Re-creating the Tailwind config for use in the component
@@ -105,7 +105,12 @@ const HostClassPage = () => {
 
   // Firebase auth and setup
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         // Set mentorId in form data

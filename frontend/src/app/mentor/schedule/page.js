@@ -6,7 +6,7 @@ import MentorHeaderAccount from "@/components/MentorHeaderAccount";
 import MentorSideBase from "@/components/MentorSideBase";
 import { navItems } from "@/app/utils";
 import MentorAvailability from "@/components/MentorAvailability";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function Schedule() {
@@ -186,7 +186,12 @@ export default function Schedule() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         setMentorId(currentUser.uid);

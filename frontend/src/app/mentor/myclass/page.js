@@ -6,7 +6,7 @@ import MentorSideBase from "@/components/MentorSideBase";
 import { navItems } from "@/app/utils";
 import axios from "axios";
 import MentorHeaderAccount from "@/components/MentorHeaderAccount";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function MyClass() {
@@ -122,7 +122,12 @@ export default function MyClass() {
       }
     };
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         // Get mentor details from localStorage (set by dashboard)

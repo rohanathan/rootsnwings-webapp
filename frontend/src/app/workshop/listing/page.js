@@ -5,7 +5,7 @@ import Head from 'next/head';
 import Navbar from '@/components/NavBar';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
+import { getFirebaseAuth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import ChildSelectionModal from '@/components/ChildSelectionModal';
 
@@ -32,7 +32,12 @@ export default function Home() {
 
   // Firebase auth listener with role fetching
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const authInstance = getFirebaseAuth();
+    if (!authInstance) {
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(authInstance, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         
