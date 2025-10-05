@@ -7,7 +7,7 @@ import CulturalWorldMap from "@/components/CulturalWorldMap";
 import axios from "axios";
 import React, { useState, useEffect } from "react";
 
-// Main App component to encapsulate the entire page
+// Main App components to encapsulate the entire page
 const Homepage = () => {
   // State for search functionality
   const [searchTerm, setSearchTerm] = useState("");

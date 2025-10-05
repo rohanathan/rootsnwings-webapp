@@ -20,7 +20,7 @@ async def create_young_learner(
 ):
     """Create a new young learner profile with complete flexibility"""
     try:
-        # Generate unique IDs for the young learner
+        # Generate unique ID for the young learner
         young_learner_id = f"yl_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{current_user_uid[-4:]}"
         
         # Add system fields

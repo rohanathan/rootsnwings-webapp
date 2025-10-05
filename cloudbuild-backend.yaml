@@ -8,26 +8,28 @@ steps:
       - '-t'
       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$SHORT_SHA'
       - '.'
-  # New Step: Scan Image with Trivy
+  
+  # Step 2: Scan Image with Trivy
   - name: 'aquasec/trivy'
     id: 'vulnerability-scan'
     args:
+      - 'image'  # THIS IS THE KEY FIX - specify the subcommand first
       - '--format'
       - 'json'
       - '--severity'
-      - 'CRITICAL' # Only fail the build on critical issues
+      - 'CRITICAL'  # Check for CRITICAL and HIGH vulnerabilities
       - '--exit-code'
-      - '1' # Causes the build to fail if critical vulnerabilities are found
+      - '1' # Causes the build to fail if vulnerabilities are found
       - '--ignore-unfixed' # Focus on issues you can actually fix
       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$SHORT_SHA'
   
-  # Step 2: Push the Docker Image to Artifact Registry
+  # Step 3: Push the Docker Image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$SHORT_SHA'
 
-# Step 3: GitOps Hand-off (Update config repo using yq)
+# Step 4: GitOps Hand-off (Update config repo using yq)
   - name: 'alpine:3.19'
     id: 'update-config-repo'
     entrypoint: 'sh'
