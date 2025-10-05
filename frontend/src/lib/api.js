@@ -1,5 +1,5 @@
 /**
- * Consolidated API Layer for Roots & Wings
+ * Consolidated API Layer for Roots and Wings
  * Handles authentication, base URLs, error handling, and retry logic
  */
 

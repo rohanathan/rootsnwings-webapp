@@ -8,7 +8,19 @@ steps:
       - '-t'
       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$SHORT_SHA'
       - '.'
-
+  # New Step: Scan Image with Trivy
+  - name: 'aquasec/trivy'
+    id: 'vulnerability-scan'
+    args:
+      - '--format'
+      - 'json'
+      - '--severity'
+      - 'CRITICAL' # Only fail the build on critical issues
+      - '--exit-code'
+      - '1' # Causes the build to fail if critical vulnerabilities are found
+      - '--ignore-unfixed' # Focus on issues you can actually fix
+      - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$SHORT_SHA'
+  
   # Step 2: Push the Docker Image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
