@@ -8,7 +8,31 @@ steps:
       - '-t'
       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$SHORT_SHA'
       - '.'
-  
+# Add this BEFORE your Trivy Step (Step 2)
+# Step 2: SonarCloud Scan (SAST)
+  - name: 'maven:3.6.3-jdk-11' # Use a Java-based image to run the scanner
+    id: 'sonar-scan'
+    entrypoint: 'bash'
+    dir: 'backend'
+    secretEnv: ['SONAR_TOKEN']
+    args:
+      - '-c'
+      - |
+        # Install the scanner dependencies
+        wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+        unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+        SONAR_SCANNER_HOME=$(pwd)/sonar-scanner-5.0.1.3006-linux
+
+        # Run the Python scan
+        $SONAR_SCANNER_HOME/bin/sonar-scanner \
+          -Dsonar.projectKey=rohanathan_rootsnwings-webapp \
+          -Dsonar.organization=rohanathan \
+          -Dsonar.host.url=https://sonarcloud.io \
+          -Dsonar.login=$$SONAR_TOKEN \
+          -Dsonar.sources=. \
+          -Dsonar.tests=. \
+          -Dsonar.python.coverage.reportPaths=coverage.xml
+
   # Step 2: Scan Image with Trivy
   - name: 'aquasec/trivy'
     id: 'vulnerability-scan'
@@ -79,6 +103,8 @@ availableSecrets:
   secretManager:
   - versionName: projects/${PROJECT_ID}/secrets/github-ssh-key/versions/latest
     env: 'SSH_KEY'
+  - versionName: projects/$PROJECT_ID/secrets/sonar-token/versions/latest
+    env: 'SONAR_TOKEN'
 
 # Custom substitutions (must start with underscore)
 substitutions:
