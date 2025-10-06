@@ -8,7 +8,7 @@ steps:
       - '-t'
       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$SHORT_SHA'
       - '.'
-
+  
   # Step 2: SonarCloud Scan (SAST)
   - name: 'sonarsource/sonar-scanner-cli:latest'
     id: 'sonar-scan'
@@ -22,7 +22,7 @@ steps:
       - '-Dsonar.token=$SONAR_TOKEN'
       - '-Dsonar.sources=.'
       - '-Dsonar.python.coverage.reportPaths=coverage.xml'
-
+  
   # Step 3: Scan Image with Trivy
   - name: 'aquasec/trivy'
     id: 'vulnerability-scan'
@@ -42,7 +42,7 @@ steps:
     args:
       - 'push'
       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-api:$SHORT_SHA'
-
+  
   # Step 5: GitOps Hand-off (Update config repo using yq)
   - name: 'alpine:3.19'
     id: 'update-config-repo'
@@ -71,13 +71,13 @@ steps:
         git clone --branch "${_CONFIG_BRANCH}" --depth 1 "${_CONFIG_REPO}" /workspace/config-repo
         cd /workspace/config-repo
         git config --global --add safe.directory /workspace/config-repo
-
+        
         # Check for the values file
         test -f "${_VALUES_PATH}" || { echo "ERROR: values file not found: ${_VALUES_PATH}"; exit 1; }
-
+        
         # --- Update YAML (image.tag) safely with yq ---
         yq -i ".image.tag = \"$SHORT_SHA\"" "${_VALUES_PATH}"
-
+        
         # --- Commit only if there are changes ---
         if ! git diff --quiet; then
           git add "${_VALUES_PATH}"
