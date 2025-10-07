@@ -19,7 +19,6 @@ steps:
       - '-Dsonar.projectKey=rohanathan_rootsnwings-webapp'
       - '-Dsonar.organization=rohanathan'
       - '-Dsonar.host.url=https://sonarcloud.io'
-      - '-Dsonar.token=$$SONAR_TOKEN'
       - '-Dsonar.sources=.'
       - '-Dsonar.python.coverage.reportPaths=coverage.xml'
   
