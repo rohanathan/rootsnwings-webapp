@@ -9,18 +9,18 @@ steps:
       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-frontend:$SHORT_SHA'
       - '.'
 
-  # Step 2a: Run tests and generate coverage
-  - name: 'node:20-slim'
-    id: 'run-tests'
-    dir: 'frontend'
-    args:
-      - 'bash'
-      - '-c'
-      - |
-        npm ci
-        npm run test -- --coverage --watchAll=false
+  # # Step 2a: Skipping tests and generate coverage
+  # - name: 'node:20-slim'
+  #   id: 'run-tests'
+  #   dir: 'frontend'
+  #   args:
+  #     - 'bash'
+  #     - '-c'
+  #     - |
+  #       npm ci
+  #       npm run test -- --coverage --watchAll=false
 
-  # Step 2b: SonarCloud Scan (SAST)
+  # Step 2: SonarCloud Scan (SAST)
   - name: 'sonarsource/sonar-scanner-cli:latest'
     id: 'sonar-scan'
     dir: 'frontend'

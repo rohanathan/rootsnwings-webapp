@@ -9,7 +9,7 @@ FROM base AS builder
 COPY package*.json ./
 RUN npm ci
 
-# Copy the rest of the source code
+# Copy rest of the source code
 COPY . .
 
 # Build the Next.js app in standalone mode (now with environment variables available)
