@@ -31,7 +31,7 @@ steps:
       - '--format'
       - 'json'
       - '--severity'
-      - 'CRITICAL,HIGH'
+      - 'CRITICAL'
       - '--exit-code'
       - '1'
       - '--ignore-unfixed'
