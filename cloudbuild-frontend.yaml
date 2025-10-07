@@ -8,29 +8,35 @@ steps:
       - '-t'
       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-frontend:$SHORT_SHA'
       - '.'
-  - name: 'node:20-slim' # Use a Node image
-    id: 'sonar-scan'
-    entrypoint: 'bash'
+
+  # Step 2a: Run tests and generate coverage
+  - name: 'node:20-slim'
+    id: 'run-tests'
     dir: 'frontend'
-    secretEnv: ['SONAR_TOKEN']
     args:
+      - 'bash'
       - '-c'
       - |
-        npm install -g sonar-scanner # Install scanner cli
         npm ci
-        npm run test -- --coverage # Run tests to generate coverage report
-      
-        sonar-scanner \
-          -Dsonar.projectKey=rohanathan_rootsnwings-webapp \
-          -Dsonar.organization=rohanathan \
-          -Dsonar.host.url=https://sonarcloud.io \
-          -Dsonar.login=$$SONAR_TOKEN \
-          -Dsonar.sources=src \
-          -Dsonar.tests=src \
-          -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx \
-          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+        npm run test -- --coverage --watchAll=false
 
-  # Step 2: Scan Image with Trivy
+  # Step 2b: SonarCloud Scan (SAST)
+  - name: 'sonarsource/sonar-scanner-cli:latest'
+    id: 'sonar-scan'
+    dir: 'frontend'
+    secretEnv: ['SONAR_TOKEN']
+    entrypoint: 'sonar-scanner'
+    args:
+      - '-Dsonar.projectKey=rohanathan_rootsnwings-webapp'
+      - '-Dsonar.organization=rohanathan'
+      - '-Dsonar.host.url=https://sonarcloud.io'
+      - '-Dsonar.sources=src'
+      - '-Dsonar.tests=src'
+      - '-Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx'
+      - '-Dsonar.javascript.lcov.reportPaths=coverage/lcov.info'
+      - '-Dsonar.working.directory=/tmp/.scannerwork'
+
+  # Step 3: Scan Image with Trivy
   - name: 'aquasec/trivy'
     id: 'vulnerability-scan'
     args:
@@ -44,13 +50,13 @@ steps:
       - '--ignore-unfixed' # Focus on issues you can actually fix
       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-frontend:$SHORT_SHA'
 
-  # Step 3: Push the Docker Image to Artifact Registry
+  # Step 4: Push the Docker Image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - 'europe-west2-docker.pkg.dev/${PROJECT_ID}/rootsnwings-repo/rootsnwings-frontend:$SHORT_SHA'
 
-  # Step 4: GitOps Hand-off (Update config repo using yq)
+  # Step 5: GitOps Hand-off (Update config repo using yq)
   - name: 'alpine:3.19'
     id: 'update-config-repo'
     entrypoint: 'sh'
@@ -110,5 +116,5 @@ substitutions:
   _CONFIG_BRANCH: main
   _VALUES_PATH: frontend/values.yaml # <-- Target the frontend values file
   
-# Optional logging bucket
+# Logging bucket
 logsBucket: 'gs://rootsnwings-build-logs-rootsnwings-465610'

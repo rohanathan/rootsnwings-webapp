@@ -2,7 +2,7 @@
 FROM node:18-alpine AS base
 WORKDIR /app
 
-# 2. Builder Stage: Install dependencies and builds application
+# 2. Builder Stage: Install dependencies & builds application
 FROM base AS builder
 
 # Copy package files and install ALL dependencies (including dev)

@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies into a dedicated virtual environment
-# This makes it easier to copy them to the next stage
+# This make it easier to copy them to the next stage
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
