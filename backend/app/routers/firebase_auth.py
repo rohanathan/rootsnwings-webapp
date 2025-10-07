@@ -20,7 +20,7 @@ router = APIRouter(
     tags=["Firebase Authentication"]
 )
 
-# Request or Response Models
+# Request / Response Models
 class FirebaseUserRegister(BaseModel):
     firstName: str
     lastName: str  
