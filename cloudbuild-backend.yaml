@@ -21,6 +21,7 @@ steps:
       - '-Dsonar.host.url=https://sonarcloud.io'
       - '-Dsonar.sources=.'
       - '-Dsonar.python.coverage.reportPaths=coverage.xml'
+      - '-Dsonar.working.directory=/tmp/.scannerwork'   # Added writable working dir      
   
   # Step 3: Scan Image with Trivy
   - name: 'aquasec/trivy'
