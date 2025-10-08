@@ -19,6 +19,7 @@ import os
 import logging
 import firebase_admin
 from firebase_admin import credentials
+import json
 
 # Set up a loggers
 logging.basicConfig(level=logging.INFO)
@@ -34,46 +35,66 @@ app = FastAPI(
 # --- Firebase Initialization ---
 def initialize_firebase():
     """Initialize Firebase Admin SDK based on the environment."""
-    import os
-    import firebase_admin
-    from firebase_admin import credentials
-    
     # KUBERNETES_SERVICE_HOST is always present in a GKE pod.
     is_kubernetes_env = os.getenv('KUBERNETES_SERVICE_HOST')
-    
+
     # GOOGLE_CLOUD_PROJECT is usually set in GCP environments.
     is_gcp_project = os.getenv('GOOGLE_CLOUD_PROJECT')
 
     # Define the environment as 'production' if it's running in Kubernetes or Cloud Run.
-    is_production = is_kubernetes_env or os.getenv('K_SERVICE')
+    is_production = bool(is_kubernetes_env or os.getenv('K_SERVICE'))
+
+    # Environment supplied credentials
+    service_account_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+    service_account_json = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
 
     try:
         # Check if the app is already initialized to prevent errors.
-        if not firebase_admin._apps:
-            
-            if is_production:
-                # --- PRODUCTION PATH (ON GKE/CLOUD RUN) ---
-                # On GKE, this path uses Application Default Credentials (ADC)
-                # provided by Workload Identity.
-                logger.info(f"Production environment detected. Initializing Firebase SDK automatically...")
-                
-                # The service account is inferred automatically from the environment (Workload Identity)
-                firebase_admin.initialize_app()
-            else:
-                # --- LOCAL DEVELOPMENT PATH ---
-                logger.info("Local environment detected. Initializing Firebase SDK with service account key...")
-                service_account_path = "secrets/serviceAccountKey.json"
-                
-                if not os.path.exists(service_account_path):
-                    error_msg = f"Service account key not found at {service_account_path}. Please ensure the file exists for local development."
-                    logger.error(error_msg)
-                    raise FileNotFoundError(error_msg)
-                
-                cred = credentials.Certificate(service_account_path)
-                firebase_admin.initialize_app(cred)
-            
-            logger.info("Firebase Admin SDK initialized successfully.")
-            
+        if firebase_admin._apps:
+            logger.info("Firebase Admin SDK already initialized; skipping re-initialization.")
+            return
+
+        cred = None
+
+        if service_account_json:
+            logger.info("Initializing Firebase using FIREBASE_SERVICE_ACCOUNT_JSON environment variable.")
+            try:
+                cred_dict = json.loads(service_account_json)
+                cred = credentials.Certificate(cred_dict)
+            except json.JSONDecodeError as decode_error:
+                logger.error("Invalid JSON in FIREBASE_SERVICE_ACCOUNT_JSON environment variable.")
+                raise decode_error
+        elif service_account_path and os.path.exists(service_account_path):
+            logger.info("Initializing Firebase using GOOGLE_APPLICATION_CREDENTIALS file.")
+            cred = credentials.Certificate(service_account_path)
+        elif is_production:
+            # --- PRODUCTION PATH (ON GKE/CLOUD RUN) ---
+            # On GKE, this path uses Application Default Credentials (ADC)
+            # provided by Workload Identity.
+            logger.info("Production environment detected. Initializing Firebase SDK with Application Default Credentials...")
+            cred = credentials.ApplicationDefault()
+        else:
+            # --- LOCAL DEVELOPMENT PATH ---
+            logger.info("Local environment detected. Initializing Firebase SDK with service account key file...")
+            default_service_account_path = "secrets/serviceAccountKey.json"
+
+            if not os.path.exists(default_service_account_path):
+                error_msg = (
+                    f"Service account key not found at {default_service_account_path}. "
+                    "Please ensure the file exists for local development."
+                )
+                logger.error(error_msg)
+                raise FileNotFoundError(error_msg)
+
+            cred = credentials.Certificate(default_service_account_path)
+
+        if cred:
+            firebase_admin.initialize_app(cred)
+        else:
+            firebase_admin.initialize_app()
+
+        logger.info("Firebase Admin SDK initialized successfully.")
+
     except Exception as e:
         logger.error(f"Failed to initialize Firebase Admin SDK: {str(e)}")
         raise e
